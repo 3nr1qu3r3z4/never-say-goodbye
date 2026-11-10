@@ -36,7 +36,7 @@ const sealedMessages = [
 export default function Page() {
   return (
     <main className="overflow-hidden bg-[#0F172A] text-slate-100">
-      <section className="relative isolate flex min-h-[92svh] flex-col items-center justify-center px-6 py-20 text-center sm:px-8">
+      <section className="relative isolate flex min-h-[92svh] flex-col items-center justify-center px-6 pt-8 pb-32 text-center sm:px-8 sm:pt-8 sm:pb-32">
         <div
           aria-hidden="true"
           className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_50%_35%,rgba(216,163,91,0.12),transparent_58%)]"
@@ -52,24 +52,27 @@ export default function Page() {
           width={768}
           height={768}
           priority
-          className="mb-2 h-[10.4rem] w-[10.4rem] object-contain sm:h-[13rem] sm:w-[13rem]"
+          className="mb-1 h-[12.5rem] w-[12.5rem] object-contain sm:h-[15.6rem] sm:w-[15.6rem]"
         />
         <h1 className="max-w-4xl font-serif text-5xl leading-[1.08] tracking-tight text-white sm:text-6xl md:text-7xl">
           Never Say Goodbye
         </h1>
-        <p className="mt-2 text-xs font-medium uppercase tracking-[0.32em] text-[#D8A35B] sm:text-sm">
+        <p className="mt-1 text-[0.65rem] font-medium uppercase tracking-[0.24em] text-[#D8A35B] sm:text-xs">
           Connection Beyond Goodbye
         </p>
-        <div className="mt-8 flex flex-col items-center font-serif leading-relaxed">
-          <div className="flex flex-col items-center gap-1 text-2xl text-slate-200 sm:flex-row sm:gap-8 sm:text-3xl">
+        <div className="mt-5 flex flex-col items-center font-serif leading-relaxed">
+          <div className="flex flex-wrap items-center justify-center gap-x-3 text-xl text-slate-200 sm:text-2xl md:text-3xl">
             <span>Preserve your presence.</span>
+            <span aria-hidden="true" className="text-[#D8A35B]">
+              •
+            </span>
             <span>Share your moments.</span>
           </div>
-          <p className="mt-1 text-[26.67px] text-[#D8A35B] sm:text-[32.67px]">
+          <p className="mt-1 text-[1.875rem] text-[#D8A35B] sm:text-[2.25rem]">
             Never truly say goodbye.
           </p>
         </div>
-        <div className="mt-10 flex w-full max-w-xl flex-col justify-center gap-4 sm:flex-row">
+        <div className="mt-6 flex w-full max-w-xl flex-col justify-center gap-4 sm:flex-row">
           <a
             href="#legacy-profile"
             className="rounded-full bg-[#D8A35B] px-8 py-4 text-sm font-semibold tracking-wide text-[#0F172A] transition hover:bg-[#e6b66f] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
@@ -83,7 +86,7 @@ export default function Page() {
             Search For A Loved One
           </a>
         </div>
-        <p className="mt-12 text-xs uppercase tracking-[0.24em] text-slate-500">
+        <p className="mt-16 text-xs uppercase tracking-[0.24em] text-slate-500">
           A place for the moments that remain
         </p>
       </section>
