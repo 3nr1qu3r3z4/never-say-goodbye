@@ -60,13 +60,15 @@ export default function Page() {
         <p className="mt-2 text-xs font-medium uppercase tracking-[0.32em] text-[#D8A35B] sm:text-sm">
           Connection Beyond Goodbye
         </p>
-        <p className="mt-8 font-serif text-2xl leading-relaxed text-slate-200 sm:text-3xl">
-          Preserve your presence.
-          <br />
-          Share your moments.
-          <br />
-          <span className="text-[#D8A35B]">Never truly say goodbye.</span>
-        </p>
+        <div className="mt-8 flex flex-col items-center font-serif leading-relaxed">
+          <div className="flex flex-col items-center gap-1 text-2xl text-slate-200 sm:flex-row sm:gap-8 sm:text-3xl">
+            <span>Preserve your presence.</span>
+            <span>Share your moments.</span>
+          </div>
+          <p className="mt-1 text-[26.67px] text-[#D8A35B] sm:text-[32.67px]">
+            Never truly say goodbye.
+          </p>
+        </div>
         <div className="mt-10 flex w-full max-w-xl flex-col justify-center gap-4 sm:flex-row">
           <a
             href="#legacy-profile"
