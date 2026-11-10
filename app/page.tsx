@@ -52,14 +52,14 @@ export default function Page() {
           width={768}
           height={768}
           priority
-          className="mb-7 h-32 w-32 object-contain sm:h-40 sm:w-40"
+          className="mb-2 h-[10.4rem] w-[10.4rem] object-contain sm:h-[13rem] sm:w-[13rem]"
         />
-        <p className="text-xs font-medium uppercase tracking-[0.32em] text-[#D8A35B] sm:text-sm">
-          Connection Beyond Goodbye
-        </p>
-        <h1 className="mt-5 max-w-4xl font-serif text-5xl leading-[1.08] tracking-tight text-white sm:text-6xl md:text-7xl">
+        <h1 className="max-w-4xl font-serif text-5xl leading-[1.08] tracking-tight text-white sm:text-6xl md:text-7xl">
           Never Say Goodbye
         </h1>
+        <p className="mt-2 text-xs font-medium uppercase tracking-[0.32em] text-[#D8A35B] sm:text-sm">
+          Connection Beyond Goodbye
+        </p>
         <p className="mt-8 font-serif text-2xl leading-relaxed text-slate-200 sm:text-3xl">
           Preserve your presence.
           <br />
