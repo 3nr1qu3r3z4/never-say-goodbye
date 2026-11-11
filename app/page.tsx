@@ -52,25 +52,20 @@ export default function Page() {
           width={768}
           height={768}
           priority
-          className="mb-1 h-[12.5rem] w-[12.5rem] object-contain sm:h-[15.6rem] sm:w-[15.6rem]"
+          className="mb-0 h-[15.25rem] w-[15.25rem] object-contain sm:h-[19rem] sm:w-[19rem]"
         />
-        <h1 className="max-w-4xl font-serif text-5xl leading-[1.08] tracking-tight text-white sm:text-6xl md:text-7xl">
+        <p className="mt-1 text-[0.65rem] font-medium uppercase tracking-[0.24em] text-[#D8A35B] sm:text-xs">
+          Build it today. Leave it forever.
+        </p>
+        <h1 className="mt-1 max-w-4xl font-serif text-5xl leading-[1.08] tracking-tight text-white sm:text-6xl md:text-7xl">
           Never Say Goodbye
         </h1>
-        <p className="mt-1 text-[0.65rem] font-medium uppercase tracking-[0.24em] text-[#D8A35B] sm:text-xs">
-          Connection Beyond Goodbye
-        </p>
-        <div className="mt-5 flex flex-col items-center font-serif leading-relaxed">
-          <div className="flex flex-wrap items-center justify-center gap-x-3 text-xl text-slate-200 sm:text-2xl md:text-3xl">
-            <span>Preserve your presence.</span>
-            <span aria-hidden="true" className="text-[#D8A35B]">
-              •
-            </span>
-            <span>Share your moments.</span>
-          </div>
-          <p className="mt-1 text-[1.875rem] text-[#D8A35B] sm:text-[2.25rem]">
-            Never truly say goodbye.
-          </p>
+        <div className="mt-2 flex flex-wrap items-center justify-center gap-x-3 font-serif text-xl leading-relaxed text-slate-200 sm:text-2xl md:text-3xl">
+          <span>Preserve your presence.</span>
+          <span aria-hidden="true" className="text-[#D8A35B]">
+            •
+          </span>
+          <span>Share your moments.</span>
         </div>
         <div className="mt-6 flex w-full max-w-xl flex-col justify-center gap-4 sm:flex-row">
           <a
