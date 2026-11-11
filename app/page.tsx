@@ -82,7 +82,7 @@ export default function Page() {
           </a>
         </div>
         <p className="mt-16 text-xs uppercase tracking-[0.24em] text-slate-500">
-          A place for the moments that remain
+          Where moments become legacy
         </p>
       </section>
 
