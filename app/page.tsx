@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 
 const howItWorks = [
   {
@@ -74,12 +75,12 @@ export default function Page() {
           >
             Create Your Legacy
           </a>
-          <a
-            href="#legacy-profile"
+          <Link
+            href="/search"
             className="rounded-full border border-[#D8A35B]/60 px-8 py-4 text-sm font-semibold tracking-wide text-[#f0c98e] transition hover:border-[#D8A35B] hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
           >
             Search For A Loved One
-          </a>
+          </Link>
         </div>
         <p className="mt-16 text-xs uppercase tracking-[0.24em] text-slate-500">
           Where moments become legacy
