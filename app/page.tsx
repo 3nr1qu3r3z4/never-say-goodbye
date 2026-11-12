@@ -123,14 +123,14 @@ export default function Page() {
         <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[1fr_0.9fr] lg:gap-20">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">
-              A life remembered
+              A life of moments
             </p>
             <h2 className="mt-4 font-serif text-3xl text-white sm:text-4xl">
-              Legacy Profile Preview
+              Moment Maker Profile
             </h2>
             <p className="mt-5 max-w-lg leading-7 text-slate-400">
               Every life holds a thousand moments worth keeping close. A legacy
-              profile brings those stories together in one meaningful place.
+              profile brings those moments together in one meaningful place.
             </p>
           </div>
 
@@ -143,9 +143,7 @@ export default function Page() {
               <div className="mb-8 flex h-16 w-16 items-center justify-center rounded-full border border-[#D8A35B]/40 bg-[#D8A35B]/10 font-serif text-2xl text-[#D8A35B]">
                 J
               </div>
-              <p className="text-xs uppercase tracking-[0.24em] text-[#D8A35B]">
-                Remembering
-              </p>
+              <div aria-hidden="true" className="h-4" />
               <h3 className="mt-2 font-serif text-3xl text-white">
                 John Michael Doe
               </h3>

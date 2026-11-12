@@ -112,6 +112,20 @@ export default function SignupPage() {
                   className={inputClassName}
                 />
               </div>
+              <div>
+                <label
+                  htmlFor="former-maiden-name"
+                  className="mb-2 block text-sm text-slate-300"
+                >
+                  Former / Maiden Name (Optional)
+                </label>
+                <input
+                  id="former-maiden-name"
+                  name="formerMaidenName"
+                  type="text"
+                  className={inputClassName}
+                />
+              </div>
               <div className="sm:col-span-2">
                 <label
                   htmlFor="email"
@@ -170,7 +184,7 @@ export default function SignupPage() {
                   htmlFor="identity-markers"
                   className="mb-2 block text-sm text-slate-300"
                 >
-                  How would you like to be remembered?{" "}
+                  What defines your moments?{" "}
                   <span className="text-slate-500">(optional)</span>
                 </label>
                 <input
