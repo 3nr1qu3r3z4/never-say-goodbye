@@ -220,38 +220,35 @@ export default function Page() {
       <section className="border-y border-white/10 bg-gradient-to-r from-slate-950/60 via-slate-900/60 to-slate-950/60 px-6 py-20 sm:px-8 sm:py-28">
         <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-2 lg:gap-20">
           <div className="order-2 flex justify-center lg:order-1">
-            <div className="relative w-full max-w-sm rounded-[2rem] border border-[#D8A35B]/40 bg-[#111c31] p-4 shadow-2xl shadow-black/30">
-              <div className="rounded-[1.5rem] border border-white/10 p-8">
-                <div className="flex aspect-[4/5] flex-col items-center justify-center rounded-xl border border-dashed border-[#D8A35B]/40 bg-gradient-to-br from-[#D8A35B]/10 via-transparent to-slate-800/60 text-center">
-                  <span className="font-serif text-5xl text-[#D8A35B]/80">
-                    ✦
-                  </span>
-                  <span className="mt-4 text-xs uppercase tracking-[0.24em] text-slate-400">
-                    Your memories,
-                  </span>
-                  <span className="mt-2 font-serif text-2xl text-white">
-                    kept close
-                  </span>
-                </div>
-                <p className="mt-5 text-center text-xs uppercase tracking-[0.22em] text-[#D8A35B]">
-                  Legacy Frame™
-                </p>
+            <div className="w-full max-w-sm">
+              <div className="relative mx-auto aspect-[4/5] w-full max-w-[18rem] overflow-hidden rounded-xl shadow-2xl shadow-black/30">
+                <Image
+                  src="/images/legacy-frame-upload.png"
+                  alt="A framed portrait resting on a side table in a warm living room"
+                  fill
+                  sizes="(max-width: 640px) 80vw, 288px"
+                  className="object-cover object-top"
+                />
               </div>
+              <p className="mt-5 text-center text-xs uppercase tracking-[0.22em] text-[#D8A35B]">
+                Legacy Frame™
+              </p>
             </div>
           </div>
           <div className="order-1 lg:order-2">
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">
-              A tangible way to remember
+              LEGACY FRAME™
             </p>
             <h2 className="mt-4 font-serif text-3xl text-white sm:text-4xl">
-              Keep Memories Close
+              A Window Into Your Family&apos;s Story
             </h2>
             <p className="mt-5 leading-7 text-slate-300">
-              Transform cherished photos, videos, and voice recordings into a
-              beautifully prepared Legacy Frame™.
-            </p>
-            <p className="mt-4 leading-7 text-slate-400">
-              A timeless way to keep important moments nearby.
+              Display your favorite moments, photos, videos, and voice messages
+              from the people who matter most.
+              <br />
+              Always connected.
+              <br />
+              Always close.
             </p>
             <a
               href="#features"
@@ -267,25 +264,25 @@ export default function Page() {
         id="features"
         className="mx-auto max-w-7xl px-6 py-20 text-center sm:px-8 sm:py-28"
       >
-        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">
-          More ways to stay connected
-        </p>
-        <p className="mx-auto mt-5 max-w-2xl leading-7 text-slate-400">
-          Preserve not only memories, but the relationships that shaped them.
-        </p>
-        <div className="mx-auto mt-10 grid max-w-3xl gap-4 sm:grid-cols-2">
+        <div className="mx-auto grid max-w-3xl gap-4 sm:grid-cols-2">
           {[
-            "Connected Lives™",
-            "Legacy Tree™",
-            "Future Moment Makers™",
-            "Cannot Open Until™",
+            { name: "Connected Lives™", href: "/connected-lives" },
+            { name: "Legacy Tree™", href: "/legacy-tree" },
+            {
+              name: "Future Moment Makers™",
+              href: "/future-moment-maker",
+            },
+            { name: "Cannot Open Until™", href: "/cannot-open-until" },
           ].map((feature) => (
-            <article
-              key={feature}
-              className="rounded-2xl border border-white/10 bg-white/[0.03] px-6 py-9"
+            <Link
+              key={feature.name}
+              href={feature.href}
+              className="cursor-pointer rounded-2xl border border-white/10 bg-white/[0.03] px-6 py-9 transition duration-200 hover:-translate-y-1 hover:border-[#D8A35B]/40 hover:bg-white/[0.06] hover:shadow-lg hover:shadow-[#D8A35B]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
             >
-              <h3 className="font-serif text-2xl text-white">{feature}</h3>
-            </article>
+              <h3 className="font-serif text-2xl text-white">
+                {feature.name}
+              </h3>
+            </Link>
           ))}
         </div>
       </section>

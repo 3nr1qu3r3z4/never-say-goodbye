@@ -338,8 +338,12 @@ export default function ProfilePreviewPage() {
               Keep Memories Close
             </h2>
             <p className="mt-5 leading-7 text-slate-300">
-              Transform cherished photos, videos, and voice recordings into a
-              beautifully prepared Legacy Frame™.
+              Display your favorite moments, photos, videos, and voice messages
+              from the people who matter most.
+              <br />
+              Always connected.
+              <br />
+              Always close.
             </p>
             <button
               type="button"
