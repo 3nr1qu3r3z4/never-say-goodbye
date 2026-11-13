@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "John Michael Doe | Never Say Goodbye",
@@ -37,9 +38,30 @@ const personalMoments = [
 ];
 
 const lovedOnes = [
-  { icon: "❤️", name: "Mary Doe", relationship: "Spouse" },
-  { icon: "👦", name: "James Doe", relationship: "Son" },
-  { icon: "🤝", name: "Tom Wilson", relationship: "Best Friend" },
+  {
+    icon: "❤️",
+    name: "Mary Elizabeth Doe",
+    relationship: "Spouse",
+    href: "/mary-doe",
+  },
+  {
+    icon: "👦",
+    name: "James Michael Doe",
+    relationship: "Son",
+    href: "/james-doe",
+  },
+  {
+    icon: "🤝",
+    name: "Emma Rose Doe",
+    relationship: "Daughter",
+    href: "/emma-doe",
+  },
+  {
+    icon: "❤️",
+    name: "Robert “Bobby” Hayes",
+    relationship: "Lifelong Friend",
+    href: "/bobby-hayes",
+  },
 ];
 
 export default function ProfilePreviewPage() {
@@ -81,7 +103,6 @@ export default function ProfilePreviewPage() {
             Father <span className="px-1 text-[#D8A35B]">•</span> Veteran{" "}
             <span className="px-1 text-[#D8A35B]">•</span> Musician
           </p>
-
           <div className="mx-auto mt-8 grid max-w-2xl grid-cols-2 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] text-left">
             <div className="border-r border-white/10 p-5 sm:p-7">
               <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-[#D8A35B]">
@@ -253,11 +274,32 @@ export default function ProfilePreviewPage() {
                 </span>
                 <div>
                   <h3 className="font-serif text-lg text-white">
-                    {person.name}
+                    <Link
+                      href={person.href}
+                      className="transition hover:text-[#f0c98e] focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D8A35B]"
+                    >
+                      {person.name}
+                    </Link>
                   </h3>
                   <p className="mt-1 text-sm text-slate-400">
                     {person.relationship}
                   </p>
+                  {person.name === "Mary Elizabeth Doe" && (
+                    <Link
+                      href="/mary-doe"
+                      className="mt-2 inline-flex text-sm font-medium text-[#f0c98e] transition hover:text-[#D8A35B] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D8A35B]"
+                    >
+                      View Mary&apos;s Moments
+                    </Link>
+                  )}
+                  {person.name === "Robert “Bobby” Hayes" && (
+                    <Link
+                      href="/bobby-hayes"
+                      className="mt-2 inline-flex text-sm font-medium text-[#f0c98e] transition hover:text-[#D8A35B] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D8A35B]"
+                    >
+                      View Bobby&apos;s Moments
+                    </Link>
+                  )}
                 </div>
               </article>
             ))}
