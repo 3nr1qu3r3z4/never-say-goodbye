@@ -82,6 +82,12 @@ export default function Page() {
             Find A Moment Maker
           </Link>
         </div>
+        <Link
+          href="/legacy-tree"
+          className="mt-5 inline-flex text-sm font-medium text-[#f0c98e] transition hover:text-[#D8A35B] focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
+        >
+          🌳 Explore Legacy Tree™
+        </Link>
         <p className="mt-16 text-xs uppercase tracking-[0.24em] text-slate-500">
           Where moments become legacy
         </p>

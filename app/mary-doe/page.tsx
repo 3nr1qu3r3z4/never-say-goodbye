@@ -288,12 +288,14 @@ export default function MaryDoePage() {
                     {person.relationship}
                   </p>
                   {person.name === "John Michael Doe" && (
-                    <Link
-                      href="/profile-preview"
-                      className="mt-2 inline-flex text-sm font-medium text-[#f0c98e] transition hover:text-[#D8A35B] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D8A35B]"
-                    >
-                      View John&apos;s Moments
-                    </Link>
+                    <>
+                      <Link
+                        href="/profile-preview"
+                        className="mt-2 inline-flex text-sm font-medium text-[#f0c98e] transition hover:text-[#D8A35B] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D8A35B]"
+                      >
+                        View John&apos;s Moments
+                      </Link>
+                    </>
                   )}
                 </div>
               </article>

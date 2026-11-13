@@ -44,13 +44,6 @@ const children = [
   },
 ];
 
-const friend = {
-  name: "Robert “Bobby” Hayes",
-  href: "/bobby-hayes",
-  image: "/images/bobby-hayes.jpg",
-  imageAlt: "Portrait of Robert “Bobby” Hayes",
-};
-
 const currentViewer = { name: "John Michael Doe", tier: 2 };
 const hasLegacyTreeAccess = currentViewer.tier >= 2;
 
@@ -107,7 +100,7 @@ export default function LegacyTreePage() {
       </header>
 
       <section
-        aria-label="Doe family and connected friend"
+        aria-label="Doe family"
         className="mx-auto max-w-6xl px-4 pb-16 sm:px-8 sm:pb-20"
       >
         <div className="relative rounded-3xl border border-[#D8A35B]/25 bg-gradient-to-br from-slate-800/60 to-slate-950/70 p-5 shadow-2xl shadow-black/20 sm:p-10 lg:p-14">
@@ -143,19 +136,38 @@ export default function LegacyTreePage() {
                   className="relative before:absolute before:-top-8 before:left-1/2 before:h-8 before:w-px before:-translate-x-1/2 before:bg-[#D8A35B]/60"
                 >
                   <PersonCard {...person} />
+                  {person.name === "James Michael Doe" && (
+                    <div className="mx-auto flex max-w-xs flex-col items-center pt-3">
+                      <span
+                        aria-hidden="true"
+                        className="h-6 w-px bg-gradient-to-b from-[#D8A35B]/60 to-[#D8A35B]/30"
+                      />
+                      <Link
+                        href="/future-moment-maker"
+                        className="group flex w-full flex-col items-center rounded-2xl border border-[#D8A35B]/35 bg-gradient-to-br from-[#D8A35B]/[0.08] to-slate-950/80 p-4 text-center shadow-lg shadow-[#D8A35B]/[0.06] transition duration-200 hover:-translate-y-0.5 hover:border-[#D8A35B]/60 hover:shadow-[#D8A35B]/[0.12] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
+                      >
+                        <span
+                          aria-hidden="true"
+                          className="flex h-12 w-12 items-center justify-center rounded-full border border-[#D8A35B]/50 bg-[#D8A35B]/10 font-serif text-xl text-[#f0c98e] shadow-[0_0_18px_rgba(216,163,91,0.18)]"
+                        >
+                          D
+                        </span>
+                        <span className="mt-3 font-serif text-base text-white transition group-hover:text-[#f0c98e]">
+                          Debbie Doe
+                        </span>
+                        <span className="mt-2 inline-flex rounded-full border border-[#D8A35B]/35 bg-[#D8A35B]/10 px-2.5 py-1 text-[0.6rem] font-semibold tracking-wide text-[#f0c98e]">
+                          Future Moment Maker™
+                        </span>
+                        <span className="mt-2 text-xs text-slate-400">
+                          Awaiting Claim
+                        </span>
+                      </Link>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
 
-            <div className="mx-auto mt-12 max-w-md border-t border-dashed border-[#D8A35B]/30 pt-7 text-center sm:mt-16">
-              <p className="text-[0.65rem] font-semibold uppercase tracking-[0.24em] text-[#D8A35B]">
-                Friend Branch · Connected Lives™
-              </p>
-              <div className="mx-auto mt-5 max-w-xs">
-                <PersonCard {...friend} />
-              </div>
-              <p className="mt-3 text-sm text-slate-400">Lifelong Friend</p>
-            </div>
           </div>
 
           {!hasLegacyTreeAccess && (
@@ -165,8 +177,7 @@ export default function LegacyTreePage() {
                   Connected Lives™
                 </p>
                 <h2 className="mt-4 font-serif text-2xl leading-snug text-white sm:text-3xl">
-                  Legacy Tree™ is available with Moment Maker Gold and Moment
-                  Maker Legacy
+                  Legacy Tree™ is available to Premium Moment Makers.
                 </h2>
                 <p className="mt-4 leading-7 text-slate-300">
                   Upgrade to unlock the full family story and Connected Lives™
@@ -181,6 +192,28 @@ export default function LegacyTreePage() {
               </div>
             </div>
           )}
+        </div>
+      </section>
+
+      <section className="border-y border-white/10 bg-slate-950/30 px-6 py-16 sm:px-8 sm:py-20">
+        <div className="mx-auto max-w-6xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">
+            Connected Lives™
+          </p>
+          <h2 className="mt-3 font-serif text-3xl text-white sm:text-4xl">
+            Notable Connections
+          </h2>
+          <div className="mt-8 max-w-md">
+            <PersonCard
+              name="Robert “Bobby” Hayes"
+              href="/bobby-hayes"
+              image="/images/bobby-hayes.jpg"
+              imageAlt="Portrait of Robert “Bobby” Hayes"
+            />
+            <p className="mt-3 text-center text-sm text-slate-400">
+              Lifelong Friend
+            </p>
+          </div>
         </div>
       </section>
 
