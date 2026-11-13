@@ -82,6 +82,15 @@ export default function Page() {
             Find A Moment Maker
           </Link>
         </div>
+        <p className="mt-4 text-sm text-slate-400">
+          Already a Moment Maker?{" "}
+          <Link
+            href="/login"
+            className="font-medium text-[#f0c98e] underline decoration-[#D8A35B]/40 underline-offset-4 transition hover:text-white"
+          >
+            Sign in
+          </Link>
+        </p>
         <Link
           href="/legacy-tree"
           className="mt-5 inline-flex text-sm font-medium text-[#f0c98e] transition hover:text-[#D8A35B] focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
@@ -218,10 +227,14 @@ export default function Page() {
       </section>
 
       <section className="border-y border-white/10 bg-gradient-to-r from-slate-950/60 via-slate-900/60 to-slate-950/60 px-6 py-20 sm:px-8 sm:py-28">
-        <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-2 lg:gap-20">
+        <Link
+          href="/legacy-frame"
+          aria-label="Learn more about Legacy Frame™"
+          className="group mx-auto grid max-w-6xl items-center gap-12 focus-visible:outline-2 focus-visible:outline-offset-8 focus-visible:outline-[#D8A35B] lg:grid-cols-2 lg:gap-20"
+        >
           <div className="order-2 flex justify-center lg:order-1">
             <div className="w-full max-w-sm">
-              <div className="relative mx-auto aspect-[4/5] w-full max-w-[18rem] overflow-hidden rounded-xl shadow-2xl shadow-black/30">
+              <div className="relative mx-auto aspect-[4/5] w-full max-w-[18rem] overflow-hidden rounded-xl shadow-2xl shadow-black/30 transition group-hover:shadow-[#D8A35B]/15">
                 <Image
                   src="/images/legacy-frame-upload.png"
                   alt="A framed portrait resting on a side table in a warm living room"
@@ -250,14 +263,13 @@ export default function Page() {
               <br />
               Always close.
             </p>
-            <a
-              href="#features"
-              className="mt-8 inline-flex rounded-full border border-[#D8A35B]/60 px-7 py-3.5 text-sm font-semibold text-[#f0c98e] transition hover:bg-[#D8A35B]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
+            <span
+              className="mt-8 inline-flex rounded-full border border-[#D8A35B]/60 px-7 py-3.5 text-sm font-semibold text-[#f0c98e] transition group-hover:border-[#D8A35B] group-hover:bg-[#D8A35B]/10"
             >
               Learn More
-            </a>
+            </span>
           </div>
-        </div>
+        </Link>
       </section>
 
       <section

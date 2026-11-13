@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import ProtectedMoment from "./protected-moment";
 
 export const metadata: Metadata = {
   title: "John Michael Doe | Never Say Goodbye",
@@ -32,7 +33,7 @@ const sharedMoments = [
 ];
 
 const personalMoments = [
-  "A Special Message For Jane",
+  "Letter To My Granddaughter",
   "Open On Wedding Day",
   "Open June 14, 2035",
 ];
@@ -221,30 +222,7 @@ export default function ProfilePreviewPage() {
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {personalMoments.map((moment) => (
-            <article
-              key={moment}
-              className="overflow-hidden rounded-2xl border border-[#D8A35B]/20 bg-slate-900"
-            >
-              <div className="relative h-36 overflow-hidden">
-                <div
-                  aria-hidden="true"
-                  className="absolute inset-0 scale-110 bg-gradient-to-br from-[#D8A35B]/25 via-slate-700 to-[#0F172A] blur-xl"
-                />
-                <span
-                  aria-hidden="true"
-                  className="absolute inset-0 flex items-center justify-center text-3xl text-white/70"
-                >
-                  🔒
-                </span>
-                <span className="absolute bottom-3 right-4 text-xs uppercase tracking-[0.18em] text-[#f0c98e]">
-                  Sealed
-                </span>
-              </div>
-              <h3 className="flex items-center gap-2 px-5 py-4 font-serif text-lg text-white">
-                <span aria-hidden="true">🔒</span>
-                {moment}
-              </h3>
-            </article>
+            <ProtectedMoment key={moment} title={moment} />
           ))}
         </div>
         <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.03] p-6 sm:p-8">
@@ -314,19 +292,21 @@ export default function ProfilePreviewPage() {
       </section>
 
       <section className="px-6 py-16 sm:px-8 sm:py-20">
-        <div className="mx-auto grid max-w-6xl items-center gap-10 rounded-3xl border border-[#D8A35B]/20 bg-gradient-to-br from-slate-900 to-slate-950 p-7 sm:p-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-14 lg:p-14">
+        <Link
+          href="/legacy-frame"
+          aria-label="Learn more about Legacy Frame™"
+          className="group mx-auto grid max-w-6xl items-center gap-10 rounded-3xl border border-[#D8A35B]/20 bg-gradient-to-br from-slate-900 to-slate-950 p-7 transition hover:border-[#D8A35B]/40 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B] sm:p-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-14 lg:p-14"
+        >
           <div className="flex justify-center">
             <div className="w-full max-w-xs rounded-[1.75rem] border border-[#D8A35B]/35 bg-[#111c31] p-3 shadow-2xl shadow-black/30">
-              <div className="flex aspect-[4/5] flex-col items-center justify-center rounded-[1.25rem] border border-dashed border-[#D8A35B]/35 bg-gradient-to-br from-[#D8A35B]/10 via-transparent to-slate-800/60 text-center">
-                <span className="font-serif text-5xl text-[#D8A35B]/80">
-                  ✦
-                </span>
-                <span className="mt-4 text-xs uppercase tracking-[0.22em] text-slate-400">
-                  Your memories,
-                </span>
-                <span className="mt-2 font-serif text-2xl text-white">
-                  kept close
-                </span>
+              <div className="relative aspect-[4/5] overflow-hidden rounded-[1.25rem]">
+                <Image
+                  src="/images/legacy-frame-upload.png"
+                  alt="Legacy Frame™ displaying a family photo in a warm living room"
+                  fill
+                  sizes="(max-width: 640px) 80vw, 288px"
+                  className="object-cover object-top"
+                />
               </div>
             </div>
           </div>
@@ -345,14 +325,13 @@ export default function ProfilePreviewPage() {
               <br />
               Always close.
             </p>
-            <button
-              type="button"
-              className="mt-7 rounded-full border border-[#D8A35B]/60 px-7 py-3.5 text-sm font-semibold text-[#f0c98e] transition hover:bg-[#D8A35B]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
+            <span
+              className="mt-7 inline-flex rounded-full border border-[#D8A35B]/60 px-7 py-3.5 text-sm font-semibold text-[#f0c98e] transition group-hover:border-[#D8A35B] group-hover:bg-[#D8A35B]/10"
             >
               Learn More
-            </button>
+            </span>
           </div>
-        </div>
+        </Link>
       </section>
 
       <footer className="border-t border-white/10 px-6 py-8 text-center">
