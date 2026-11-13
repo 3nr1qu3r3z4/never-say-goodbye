@@ -254,7 +254,7 @@ export default function Page() {
               A timeless way to keep important moments nearby.
             </p>
             <a
-              href="#coming-soon"
+              href="#features"
               className="mt-8 inline-flex rounded-full border border-[#D8A35B]/60 px-7 py-3.5 text-sm font-semibold text-[#f0c98e] transition hover:bg-[#D8A35B]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
             >
               Learn More
@@ -264,28 +264,27 @@ export default function Page() {
       </section>
 
       <section
-        id="coming-soon"
+        id="features"
         className="mx-auto max-w-7xl px-6 py-20 text-center sm:px-8 sm:py-28"
       >
         <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">
           More ways to stay connected
         </p>
-        <h2 className="mt-4 font-serif text-3xl text-white sm:text-4xl">
-          Coming Soon
-        </h2>
         <p className="mx-auto mt-5 max-w-2xl leading-7 text-slate-400">
           Preserve not only memories, but the relationships that shaped them.
         </p>
         <div className="mx-auto mt-10 grid max-w-3xl gap-4 sm:grid-cols-2">
-          {["Connected Lives™", "Legacy Tree™"].map((feature) => (
+          {[
+            "Connected Lives™",
+            "Legacy Tree™",
+            "Future Moment Makers™",
+            "Cannot Open Until™",
+          ].map((feature) => (
             <article
               key={feature}
               className="rounded-2xl border border-white/10 bg-white/[0.03] px-6 py-9"
             >
-              <span className="text-xs uppercase tracking-[0.22em] text-[#D8A35B]">
-                Coming soon
-              </span>
-              <h3 className="mt-4 font-serif text-2xl text-white">{feature}</h3>
+              <h3 className="font-serif text-2xl text-white">{feature}</h3>
             </article>
           ))}
         </div>
