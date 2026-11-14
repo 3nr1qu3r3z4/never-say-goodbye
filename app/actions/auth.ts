@@ -1,10 +1,9 @@
 "use server";
 
 import { randomUUID } from "node:crypto";
-import { SqliteError } from "better-sqlite3";
 import { redirect } from "next/navigation";
 import { createSession, deleteCurrentSession } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { getSql } from "@/lib/db";
 import { hashSecret, verifySecret } from "@/lib/password";
 
 export type AuthFormState = { error?: string };
@@ -85,10 +84,10 @@ export async function signupAction(
     return { error: "Enter a valid profile display name." };
   }
 
-  const existingUser = db
-    .prepare("SELECT id FROM users WHERE email = ? COLLATE NOCASE")
-    .get(email);
-  if (existingUser) {
+  const sql = getSql();
+  const existingUsers =
+    await sql`SELECT id FROM users WHERE LOWER(email) = ${email} LIMIT 1`;
+  if (existingUsers.length > 0) {
     return { error: "An account with that email already exists. Try signing in." };
   }
 
@@ -98,39 +97,34 @@ export async function signupAction(
   const passwordHash = await hashSecret(password);
 
   try {
-    db.transaction(() => {
-      db.prepare(
-        `INSERT INTO users (
+    await sql.transaction([
+      sql`
+        INSERT INTO users (
           id, email, password_hash, first_name, middle_name, last_name,
           display_name, display_style, membership, discoverability, featured,
           created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      ).run(
-        userId,
-        email,
-        passwordHash,
-        firstName,
-        middleName || null,
-        lastName,
-        displayName,
-        selectedStyle,
-        membership,
-        discoverability,
-        formData.get("featured") === "on" ? 1 : 0,
-        now,
-        now,
-      );
-      db.prepare(
-        "INSERT INTO legacy_trees (id, owner_user_id, name, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
-      ).run(treeId, userId, `${displayName}'s Legacy Tree™`, now, now);
-      db.prepare(
-        "INSERT INTO legacy_tree_members (tree_id, user_id, role, joined_at) VALUES (?, ?, 'owner', ?)",
-      ).run(treeId, userId, now);
-    })();
+        ) VALUES (
+          ${userId}, ${email}, ${passwordHash}, ${firstName}, ${middleName || null},
+          ${lastName}, ${displayName}, ${selectedStyle}, ${membership},
+          ${discoverability}, ${formData.get("featured") === "on"},
+          ${now}, ${now}
+        )
+      `,
+      sql`
+        INSERT INTO legacy_trees (id, owner_user_id, name, created_at, updated_at)
+        VALUES (${treeId}, ${userId}, ${`${displayName}'s Legacy Tree™`}, ${now}, ${now})
+      `,
+      sql`
+        INSERT INTO legacy_tree_members (tree_id, user_id, role, joined_at)
+        VALUES (${treeId}, ${userId}, 'owner', ${now})
+      `,
+    ]);
   } catch (error) {
     if (
-      error instanceof SqliteError &&
-      error.code === "SQLITE_CONSTRAINT_UNIQUE"
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === "23505"
     ) {
       return { error: "An account with that email already exists. Try signing in." };
     }
@@ -151,9 +145,12 @@ export async function loginAction(
     return { error: "Enter your email and password." };
   }
 
-  const user = db
-    .prepare("SELECT id, password_hash AS passwordHash FROM users WHERE email = ?")
-    .get(email) as { id: string; passwordHash: string } | undefined;
+  const sql = getSql();
+  const [user] = (await sql`
+    SELECT id, password_hash AS "passwordHash"
+    FROM users WHERE LOWER(email) = ${email}
+    LIMIT 1
+  `) as { id: string; passwordHash: string }[];
   if (!user || !(await verifySecret(password, user.passwordHash))) {
     return { error: "The email or password is not correct." };
   }

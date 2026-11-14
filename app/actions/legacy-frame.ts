@@ -1,6 +1,6 @@
 "use server";
 
-import { db } from "@/lib/db";
+import { getSql } from "@/lib/db";
 
 export type LegacyFrameInterestState = {
   error?: string;
@@ -21,9 +21,12 @@ export async function submitLegacyFrameInterest(
     return { error: "Enter a valid email address." };
   }
 
-  db.prepare(
-    "INSERT INTO legacy_frame_interests (email, created_at) VALUES (?, ?) ON CONFLICT(email) DO NOTHING",
-  ).run(email, new Date().toISOString());
+  const sql = getSql();
+  await sql`
+    INSERT INTO legacy_frame_interests (email, created_at)
+    VALUES (${email}, ${new Date().toISOString()})
+    ON CONFLICT DO NOTHING
+  `;
 
   return {
     success:

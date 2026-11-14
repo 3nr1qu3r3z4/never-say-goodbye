@@ -3,24 +3,25 @@
 Never Say Goodbye is a Moment Maker platform for preserving stories, moments,
 and family connections.
 
-## Run locally
+## Run locally and deploy
 
-```powershell
-npm install
-npm run dev
-```
+The application uses Neon managed PostgreSQL for persistent data. It does not
+create a local data directory or write account data to the app filesystem.
 
-The app creates a SQLite database at `data/never-say-goodbye.sqlite` on first
-use. Set `DATABASE_PATH` to an absolute path on persistent storage to place it
-elsewhere. The schema is maintained in `db/schema.sql`.
+1. Create a PostgreSQL database with Neon.
+2. Run [`db/schema.sql`](./db/schema.sql) in the Neon SQL Editor to create the
+   tables and indexes.
+3. Set `DATABASE_URL` to the database's pooled connection string in local
+   `.env.local` and in Vercel Project Settings → Environment Variables for each
+   deployment environment.
+4. Deploy the application.
 
 Create an account at `/signup`, sign in at `/login`, and use the authenticated
 dashboard at `/dashboard`. Passwords are stored as scrypt hashes; sessions use
-opaque, HTTP-only cookies and are persisted in the database. Moment drafts and
-published moments are scoped to the signed-in account.
+opaque HTTP-only cookies and are persisted in PostgreSQL. Moments, drafts,
+Legacy Trees, Connected Lives, Future Moment Makers, and Legacy Frame interest
+are stored in PostgreSQL.
 
-SQLite requires a persistent disk and a single application instance. For a
-multi-instance or serverless production deployment, move the schema and data
-access layer to a managed database with durable storage. Before public
-production launch, add email verification, account recovery, abuse/rate
-limiting, backups, and the platform's privacy and data-retention policies.
+Email verification, account recovery, abuse/rate limiting, backups, and the
+platform's privacy and data-retention policies should be completed before
+public production launch.

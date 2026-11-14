@@ -14,7 +14,7 @@ export const instant = false;
 
 export default async function DashboardPage() {
   const user = await requireUser();
-  const data = getDashboardData(user);
+  const data = await getDashboardData(user);
   const actions = [
     {
       icon: "➕",

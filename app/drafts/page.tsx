@@ -18,7 +18,7 @@ const momentTitles = {
 
 export default async function DraftsPage() {
   const user = await requireUser();
-  const drafts = getSavedDrafts(user);
+  const drafts = await getSavedDrafts(user);
 
   return (
     <main className="min-h-screen bg-[#0F172A] px-5 py-8 text-slate-100 sm:px-8 sm:py-12">

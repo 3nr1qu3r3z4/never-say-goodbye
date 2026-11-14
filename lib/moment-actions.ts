@@ -2,7 +2,7 @@
 
 import { randomUUID } from "node:crypto";
 import { getCurrentUser } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { getSql } from "@/lib/db";
 import { hashSecret } from "@/lib/password";
 import type {
   Audience,
@@ -55,15 +55,16 @@ export async function loadMomentDraft(kind: MomentKind) {
   const user = await getCurrentUser();
   if (!user) return { error: "Sign in to load your saved drafts." };
 
-  const row = db
-    .prepare(
-      `SELECT id, payload_json AS payloadJson, access_code_hash AS accessCodeHash
-       FROM drafts WHERE user_id = ? AND kind = ?
-       ORDER BY updated_at DESC LIMIT 1`,
-    )
-    .get(user.id, kind) as
-    | { id: string; payloadJson: string; accessCodeHash: string | null }
-    | undefined;
+  const sql = getSql();
+  const [row] = (await sql`
+    SELECT id, payload_json AS "payloadJson", access_code_hash AS "accessCodeHash"
+    FROM drafts WHERE user_id = ${user.id} AND kind = ${kind}
+    ORDER BY updated_at DESC LIMIT 1
+  `) as {
+    id: string;
+    payloadJson: string;
+    accessCodeHash: string | null;
+  }[];
   if (!row) return { draft: null, accessCodeSaved: false };
 
   let parsed: unknown;
@@ -105,14 +106,13 @@ export async function saveMomentDraft(
     return { error: "Some fields are too long. Shorten them and try again." };
   }
 
+  const sql = getSql();
   const id = draftId || randomUUID();
-  const existing = db
-    .prepare(
-      "SELECT kind, access_code_hash AS accessCodeHash FROM drafts WHERE id = ? AND user_id = ?",
-    )
-    .get(id, user.id) as
-    | { kind: MomentKind; accessCodeHash: string | null }
-    | undefined;
+  const [existing] = (await sql`
+    SELECT kind, access_code_hash AS "accessCodeHash"
+    FROM drafts WHERE id = ${id} AND user_id = ${user.id}
+    LIMIT 1
+  `) as { kind: MomentKind; accessCodeHash: string | null }[];
   if (draftId && (!existing || existing.kind !== kind)) {
     return { error: "This draft is no longer available. Save it again as a new draft." };
   }
@@ -125,34 +125,24 @@ export async function saveMomentDraft(
   }
 
   const persistedDraft = { ...draft, accessCode: "" };
-  const now = new Date().toISOString();
   if (existing) {
-    db.prepare(
-      `UPDATE drafts
-       SET title = ?, payload_json = ?, access_code_hash = ?, updated_at = ?
-       WHERE id = ? AND user_id = ?`,
-    ).run(
-      draft.title.slice(0, 200),
-      JSON.stringify(persistedDraft),
-      accessCodeHash,
-      now,
-      id,
-      user.id,
-    );
+    await sql`
+      UPDATE drafts
+      SET title = ${draft.title.slice(0, 200)},
+          payload_json = ${JSON.stringify(persistedDraft)},
+          access_code_hash = ${accessCodeHash},
+          updated_at = ${new Date().toISOString()}
+      WHERE id = ${id} AND user_id = ${user.id}
+    `;
   } else {
-    db.prepare(
-      `INSERT INTO drafts (id, user_id, kind, title, payload_json, access_code_hash, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    ).run(
-      id,
-      user.id,
-      kind,
-      draft.title.slice(0, 200),
-      JSON.stringify(persistedDraft),
-      accessCodeHash,
-      now,
-      now,
-    );
+    const now = new Date().toISOString();
+    await sql`
+      INSERT INTO drafts (id, user_id, kind, title, payload_json, access_code_hash, created_at, updated_at)
+      VALUES (
+        ${id}, ${user.id}, ${kind}, ${draft.title.slice(0, 200)},
+        ${JSON.stringify(persistedDraft)}, ${accessCodeHash}, ${now}, ${now}
+      )
+    `;
   }
   return { draftId: id, accessCodeSaved: Boolean(accessCodeHash) };
 }
@@ -201,15 +191,17 @@ export async function publishMoment(
     return { error: "Add the recipient’s name and relationship." };
   }
 
-  const savedDraft = draftId
-    ? (db
-        .prepare(
-            "SELECT kind, access_code_hash AS accessCodeHash FROM drafts WHERE id = ? AND user_id = ?",
-        )
-          .get(draftId, user.id) as
-          | { kind: MomentKind; accessCodeHash: string | null }
-          | undefined)
-    : undefined;
+  const sql = getSql();
+  const savedDraftRows = draftId
+    ? await sql`
+        SELECT kind, access_code_hash AS "accessCodeHash"
+        FROM drafts WHERE id = ${draftId} AND user_id = ${user.id}
+        LIMIT 1
+      `
+    : [];
+  const savedDraft = savedDraftRows[0] as
+    | { kind: MomentKind; accessCodeHash: string | null }
+    | undefined;
   if (draftId && (!savedDraft || savedDraft.kind !== kind)) {
     return { error: "This draft is no longer available. Save it and try again." };
   }
@@ -236,62 +228,47 @@ export async function publishMoment(
     createRecipient: draft.createRecipient,
   };
 
-  db.transaction(() => {
-    if (futureMakerId) {
-      const tree = db
-        .prepare(
-          "SELECT id FROM legacy_trees WHERE owner_user_id = ? ORDER BY created_at LIMIT 1",
-        )
-        .get(user.id) as { id: string } | undefined;
-      db.prepare(
-        `INSERT INTO future_moment_makers
-         (id, owner_user_id, legacy_tree_id, name, relationship, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      ).run(
-        futureMakerId,
-        user.id,
-        tree?.id ?? null,
-        draft.recipientName.trim(),
-        draft.relationship.trim(),
-        now,
-        now,
-      );
-    }
-
-    db.prepare(
-      `INSERT INTO moments (
+  const statements = [];
+  if (futureMakerId) {
+    const [tree] = await sql`
+      SELECT id FROM legacy_trees
+      WHERE owner_user_id = ${user.id}
+      ORDER BY created_at LIMIT 1
+    ` as { id: string }[];
+    statements.push(sql`
+      INSERT INTO future_moment_makers
+        (id, owner_user_id, legacy_tree_id, name, relationship, created_at, updated_at)
+      VALUES (
+        ${futureMakerId}, ${user.id}, ${tree?.id ?? null},
+        ${draft.recipientName.trim()}, ${draft.relationship.trim()}, ${now}, ${now}
+      )
+    `);
+  }
+  statements.push(sql`
+      INSERT INTO moments (
         id, user_id, future_moment_maker_id, kind, title, story, tags,
         content_json, details_json, audience, access_code_hash, release_date,
         occasion, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    ).run(
-      momentId,
-      user.id,
-      futureMakerId,
-      kind,
-      draft.title.trim(),
-      draft.story.trim(),
-      draft.tags.trim(),
-      JSON.stringify(draft.content),
-      JSON.stringify(details),
-      kind === "shared" ? draft.audience : "private",
-      accessCodeHash,
-      kind === "cannot-open-until" && draft.releaseKind === "date"
-        ? draft.releaseDate
-        : draft.customOccasionDate || null,
-      kind === "cannot-open-until" && draft.releaseKind === "occasion"
-        ? draft.occasion
-        : null,
-      now,
-      now,
-    );
-    if (draftId) {
-      db.prepare("DELETE FROM drafts WHERE id = ? AND user_id = ?").run(
-        draftId,
-        user.id,
-      );
-    }
-  })();
+      ) VALUES (
+        ${momentId}, ${user.id}, ${futureMakerId}, ${kind}, ${draft.title.trim()},
+        ${draft.story.trim()}, ${draft.tags.trim()}, ${JSON.stringify(draft.content)},
+        ${JSON.stringify(details)}, ${kind === "shared" ? draft.audience : "private"},
+        ${accessCodeHash},
+        ${kind === "cannot-open-until" && draft.releaseKind === "date"
+          ? draft.releaseDate
+          : draft.customOccasionDate || null},
+        ${kind === "cannot-open-until" && draft.releaseKind === "occasion"
+          ? draft.occasion
+          : null},
+        ${now}, ${now}
+      )
+    `);
+  if (draftId) {
+    statements.push(sql`
+      DELETE FROM drafts WHERE id = ${draftId} AND user_id = ${user.id}
+    `);
+  }
+  await sql.transaction(statements);
 
   return { success: true };
 }

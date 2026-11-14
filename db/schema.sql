@@ -1,8 +1,6 @@
-PRAGMA foreign_keys = ON;
-
 CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
-  email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+  email TEXT NOT NULL,
   password_hash TEXT NOT NULL,
   first_name TEXT NOT NULL,
   middle_name TEXT,
@@ -11,15 +9,18 @@ CREATE TABLE IF NOT EXISTS users (
   display_style TEXT NOT NULL CHECK (display_style IN ('full-name', 'first-last', 'custom')),
   membership TEXT NOT NULL CHECK (membership IN ('free', 'tier-2', 'tier-3')),
   discoverability TEXT NOT NULL DEFAULT 'searchable' CHECK (discoverability IN ('private', 'searchable', 'public')),
-  featured INTEGER NOT NULL DEFAULT 0 CHECK (featured IN (0, 1)),
+  featured BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
+CREATE UNIQUE INDEX IF NOT EXISTS users_email_unique_idx ON users (LOWER(email));
 
 CREATE TABLE IF NOT EXISTS legacy_frame_interests (
-  email TEXT PRIMARY KEY COLLATE NOCASE,
+  email TEXT PRIMARY KEY,
   created_at TEXT NOT NULL
 );
+CREATE UNIQUE INDEX IF NOT EXISTS legacy_frame_interests_email_unique_idx
+  ON legacy_frame_interests (LOWER(email));
 
 CREATE TABLE IF NOT EXISTS sessions (
   token_hash TEXT PRIMARY KEY,
