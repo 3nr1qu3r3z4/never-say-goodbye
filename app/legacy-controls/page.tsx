@@ -338,7 +338,7 @@ export default function LegacyControlsPage() {
               See your profile exactly as visitors will see it.
             </p>
             <Link
-              href="/my-profile"
+              href="/my-profile/preview"
               className="mt-5 inline-flex min-h-12 items-center justify-center rounded-full border border-[#D8A35B]/60 px-6 py-3 text-sm font-semibold text-[#f0c98e] transition hover:border-[#D8A35B] hover:bg-[#D8A35B]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
             >
               Preview My Profile

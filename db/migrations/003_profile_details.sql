@@ -1,0 +1,12 @@
+BEGIN;
+
+ALTER TABLE users
+  ADD COLUMN IF NOT EXISTS bio TEXT NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS location TEXT,
+  ADD COLUMN IF NOT EXISTS personal_motto TEXT;
+
+INSERT INTO schema_migrations (version)
+VALUES ('003_profile_details')
+ON CONFLICT (version) DO NOTHING;
+
+COMMIT;

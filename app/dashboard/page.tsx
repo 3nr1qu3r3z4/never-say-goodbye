@@ -53,6 +53,12 @@ export default async function DashboardPage() {
       description: "Manage privacy, visibility, and sharing preferences.",
       href: "/legacy-controls",
     },
+    {
+      icon: "👤",
+      title: "My Profile",
+      description: "Update how your Moment Maker profile appears.",
+      href: "/my-profile",
+    },
   ];
   const statistics = [
     { label: "Shared Moments", value: data.counts.sharedMoments },
