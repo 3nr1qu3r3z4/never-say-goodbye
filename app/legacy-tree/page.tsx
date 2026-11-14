@@ -1,6 +1,9 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { getCurrentUser } from "@/lib/auth";
+import FamilyMembers from "./family-members";
 
 export const metadata: Metadata = {
   title: "Legacy Tree™ | Never Say Goodbye",
@@ -46,6 +49,21 @@ const children = [
 
 const currentViewer = { name: "John Michael Doe", tier: 2 };
 const hasLegacyTreeAccess = currentViewer.tier >= 2;
+
+async function LegacyTreeAccountLink({
+  guestLabel,
+  className,
+}: {
+  guestLabel: string;
+  className: string;
+}) {
+  const user = await getCurrentUser();
+  return (
+    <Link href={user ? "/dashboard" : "/signup"} className={className}>
+      {user ? "My Legacy" : guestLabel}
+    </Link>
+  );
+}
 
 function PersonCard({
   name,
@@ -183,17 +201,35 @@ export default function LegacyTreePage() {
                   Upgrade to unlock the full family story and Connected Lives™
                   map.
                 </p>
-                <Link
-                  href="/signup"
-                  className="mt-7 inline-flex rounded-full bg-[#D8A35B] px-8 py-3.5 text-sm font-semibold tracking-wide text-[#0F172A] shadow-lg shadow-[#D8A35B]/10 transition hover:bg-[#e6b66f] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
-                >
-                  Upgrade
-                </Link>
+                <Suspense fallback={null}>
+                  <LegacyTreeAccountLink
+                    guestLabel="Upgrade"
+                    className="mt-7 inline-flex rounded-full bg-[#D8A35B] px-8 py-3.5 text-sm font-semibold tracking-wide text-[#0F172A] shadow-lg shadow-[#D8A35B]/10 transition hover:bg-[#e6b66f] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
+                  />
+                </Suspense>
               </div>
             </div>
           )}
         </div>
       </section>
+
+      <Suspense
+        fallback={
+          <section
+            aria-labelledby="family-members-heading"
+            className="mx-auto max-w-6xl px-4 pb-16 sm:px-8 sm:pb-20"
+          >
+            <h2
+              id="family-members-heading"
+              className="text-center font-serif text-3xl text-white sm:text-4xl"
+            >
+              Add Family Member
+            </h2>
+          </section>
+        }
+      >
+        <FamilyMembers />
+      </Suspense>
 
       <section className="border-y border-white/10 bg-slate-950/30 px-6 py-16 sm:px-8 sm:py-20">
         <div className="mx-auto max-w-6xl">
@@ -222,12 +258,12 @@ export default function LegacyTreePage() {
           Every Moment Maker is part of a larger story. Explore the lives
           connected to them.
         </p>
-        <Link
-          href="/signup"
-          className="mt-7 inline-flex rounded-full border border-[#D8A35B]/60 px-7 py-3.5 text-sm font-semibold text-[#f0c98e] transition hover:border-[#D8A35B] hover:bg-[#D8A35B]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
-        >
-          Become a Moment Maker
-        </Link>
+        <Suspense fallback={null}>
+          <LegacyTreeAccountLink
+            guestLabel="Become a Moment Maker"
+            className="mt-7 inline-flex rounded-full border border-[#D8A35B]/60 px-7 py-3.5 text-sm font-semibold text-[#f0c98e] transition hover:border-[#D8A35B] hover:bg-[#D8A35B]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
+          />
+        </Suspense>
       </section>
 
       <footer className="border-t border-white/10 px-6 py-8 text-center">

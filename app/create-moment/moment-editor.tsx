@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   loadMomentDraft,
+  getFamilyPlaceholders,
   publishMoment as publishMomentAction,
   saveMomentDraft,
 } from "@/lib/moment-actions";
@@ -96,6 +97,9 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
   const [statusMessage, setStatusMessage] = useState("");
   const [accessCodeSaved, setAccessCodeSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [familyPlaceholders, setFamilyPlaceholders] = useState<
+    { id: string; name: string; relationship: string }[]
+  >([]);
   const momentConfig = config[kind];
 
   useEffect(() => {
@@ -122,6 +126,24 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
       active = false;
     };
   }, [kind]);
+
+  useEffect(() => {
+    let active = true;
+    getFamilyPlaceholders()
+      .then((placeholders) => {
+        if (active) setFamilyPlaceholders(placeholders);
+      })
+      .catch(() => {
+        if (active) {
+          setStatusMessage(
+            "Family Placeholders could not be loaded. You can still create a moment.",
+          );
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   function updateDraft<Key extends keyof MomentDraft>(
     key: Key,
@@ -585,6 +607,36 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
           </section>
 
           <section aria-labelledby="save-heading" className={sectionClassName}>
+            {familyPlaceholders.length > 0 && (
+              <div className="mb-6">
+                <label
+                  htmlFor="family-placeholder"
+                  className="block text-sm font-medium text-slate-200"
+                >
+                  Attach to a Family Placeholder{" "}
+                  <span className="text-slate-500">(Optional)</span>
+                </label>
+                <select
+                  id="family-placeholder"
+                  value={draft.familyPlaceholderId}
+                  onChange={(event) =>
+                    updateDraft("familyPlaceholderId", event.target.value)
+                  }
+                  className={fieldClassName}
+                >
+                  <option value="">Do not attach to a placeholder</option>
+                  {familyPlaceholders.map((placeholder) => (
+                    <option key={placeholder.id} value={placeholder.id}>
+                      {placeholder.name} · {placeholder.relationship}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-2 text-xs leading-5 text-slate-400">
+                  This moment will be connected to the selected person in your
+                  Legacy Tree™.
+                </p>
+              </div>
+            )}
             <StepHeading number="04" id="save-heading" title="Keep This Moment" />
             <p className="mt-2 text-sm leading-6 text-slate-400">
               Save your progress or preview how this story will appear.

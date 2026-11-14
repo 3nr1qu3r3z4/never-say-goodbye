@@ -27,6 +27,7 @@ export type MomentDraft = {
   recipientName: string;
   relationship: string;
   createRecipient: boolean;
+  familyPlaceholderId: string;
 };
 
 export const initialMomentDraft: MomentDraft = {
@@ -46,4 +47,5 @@ export const initialMomentDraft: MomentDraft = {
   recipientName: "",
   relationship: "",
   createRecipient: false,
+  familyPlaceholderId: "",
 };

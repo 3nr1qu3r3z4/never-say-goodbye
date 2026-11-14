@@ -67,10 +67,31 @@ CREATE TABLE IF NOT EXISTS legacy_tree_members (
   tree_id TEXT NOT NULL REFERENCES legacy_trees(id) ON DELETE CASCADE,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   role TEXT NOT NULL DEFAULT 'owner' CHECK (role IN ('owner', 'admin', 'contributor', 'member')),
+  relationship TEXT NOT NULL DEFAULT 'Family Member',
   joined_at TEXT NOT NULL,
   PRIMARY KEY (tree_id, user_id)
 );
 CREATE INDEX IF NOT EXISTS legacy_tree_members_user_idx ON legacy_tree_members(user_id);
+
+CREATE TABLE IF NOT EXISTS family_placeholders (
+  id TEXT PRIMARY KEY,
+  legacy_tree_id TEXT NOT NULL REFERENCES legacy_trees(id) ON DELETE CASCADE,
+  created_by_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  relationship TEXT NOT NULL,
+  birth_year INTEGER,
+  death_year INTEGER,
+  notes TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  CHECK (birth_year IS NULL OR birth_year BETWEEN 1000 AND 9999),
+  CHECK (death_year IS NULL OR death_year BETWEEN 1000 AND 9999),
+  CHECK (
+    birth_year IS NULL OR death_year IS NULL OR death_year >= birth_year
+  )
+);
+CREATE INDEX IF NOT EXISTS family_placeholders_tree_idx
+  ON family_placeholders(legacy_tree_id, created_at);
 
 CREATE TABLE IF NOT EXISTS legacy_successors (
   id TEXT PRIMARY KEY,
@@ -127,10 +148,13 @@ CREATE TABLE IF NOT EXISTS moments (
   access_code_hash TEXT,
   release_date TEXT,
   occasion TEXT,
+  family_placeholder_id TEXT REFERENCES family_placeholders(id) ON DELETE SET NULL,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS moments_user_kind_idx ON moments(user_id, kind, created_at);
+CREATE INDEX IF NOT EXISTS moments_family_placeholder_idx
+  ON moments(family_placeholder_id);
 
 CREATE TABLE IF NOT EXISTS drafts (
   id TEXT PRIMARY KEY,
@@ -166,4 +190,8 @@ ON CONFLICT (version) DO NOTHING;
 
 INSERT INTO schema_migrations (version)
 VALUES ('006_legacy_control_visibility')
+ON CONFLICT (version) DO NOTHING;
+
+INSERT INTO schema_migrations (version)
+VALUES ('007_family_placeholders')
 ON CONFLICT (version) DO NOTHING;

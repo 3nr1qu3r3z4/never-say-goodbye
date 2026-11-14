@@ -43,7 +43,8 @@ function isMomentDraft(value: unknown): value is MomentDraft {
     typeof draft.customOccasionDate === "string" &&
     typeof draft.recipientName === "string" &&
     typeof draft.relationship === "string" &&
-    typeof draft.createRecipient === "boolean"
+    typeof draft.createRecipient === "boolean" &&
+    typeof draft.familyPlaceholderId === "string"
   );
 }
 
@@ -73,6 +74,14 @@ export async function loadMomentDraft(kind: MomentKind) {
   } catch {
     return { error: "This saved draft could not be read. You can start a new one." };
   }
+  if (
+    parsed &&
+    typeof parsed === "object" &&
+    !Array.isArray(parsed) &&
+    !("familyPlaceholderId" in parsed)
+  ) {
+    parsed = { ...parsed, familyPlaceholderId: "" };
+  }
   if (!isMomentDraft(parsed)) {
     return { error: "This saved draft has invalid data. You can start a new one." };
   }
@@ -82,6 +91,20 @@ export async function loadMomentDraft(kind: MomentKind) {
     draftId: row.id,
     accessCodeSaved: Boolean(row.accessCodeHash),
   };
+}
+
+export async function getFamilyPlaceholders() {
+  const user = await getCurrentUser();
+  if (!user) return [];
+
+  const sql = getSql();
+  return (await sql`
+    SELECT fp.id, fp.name, fp.relationship
+    FROM family_placeholders AS fp
+    JOIN legacy_tree_members AS ltm ON ltm.tree_id = fp.legacy_tree_id
+    WHERE ltm.user_id = ${user.id}
+    ORDER BY fp.name
+  `) as { id: string; name: string; relationship: string }[];
 }
 
 export async function saveMomentDraft(
@@ -192,6 +215,20 @@ export async function publishMoment(
   }
 
   const sql = getSql();
+  if (draft.familyPlaceholderId) {
+    const [placeholder] = (await sql`
+      SELECT fp.id
+      FROM family_placeholders AS fp
+      JOIN legacy_tree_members AS ltm ON ltm.tree_id = fp.legacy_tree_id
+      WHERE fp.id = ${draft.familyPlaceholderId}
+        AND ltm.user_id = ${user.id}
+      LIMIT 1
+    `) as { id: string }[];
+    if (!placeholder) {
+      return { error: "That Family Placeholder is not available in your tree." };
+    }
+  }
+
   const savedDraftRows = draftId
     ? await sql`
         SELECT kind, access_code_hash AS "accessCodeHash"
@@ -248,7 +285,7 @@ export async function publishMoment(
       INSERT INTO moments (
         id, user_id, future_moment_maker_id, kind, title, story, tags,
         content_json, details_json, audience, access_code_hash, release_date,
-        occasion, created_at, updated_at
+        occasion, family_placeholder_id, created_at, updated_at
       ) VALUES (
         ${momentId}, ${user.id}, ${futureMakerId}, ${kind}, ${draft.title.trim()},
         ${draft.story.trim()}, ${draft.tags.trim()}, ${JSON.stringify(draft.content)},
@@ -260,6 +297,7 @@ export async function publishMoment(
         ${kind === "cannot-open-until" && draft.releaseKind === "occasion"
           ? draft.occasion
           : null},
+        ${draft.familyPlaceholderId || null},
         ${now}, ${now}
       )
     `);

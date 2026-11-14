@@ -1,5 +1,7 @@
+import { Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { getCurrentUser } from "@/lib/auth";
 
 const howItWorks = [
   {
@@ -33,6 +35,39 @@ const sealedMessages = [
   { icon: "💍", title: "Wedding Day Messages" },
   { icon: "⏳", title: "Future Release Messages" },
 ];
+
+async function HomepageAccountActions() {
+  const user = await getCurrentUser();
+  return (
+    <>
+      <div className="mt-6 flex w-full max-w-xl flex-col justify-center gap-4 sm:flex-row">
+        <Link
+          href={user ? "/dashboard" : "/signup"}
+          className="rounded-full bg-[#D8A35B] px-8 py-4 text-sm font-semibold tracking-wide text-[#0F172A] transition hover:bg-[#e6b66f] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
+        >
+          {user ? "My Legacy" : "Create Your Legacy"}
+        </Link>
+        <Link
+          href="/search"
+          className="rounded-full border border-[#D8A35B]/60 px-8 py-4 text-sm font-semibold tracking-wide text-[#f0c98e] transition hover:border-[#D8A35B] hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
+        >
+          Find A Moment Maker
+        </Link>
+      </div>
+      {!user && (
+        <p className="mt-4 text-sm text-slate-400">
+          Already a Moment Maker?{" "}
+          <Link
+            href="/login"
+            className="font-medium text-[#f0c98e] underline decoration-[#D8A35B]/40 underline-offset-4 transition hover:text-white"
+          >
+            Sign in
+          </Link>
+        </p>
+      )}
+    </>
+  );
+}
 
 export default function Page() {
   return (
@@ -68,29 +103,9 @@ export default function Page() {
           </span>
           <span>Share your moments.</span>
         </div>
-        <div className="mt-6 flex w-full max-w-xl flex-col justify-center gap-4 sm:flex-row">
-          <Link
-            href="/signup"
-            className="rounded-full bg-[#D8A35B] px-8 py-4 text-sm font-semibold tracking-wide text-[#0F172A] transition hover:bg-[#e6b66f] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
-          >
-            Create Your Legacy
-          </Link>
-          <Link
-            href="/search"
-            className="rounded-full border border-[#D8A35B]/60 px-8 py-4 text-sm font-semibold tracking-wide text-[#f0c98e] transition hover:border-[#D8A35B] hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
-          >
-            Find A Moment Maker
-          </Link>
-        </div>
-        <p className="mt-4 text-sm text-slate-400">
-          Already a Moment Maker?{" "}
-          <Link
-            href="/login"
-            className="font-medium text-[#f0c98e] underline decoration-[#D8A35B]/40 underline-offset-4 transition hover:text-white"
-          >
-            Sign in
-          </Link>
-        </p>
+        <Suspense fallback={null}>
+          <HomepageAccountActions />
+        </Suspense>
         <Link
           href="/legacy-tree"
           className="mt-5 inline-flex text-sm font-medium text-[#f0c98e] transition hover:text-[#D8A35B] focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
