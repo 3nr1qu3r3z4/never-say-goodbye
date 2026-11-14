@@ -1,0 +1,12 @@
+BEGIN;
+
+ALTER TABLE users
+  ADD COLUMN IF NOT EXISTS descriptor_one TEXT NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS descriptor_two TEXT NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS descriptor_three TEXT NOT NULL DEFAULT '';
+
+INSERT INTO schema_migrations (version)
+VALUES ('004_profile_words')
+ON CONFLICT (version) DO NOTHING;
+
+COMMIT;

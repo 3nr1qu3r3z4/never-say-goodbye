@@ -17,18 +17,23 @@ create a local data directory or write account data to the app filesystem.
      then
      `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/002_profile_photo.sql`
      then
-     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/003_profile_details.sql`.
+     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/003_profile_details.sql`
+     then
+     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/004_profile_words.sql`.
    - In Bash, export `DATABASE_URL` and run
      `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/001_initial_schema.sql`
      then
      `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/002_profile_photo.sql`
      then
-     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/003_profile_details.sql`.
+     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/003_profile_details.sql`
+     then
+     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/004_profile_words.sql`.
    - In the Neon Console, open the SQL Editor for the intended database. Run
      [`db/migrations/001_initial_schema.sql`](./db/migrations/001_initial_schema.sql)
      first, then run
      [`db/migrations/002_profile_photo.sql`](./db/migrations/002_profile_photo.sql)
-     and [`db/migrations/003_profile_details.sql`](./db/migrations/003_profile_details.sql)
+     then [`db/migrations/003_profile_details.sql`](./db/migrations/003_profile_details.sql)
+     then [`db/migrations/004_profile_words.sql`](./db/migrations/004_profile_words.sql)
      in order.
 3. Set `DATABASE_URL` to the same pooled connection string in local
    `.env.local` and in Vercel Project Settings → Environment Variables for each
@@ -36,16 +41,16 @@ create a local data directory or write account data to the app filesystem.
    database where you ran the migration.
 4. Redeploy after setting or changing Vercel environment variables.
 
-All migrations are idempotent and record their application in
+All four migrations are idempotent and record their application in
 `schema_migrations`. [`db/schema.sql`](./db/schema.sql) is the standalone
-bootstrap copy of the current schema; use all three versioned migrations above for
+bootstrap copy of the current schema; use all four versioned migrations above for
 an existing database. There is no automatic migration runner in the
 application, so SQL must be applied to Neon before database-backed features
 can use new schema changes. The initial migration creates
 `users`, `sessions`, `legacy_trees`, `legacy_tree_members`, `connected_lives`,
 `future_moment_makers`, `moments`, `drafts`, `legacy_successors`, and
-`legacy_frame_interests`; migrations two and three add `users.profile_photo_data`,
-`users.bio`, `users.location`, and `users.personal_motto`.
+`legacy_frame_interests`; subsequent migrations add profile photo, bio,
+location, personal motto, and three profile descriptor fields.
 
 Verify the selected database and required tables in Neon SQL Editor:
 
@@ -65,16 +70,25 @@ ORDER BY table_name;
 SELECT version, applied_at
 FROM schema_migrations
 WHERE version IN (
-  '001_initial_schema', '002_profile_photo', '003_profile_details'
+  '001_initial_schema', '002_profile_photo', '003_profile_details',
+  '004_profile_words'
 )
 ORDER BY version;
+
+SELECT column_name
+FROM information_schema.columns
+WHERE table_schema = 'public'
+  AND table_name = 'users'
+  AND column_name IN ('descriptor_one', 'descriptor_two', 'descriptor_three')
+ORDER BY column_name;
 ```
 
 The table query should return all ten listed tables; the migration query should
-return all three migration versions. The profile migrations add the photo,
-bio, location, and motto fields used by `/my-profile`. Signup creates the user
-and that user's Legacy Tree and membership in one transaction, then writes a
-session.
+return all four migration versions, and the column query should return all three
+descriptor columns. The profile migrations add the photo, bio,
+location, motto, and descriptor fields used by `/my-profile`. Signup creates
+the user and that user's Legacy Tree and membership in one transaction, then
+writes a session.
 
 Create an account at `/signup`, sign in at `/login`, and use the authenticated
 dashboard at `/dashboard`. Passwords are stored as scrypt hashes; sessions use

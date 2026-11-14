@@ -17,6 +17,9 @@ CREATE TABLE IF NOT EXISTS users (
   featured BOOLEAN NOT NULL DEFAULT FALSE,
   profile_photo_data TEXT,
   bio TEXT NOT NULL DEFAULT '',
+  descriptor_one TEXT NOT NULL DEFAULT '',
+  descriptor_two TEXT NOT NULL DEFAULT '',
+  descriptor_three TEXT NOT NULL DEFAULT '',
   location TEXT,
   personal_motto TEXT,
   created_at TEXT NOT NULL,
@@ -139,4 +142,8 @@ ON CONFLICT (version) DO NOTHING;
 
 INSERT INTO schema_migrations (version)
 VALUES ('003_profile_details')
+ON CONFLICT (version) DO NOTHING;
+
+INSERT INTO schema_migrations (version)
+VALUES ('004_profile_words')
 ON CONFLICT (version) DO NOTHING;

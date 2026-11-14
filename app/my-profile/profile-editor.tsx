@@ -1,76 +1,115 @@
 "use client";
 
 import NextImage from "next/image";
-import { useRef, useState, useTransition } from "react";
 import Link from "next/link";
-import { saveProfile } from "@/app/actions/profile";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
+import { saveProfile, saveProfilePhoto } from "@/app/actions/profile";
 
 const maxPhotoBytes = 640 * 1024;
 const acceptedTypes = ["image/jpeg", "image/png", "image/webp"];
+const cropOutputSize = 512;
 
-function createWebpPreview(file: File): Promise<string> {
+type CropOffset = { x: number; y: number };
+type ImageDimensions = { width: number; height: number };
+
+function constrainOffset(
+  offset: CropOffset,
+  dimensions: ImageDimensions,
+  frameSize: number,
+  zoom: number,
+): CropOffset {
+  const scale =
+    (Math.max(frameSize / dimensions.width, frameSize / dimensions.height) *
+      zoom);
+  const maxX = Math.max(0, (dimensions.width * scale - frameSize) / 2);
+  const maxY = Math.max(0, (dimensions.height * scale - frameSize) / 2);
+  return {
+    x: Math.max(-maxX, Math.min(maxX, offset.x)),
+    y: Math.max(-maxY, Math.min(maxY, offset.y)),
+  };
+}
+
+function createCroppedWebp(
+  image: HTMLImageElement,
+  dimensions: ImageDimensions,
+  offset: CropOffset,
+  frameSize: number,
+  zoom: number,
+): Promise<string> {
   return new Promise((resolve, reject) => {
-    const image = new Image();
-    const sourceUrl = URL.createObjectURL(file);
+    const scale =
+      Math.max(frameSize / dimensions.width, frameSize / dimensions.height) *
+      zoom;
+    const sourceSize = frameSize / scale;
+    const centerX = dimensions.width / 2 - offset.x / scale;
+    const centerY = dimensions.height / 2 - offset.y / scale;
+    const sourceX = Math.max(
+      0,
+      Math.min(dimensions.width - sourceSize, centerX - sourceSize / 2),
+    );
+    const sourceY = Math.max(
+      0,
+      Math.min(dimensions.height - sourceSize, centerY - sourceSize / 2),
+    );
+    const canvas = document.createElement("canvas");
+    canvas.width = cropOutputSize;
+    canvas.height = cropOutputSize;
+    const context = canvas.getContext("2d");
+    if (!context) {
+      reject(new Error("Photo cropping is unavailable in this browser."));
+      return;
+    }
 
-    image.onload = async () => {
-      URL.revokeObjectURL(sourceUrl);
-      try {
-        let width = image.naturalWidth;
-        let height = image.naturalHeight;
-        const scale = Math.min(1, 1400 / Math.max(width, height));
-        width = Math.max(1, Math.round(width * scale));
-        height = Math.max(1, Math.round(height * scale));
-
-        for (let resizeAttempt = 0; resizeAttempt < 5; resizeAttempt += 1) {
-          const canvas = document.createElement("canvas");
-          canvas.width = width;
-          canvas.height = height;
-          const context = canvas.getContext("2d");
-          if (!context) throw new Error("Image preview is unavailable.");
-          context.drawImage(image, 0, 0, width, height);
-
-          for (const quality of [0.84, 0.74, 0.64, 0.54]) {
-            const blob = await new Promise<Blob | null>((done) =>
-              canvas.toBlob(done, "image/webp", quality),
-            );
-            if (!blob) throw new Error("This image could not be optimized.");
-            if (blob.size <= maxPhotoBytes) {
-              const reader = new FileReader();
-              reader.onload = () => {
-                if (typeof reader.result !== "string") {
-                  reject(new Error("This image could not be previewed."));
-                  return;
-                }
-                resolve(reader.result);
-              };
-              reader.onerror = () =>
-                reject(new Error("This image could not be previewed."));
-              reader.readAsDataURL(blob);
-              return;
-            }
-          }
-
-          width = Math.max(1, Math.round(width * 0.8));
-          height = Math.max(1, Math.round(height * 0.8));
+    context.drawImage(
+      image,
+      sourceX,
+      sourceY,
+      sourceSize,
+      sourceSize,
+      0,
+      0,
+      cropOutputSize,
+      cropOutputSize,
+    );
+    const encode = (quality: number) => {
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          reject(new Error("The cropped photo could not be prepared."));
+          return;
         }
-
-        throw new Error("This image is too large to save. Choose a smaller image.");
-      } catch (error) {
-        reject(error);
-      }
+        if (blob.size <= maxPhotoBytes) {
+          const reader = new FileReader();
+          reader.onload = () => {
+            if (typeof reader.result === "string") resolve(reader.result);
+            else reject(new Error("The cropped photo could not be read."));
+          };
+          reader.onerror = () =>
+            reject(new Error("The cropped photo could not be read."));
+          reader.readAsDataURL(blob);
+          return;
+        }
+        if (quality <= 0.45) {
+          reject(new Error("This photo is too large to save."));
+          return;
+        }
+        encode(quality - 0.1);
+      }, "image/webp", quality);
     };
-
-    image.onerror = () => {
-      URL.revokeObjectURL(sourceUrl);
-      reject(new Error("This image could not be opened."));
-    };
-    image.src = sourceUrl;
+    encode(0.85);
   });
 }
 
 type ProfileEditorProps = {
   displayName: string;
+  descriptorOne: string;
+  descriptorTwo: string;
+  descriptorThree: string;
   bio: string;
   location: string;
   personalMotto: string;
@@ -82,17 +121,65 @@ const inputClassName =
 
 export default function ProfileEditor({
   displayName,
+  descriptorOne,
+  descriptorTwo,
+  descriptorThree,
   bio,
   location,
   personalMotto,
   profilePhoto,
 }: ProfileEditorProps) {
   const fileInput = useRef<HTMLInputElement>(null);
+  const cropFrame = useRef<HTMLDivElement>(null);
+  const sourceImage = useRef<HTMLImageElement>(null);
+  const sourceUrlRef = useRef<string | null>(null);
+  const dragStart = useRef<{
+    pointerX: number;
+    pointerY: number;
+    offset: CropOffset;
+  } | null>(null);
   const [preview, setPreview] = useState(profilePhoto);
-  const [photoData, setPhotoData] = useState<string | null>(null);
+  const [sourceUrl, setSourceUrl] = useState<string | null>(null);
+  const [dimensions, setDimensions] = useState<ImageDimensions | null>(null);
+  const [cropFrameSize, setCropFrameSize] = useState(0);
+  const [zoom, setZoom] = useState(1);
+  const [offset, setOffset] = useState<CropOffset>({ x: 0, y: 0 });
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isSaving, startSaving] = useTransition();
+  const [isPhotoSaving, startPhotoSaving] = useTransition();
+
+  useEffect(
+    () => () => {
+      if (sourceUrlRef.current) URL.revokeObjectURL(sourceUrlRef.current);
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (!sourceUrl || !cropFrame.current) return;
+    const frame = cropFrame.current;
+    const observer = new ResizeObserver((entries) => {
+      setCropFrameSize(entries[0]?.contentRect.width ?? frame.clientWidth);
+    });
+    observer.observe(frame);
+    return () => observer.disconnect();
+  }, [sourceUrl]);
+
+  function releaseSource() {
+    if (sourceUrlRef.current) URL.revokeObjectURL(sourceUrlRef.current);
+    sourceUrlRef.current = null;
+    setSourceUrl(null);
+    setDimensions(null);
+    setCropFrameSize(0);
+    setOffset({ x: 0, y: 0 });
+    setZoom(1);
+  }
+
+  function cancelPhotoEdit() {
+    if (isPhotoSaving) return;
+    releaseSource();
+  }
 
   async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const input = event.currentTarget;
@@ -107,26 +194,104 @@ export default function ProfileEditor({
       input.value = "";
       return;
     }
-
     if (file.size > 20 * 1024 * 1024) {
       setError("Choose an image smaller than 20 MB.");
       input.value = "";
       return;
     }
 
-    try {
-      const data = await createWebpPreview(file);
-      setPreview(data);
-      setPhotoData(data);
-    } catch (cause) {
-      setError(
-        cause instanceof Error
-          ? cause.message
-          : "This image could not be previewed. Please try another.",
-      );
-    }
-
+    const nextSource = URL.createObjectURL(file);
+    const image = new window.Image();
+    image.onload = () => {
+      if (sourceUrlRef.current) URL.revokeObjectURL(sourceUrlRef.current);
+      sourceUrlRef.current = nextSource;
+      setDimensions({ width: image.naturalWidth, height: image.naturalHeight });
+      setOffset({ x: 0, y: 0 });
+      setZoom(1);
+      setSourceUrl(nextSource);
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(nextSource);
+      setError("This image could not be opened.");
+    };
+    image.src = nextSource;
     input.value = "";
+  }
+
+  function handlePointerDown(event: ReactPointerEvent<HTMLDivElement>) {
+    if (!dimensions || !cropFrame.current) return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    dragStart.current = {
+      pointerX: event.clientX,
+      pointerY: event.clientY,
+      offset,
+    };
+  }
+
+  function handlePointerMove(event: ReactPointerEvent<HTMLDivElement>) {
+    if (!dragStart.current || !dimensions || !cropFrame.current) return;
+    const start = dragStart.current;
+    setOffset(
+      constrainOffset(
+        {
+          x: start.offset.x + event.clientX - start.pointerX,
+          y: start.offset.y + event.clientY - start.pointerY,
+        },
+        dimensions,
+        cropFrame.current.clientWidth,
+        zoom,
+      ),
+    );
+  }
+
+  function handleZoomChange(value: number) {
+    setZoom(value);
+    if (!dimensions || !cropFrame.current) return;
+    setOffset((current) =>
+      constrainOffset(
+        current,
+        dimensions,
+        cropFrameSize,
+        value,
+      ),
+    );
+  }
+
+  function handleSaveCroppedPhoto() {
+    const image = sourceImage.current;
+    if (!image || !dimensions || cropFrameSize <= 0) return;
+    setError(null);
+    setMessage(null);
+    const imageDimensions = dimensions;
+    const cropOffset = offset;
+    const frameSize = cropFrameSize;
+    const cropZoom = zoom;
+
+    startPhotoSaving(async () => {
+      try {
+        const crop = await createCroppedWebp(
+          image,
+          imageDimensions,
+          cropOffset,
+          frameSize,
+          cropZoom,
+        );
+        const result = await saveProfilePhoto(crop);
+        if (result.error) {
+          setError(result.error);
+          return;
+        }
+        setPreview(crop);
+        setMessage(result.success ?? "Your profile photo has been saved.");
+        releaseSource();
+      } catch (cause) {
+        setError(
+          cause instanceof Error
+            ? cause.message
+            : "The cropped profile photo could not be saved.",
+        );
+      }
+    });
   }
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -134,7 +299,6 @@ export default function ProfileEditor({
     if (isSaving) return;
 
     const formData = new FormData(event.currentTarget);
-    if (photoData) formData.set("photoData", photoData);
     setError(null);
     setMessage(null);
 
@@ -145,13 +309,20 @@ export default function ProfileEditor({
           setError(result.error);
           return;
         }
-        setPhotoData(null);
         setMessage(result.success ?? "Your profile has been saved.");
       } catch {
         setError("Your profile could not be saved. Please try again.");
       }
     });
   }
+
+  const displayScale =
+    dimensions && cropFrameSize > 0
+      ? Math.max(
+          cropFrameSize / dimensions.width,
+          cropFrameSize / dimensions.height,
+        ) * zoom
+      : 1;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-7">
@@ -165,14 +336,14 @@ export default function ProfileEditor({
         <p className="mt-2 text-sm leading-6 text-slate-400">
           Choose a photo that helps your family recognize you.
         </p>
-        <div className="relative mt-5 h-72 overflow-hidden rounded-2xl border border-[#D8A35B]/30 bg-gradient-to-br from-[#344255] via-[#172437] to-[#101827] sm:h-96">
+        <div className="relative mx-auto mt-5 aspect-square w-full max-w-[32rem] overflow-hidden rounded-2xl border border-[#D8A35B]/30 bg-gradient-to-br from-[#344255] via-[#172437] to-[#101827]">
           {preview ? (
             <NextImage
               src={preview}
               alt={`${displayName} profile preview`}
               fill
               unoptimized
-              sizes="(max-width: 640px) calc(100vw - 3rem), 768px"
+              sizes="(max-width: 640px) calc(100vw - 3rem), 512px"
               className="object-cover object-center"
             />
           ) : (
@@ -230,8 +401,8 @@ export default function ProfileEditor({
         </div>
       </section>
 
-      <div className="grid gap-5 sm:grid-cols-2">
-        <label className="text-sm font-medium text-slate-200 sm:col-span-2">
+      <div className="space-y-6">
+        <label className="block text-sm font-medium text-slate-200">
           Display Name
           <input
             name="displayName"
@@ -242,35 +413,80 @@ export default function ProfileEditor({
             className={inputClassName}
           />
         </label>
-        <label className="text-sm font-medium text-slate-200 sm:col-span-2">
+
+        <fieldset>
+          <legend className="text-sm font-medium text-slate-200">
+            Three Words That Describe You
+          </legend>
+          <p className="mt-1 text-xs leading-5 text-slate-500">
+            Share a few words that reflect who you are.
+          </p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-3">
+            {[
+              { name: "descriptorOne", label: "Word 1", value: descriptorOne },
+              { name: "descriptorTwo", label: "Word 2", value: descriptorTwo },
+              {
+                name: "descriptorThree",
+                label: "Word 3",
+                value: descriptorThree,
+              },
+            ].map((word) => (
+              <div key={word.name}>
+                <label
+                  htmlFor={word.name}
+                  className="mb-1 block text-xs font-medium text-slate-400"
+                >
+                  {word.label}
+                </label>
+                <input
+                  id={word.name}
+                  name={word.name}
+                  defaultValue={word.value}
+                  maxLength={40}
+                  placeholder={word.label}
+                  aria-label={word.label}
+                  className={`${inputClassName} mt-0 rounded-full border-[#D8A35B]/25 bg-[#D8A35B]/[0.06] text-center font-serif text-base placeholder:font-sans placeholder:text-slate-500`}
+                />
+              </div>
+            ))}
+          </div>
+        </fieldset>
+
+        <label className="block text-sm font-medium text-slate-200">
           Bio
+          <span className="mt-1 block text-xs font-normal leading-5 text-slate-500">
+            Tell your personal story, background, or life philosophy.
+          </span>
           <textarea
             name="bio"
             defaultValue={bio}
             maxLength={1000}
-            rows={5}
+            rows={3}
             className={`${inputClassName} resize-y py-3`}
           />
         </label>
-        <label className="text-sm font-medium text-slate-200">
-          Location <span className="text-slate-500">(Optional)</span>
-          <input
-            name="location"
-            defaultValue={location}
-            maxLength={120}
-            autoComplete="address-level2"
-            className={inputClassName}
-          />
-        </label>
-        <label className="text-sm font-medium text-slate-200">
-          Personal Motto <span className="text-slate-500">(Optional)</span>
-          <input
-            name="personalMotto"
-            defaultValue={personalMotto}
-            maxLength={240}
-            className={inputClassName}
-          />
-        </label>
+
+        <div className="grid gap-5 sm:grid-cols-2">
+          <label className="text-sm font-medium text-slate-200">
+            Location <span className="text-slate-500">(Optional)</span>
+            <input
+              name="location"
+              defaultValue={location}
+              maxLength={120}
+              autoComplete="address-level2"
+              className={inputClassName}
+            />
+          </label>
+          <label className="text-sm font-medium text-slate-200">
+            Personal Motto <span className="text-slate-500">(Optional)</span>
+            <input
+              name="personalMotto"
+              defaultValue={personalMotto}
+              maxLength={240}
+              className={inputClassName}
+            />
+          </label>
+        </div>
       </div>
 
       <div aria-live="polite" className="min-h-5">
@@ -293,6 +509,177 @@ export default function ProfileEditor({
           Preview My Profile
         </Link>
       </div>
+
+      {sourceUrl && dimensions && (
+        <div
+          role="presentation"
+          className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-[#020617]/85 p-4 backdrop-blur-sm sm:p-6"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) cancelPhotoEdit();
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="photo-editor-title"
+            className="my-auto w-full max-w-2xl rounded-3xl border border-[#D8A35B]/25 bg-[#0F172A] p-5 shadow-2xl shadow-black/50 sm:p-8"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#D8A35B]">
+                  Profile Photo
+                </p>
+                <h2
+                  id="photo-editor-title"
+                  className="mt-2 font-serif text-2xl text-white sm:text-3xl"
+                >
+                  Adjust Your Photo
+                </h2>
+                <p className="mt-2 text-sm text-slate-400">
+                  Drag to position, then adjust the zoom for a square crop.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={cancelPhotoEdit}
+                aria-label="Cancel photo editing"
+                className="rounded-full border border-white/10 px-3 py-2 text-slate-300 transition hover:border-[#D8A35B]/50 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D8A35B]"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="mt-6 grid items-center gap-6 sm:grid-cols-[minmax(0,1fr)_8rem]">
+              <div>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  Crop Preview
+                </p>
+                <div
+                  ref={cropFrame}
+                  className="relative mx-auto aspect-square w-full max-w-[26rem] touch-none cursor-grab overflow-hidden rounded-xl border border-[#D8A35B]/50 bg-slate-950 active:cursor-grabbing"
+                  onPointerDown={handlePointerDown}
+                  onPointerMove={handlePointerMove}
+                  onPointerUp={() => {
+                    dragStart.current = null;
+                  }}
+                  onPointerCancel={() => {
+                    dragStart.current = null;
+                  }}
+                >
+                  <NextImage
+                    ref={sourceImage}
+                    src={sourceUrl}
+                    alt="Drag to reposition your profile photo"
+                    width={Math.ceil(dimensions.width * displayScale)}
+                    height={Math.ceil(dimensions.height * displayScale)}
+                    unoptimized
+                    className="pointer-events-none absolute max-w-none select-none"
+                    style={{
+                      width: dimensions.width * displayScale,
+                      height: dimensions.height * displayScale,
+                      left: `calc(50% + ${offset.x}px)`,
+                      top: `calc(50% + ${offset.y}px)`,
+                      transform: "translate(-50%, -50%)",
+                    }}
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-4 sm:flex-col">
+                <div className="h-28 w-28 shrink-0 overflow-hidden rounded-xl border border-[#D8A35B]/40">
+                  <div
+                    className="relative aspect-square touch-none overflow-hidden"
+                    aria-label="Square crop result preview"
+                  >
+                    <NextImage
+                      src={sourceUrl}
+                      alt=""
+                      width={Math.ceil(
+                        dimensions.width *
+                          displayScale *
+                          (112 / (cropFrameSize || 112)),
+                      )}
+                      height={Math.ceil(
+                        dimensions.height *
+                          displayScale *
+                          (112 / (cropFrameSize || 112)),
+                      )}
+                      unoptimized
+                      className="pointer-events-none absolute max-w-none select-none"
+                      style={{
+                        width: dimensions.width * displayScale *
+                          (112 / (cropFrameSize || 112)),
+                        height: dimensions.height * displayScale *
+                          (112 / (cropFrameSize || 112)),
+                        left: `calc(50% + ${offset.x * (112 / (cropFrameSize || 112))}px)`,
+                        top: `calc(50% + ${offset.y * (112 / (cropFrameSize || 112))}px)`,
+                        transform: "translate(-50%, -50%)",
+                      }}
+                    />
+                  </div>
+                </div>
+                <label className="flex-1 text-sm text-slate-300 sm:w-full">
+                  Zoom
+                  <input
+                    type="range"
+                    min="1"
+                    max="3"
+                    step="0.01"
+                    value={zoom}
+                    onChange={(event) =>
+                      handleZoomChange(Number(event.currentTarget.value))
+                    }
+                    className="mt-3 w-full accent-[#D8A35B]"
+                    aria-label="Zoom profile photo"
+                  />
+                  <span className="mt-1 flex justify-between text-xs text-slate-500">
+                    <span>Fit</span>
+                    <span>{zoom.toFixed(1)}×</span>
+                    <span>Zoom</span>
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            {error && (
+              <p role="alert" className="mt-4 text-sm text-red-200">
+                {error}
+              </p>
+            )}
+
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <button
+                type="button"
+                onClick={() => {
+                  setZoom(1);
+                  setOffset({ x: 0, y: 0 });
+                }}
+                disabled={isPhotoSaving}
+                className="min-h-11 rounded-full border border-white/15 px-5 py-2.5 text-sm font-semibold text-slate-300 transition hover:border-[#D8A35B]/50 hover:text-white disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
+              >
+                Reset
+              </button>
+              <div className="flex flex-col-reverse gap-3 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={cancelPhotoEdit}
+                  disabled={isPhotoSaving}
+                  className="min-h-11 rounded-full border border-[#D8A35B]/50 px-5 py-2.5 text-sm font-semibold text-[#f0c98e] transition hover:bg-[#D8A35B]/10 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveCroppedPhoto}
+                  disabled={isPhotoSaving}
+                  className="min-h-11 rounded-full bg-[#D8A35B] px-6 py-2.5 text-sm font-semibold text-[#0F172A] transition hover:bg-[#e6b66f] disabled:cursor-wait disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
+                >
+                  {isPhotoSaving ? "Saving…" : "Save Photo"}
+                </button>
+              </div>
+            </div>
+          </section>
+        </div>
+      )}
     </form>
   );
 }

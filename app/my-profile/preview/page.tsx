@@ -12,8 +12,11 @@ export const metadata: Metadata = {
 export const instant = false;
 
 type ProfileDetails = {
-  displayName: string;
-  bio: string;
+  displayName: string | null;
+  bio: string | null;
+  descriptorOne: string | null;
+  descriptorTwo: string | null;
+  descriptorThree: string | null;
   location: string | null;
   personalMotto: string | null;
   profilePhoto: string | null;
@@ -36,10 +39,17 @@ export default async function MyProfilePreviewPage() {
   const sql = getSql();
   const [profileRows, moments, connections] = await Promise.all([
     sql`
-      SELECT display_name AS "displayName",
-             bio,
-             location,
-             personal_motto AS "personalMotto",
+      SELECT COALESCE(
+               NULLIF(BTRIM(display_name), ''),
+               NULLIF(BTRIM(first_name || ' ' || last_name), ''),
+               'Moment Maker'
+             ) AS "displayName",
+             COALESCE(bio, '') AS bio,
+             COALESCE(descriptor_one, '') AS "descriptorOne",
+             COALESCE(descriptor_two, '') AS "descriptorTwo",
+             COALESCE(descriptor_three, '') AS "descriptorThree",
+             COALESCE(location, '') AS location,
+             COALESCE(personal_motto, '') AS "personalMotto",
              profile_photo_data AS "profilePhoto"
       FROM users
       WHERE id = ${user.id}
@@ -60,10 +70,22 @@ export default async function MyProfilePreviewPage() {
       ORDER BY created_at DESC
     `,
   ]);
-  const profile = (profileRows as ProfileDetails[])[0];
-  if (!profile) {
-    throw new Error("The authenticated Moment Maker profile could not be found.");
-  }
+  const profile = (profileRows as ProfileDetails[])[0] ?? {
+    displayName: user.displayName || "Moment Maker",
+    bio: "",
+    descriptorOne: "",
+    descriptorTwo: "",
+    descriptorThree: "",
+    location: "",
+    personalMotto: "",
+    profilePhoto: null,
+  };
+  const displayName = profile.displayName || user.displayName || "Moment Maker";
+  const descriptors = [
+    profile.descriptorOne,
+    profile.descriptorTwo,
+    profile.descriptorThree,
+  ].filter((word): word is string => Boolean(word?.trim()));
   const profileMoments = moments as Moment[];
   const sharedMoments = profileMoments.filter((moment) => moment.kind === "shared");
   const personalMoments = profileMoments.filter(
@@ -75,13 +97,13 @@ export default async function MyProfilePreviewPage() {
     <main className="min-h-screen overflow-hidden bg-[#0F172A] text-slate-100">
       <div className="px-4 pt-4 sm:px-8 sm:pt-8">
         <figure
-          aria-label={`Moment Maker profile for ${profile.displayName}`}
-          className="relative mx-auto flex h-[50svh] min-h-[22rem] max-h-[42rem] max-w-6xl items-end overflow-hidden rounded-[1.75rem] border border-[#D8A35B]/25 bg-gradient-to-br from-[#344255] via-[#172437] to-[#101827] shadow-2xl shadow-black/30 sm:rounded-[2rem]"
+          aria-label={`Moment Maker profile for ${displayName}`}
+          className="relative mx-auto flex aspect-square w-full max-w-[42rem] items-end overflow-hidden rounded-[1.75rem] border border-[#D8A35B]/25 bg-gradient-to-br from-[#344255] via-[#172437] to-[#101827] shadow-2xl shadow-black/30 sm:rounded-[2rem]"
         >
           {profile.profilePhoto ? (
             <Image
               src={profile.profilePhoto}
-              alt=""
+              alt={`${displayName} profile`}
               fill
               unoptimized
               sizes="(max-width: 640px) calc(100vw - 2rem), (max-width: 1280px) calc(100vw - 4rem), 1152px"
@@ -119,8 +141,23 @@ export default async function MyProfilePreviewPage() {
             Moment Maker
           </p>
           <h1 className="mt-3 font-serif text-4xl tracking-tight text-white sm:text-5xl md:text-6xl">
-            {profile.displayName}
+            {displayName}
           </h1>
+          {descriptors.length > 0 && (
+            <ul
+              aria-label="Three words that describe this Moment Maker"
+              className="mt-5 flex flex-wrap justify-center gap-2"
+            >
+              {descriptors.map((word, index) => (
+                <li
+                  key={`${index}-${word}`}
+                  className="rounded-full border border-[#D8A35B]/30 bg-[#D8A35B]/[0.08] px-4 py-2 text-sm font-medium text-[#f0c98e]"
+                >
+                  {word}
+                </li>
+              ))}
+            </ul>
+          )}
           {profile.personalMotto && (
             <p className="mt-4 font-serif text-lg italic text-[#f0c98e]">
               “{profile.personalMotto}”

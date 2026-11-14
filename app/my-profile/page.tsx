@@ -12,8 +12,11 @@ export const metadata: Metadata = {
 export const instant = false;
 
 type ProfileDetails = {
-  displayName: string;
-  bio: string;
+  displayName: string | null;
+  bio: string | null;
+  descriptorOne: string | null;
+  descriptorTwo: string | null;
+  descriptorThree: string | null;
   location: string | null;
   personalMotto: string | null;
   profilePhoto: string | null;
@@ -23,20 +26,32 @@ export default async function MyProfilePage() {
   const user = await requireUser();
   const sql = getSql();
   const rows = (await sql`
-    SELECT display_name AS "displayName",
-           bio,
-           location,
-           personal_motto AS "personalMotto",
+    SELECT COALESCE(
+             NULLIF(BTRIM(display_name), ''),
+             NULLIF(BTRIM(first_name || ' ' || last_name), ''),
+             'Moment Maker'
+           ) AS "displayName",
+           COALESCE(bio, '') AS bio,
+           COALESCE(descriptor_one, '') AS "descriptorOne",
+           COALESCE(descriptor_two, '') AS "descriptorTwo",
+           COALESCE(descriptor_three, '') AS "descriptorThree",
+           COALESCE(location, '') AS location,
+           COALESCE(personal_motto, '') AS "personalMotto",
            profile_photo_data AS "profilePhoto"
     FROM users
     WHERE id = ${user.id}
     LIMIT 1
   `) as ProfileDetails[];
-  const profile = rows[0];
-
-  if (!profile) {
-    throw new Error("The authenticated Moment Maker profile could not be found.");
-  }
+  const profile = rows[0] ?? {
+    displayName: user.displayName || "Moment Maker",
+    bio: "",
+    descriptorOne: "",
+    descriptorTwo: "",
+    descriptorThree: "",
+    location: "",
+    personalMotto: "",
+    profilePhoto: null,
+  };
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#0F172A] text-slate-100">
@@ -66,8 +81,11 @@ export default async function MyProfilePage() {
 
         <section className="mt-9 rounded-3xl border border-white/10 bg-white/[0.03] p-5 shadow-2xl shadow-black/20 sm:mt-11 sm:p-9">
           <ProfileEditor
-            displayName={profile.displayName}
-            bio={profile.bio}
+            displayName={profile.displayName || user.displayName || "Moment Maker"}
+            bio={profile.bio ?? ""}
+            descriptorOne={profile.descriptorOne ?? ""}
+            descriptorTwo={profile.descriptorTwo ?? ""}
+            descriptorThree={profile.descriptorThree ?? ""}
             location={profile.location ?? ""}
             personalMotto={profile.personalMotto ?? ""}
             profilePhoto={profile.profilePhoto}
