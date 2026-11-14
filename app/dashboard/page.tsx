@@ -1,7 +1,6 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { logoutAction } from "@/app/actions/auth";
 import { getDashboardData } from "@/lib/account-data";
 import { requireUser } from "@/lib/auth";
 import SignupWelcome from "./signup-welcome";
@@ -124,14 +123,6 @@ export default async function DashboardPage() {
               <span aria-hidden="true" className="text-lg">→</span>
             </Link>
           </section>
-          <form action={logoutAction} className="self-start lg:self-center">
-            <button
-              type="submit"
-              className="rounded-full border border-white/15 px-5 py-2.5 text-sm text-slate-300 transition hover:border-[#D8A35B]/50 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
-            >
-              Sign Out
-            </button>
-          </form>
         </div>
       </header>
 
