@@ -10,6 +10,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { saveProfile, saveProfilePhoto } from "@/app/actions/profile";
+import { isHeicImage, toSupportedImage } from "@/lib/convert-image";
 
 const maxPhotoBytes = 640 * 1024;
 const acceptedTypes = ["image/jpeg", "image/png", "image/webp"];
@@ -219,6 +220,7 @@ export default function ProfileEditor({
   const [sourceUrl, setSourceUrl] = useState<string | null>(null);
   const [dimensions, setDimensions] = useState<ImageDimensions | null>(null);
   const [cropFrameSize, setCropFrameSize] = useState(0);
+  const [isPhotoPreparing, setIsPhotoPreparing] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState<CropOffset>({ x: 0, y: 0 });
   const [error, setError] = useState<string | null>(null);
@@ -286,8 +288,8 @@ export default function ProfileEditor({
     setError(null);
     setMessage(null);
 
-    if (!acceptedTypes.includes(file.type)) {
-      setError("Choose a JPG, PNG, or WEBP image.");
+    if (!acceptedTypes.includes(file.type) && !isHeicImage(file)) {
+      setError("Choose a JPG, JPEG, PNG, WEBP, HEIC, or HEIF image.");
       input.value = "";
       return;
     }
@@ -297,22 +299,38 @@ export default function ProfileEditor({
       return;
     }
 
-    const nextSource = URL.createObjectURL(file);
-    const image = new window.Image();
-    image.onload = () => {
-      if (sourceUrlRef.current) URL.revokeObjectURL(sourceUrlRef.current);
-      sourceUrlRef.current = nextSource;
-      setDimensions({ width: image.naturalWidth, height: image.naturalHeight });
-      setOffset({ x: 0, y: 0 });
-      setZoom(1);
-      setSourceUrl(nextSource);
-    };
-    image.onerror = () => {
-      URL.revokeObjectURL(nextSource);
-      setError("This image could not be opened.");
-    };
-    image.src = nextSource;
     input.value = "";
+    setIsPhotoPreparing(true);
+    try {
+      const supportedFile = await toSupportedImage(file);
+      if (!acceptedTypes.includes(supportedFile.type)) {
+        throw new Error("Choose a JPG, JPEG, PNG, WEBP, HEIC, or HEIF image.");
+      }
+      const nextSource = URL.createObjectURL(supportedFile);
+      const image = new window.Image();
+      image.onload = () => {
+        if (sourceUrlRef.current) URL.revokeObjectURL(sourceUrlRef.current);
+        sourceUrlRef.current = nextSource;
+        setDimensions({ width: image.naturalWidth, height: image.naturalHeight });
+        setOffset({ x: 0, y: 0 });
+        setZoom(1);
+        setSourceUrl(nextSource);
+        setIsPhotoPreparing(false);
+      };
+      image.onerror = () => {
+        URL.revokeObjectURL(nextSource);
+        setError("This image could not be opened.");
+        setIsPhotoPreparing(false);
+      };
+      image.src = nextSource;
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : "This photo could not be prepared. Please try another image.",
+      );
+      setIsPhotoPreparing(false);
+    }
   }
 
   function handlePointerDown(event: ReactPointerEvent<HTMLDivElement>) {
@@ -466,7 +484,8 @@ export default function ProfileEditor({
             onClick={() => fileInput.current?.click()}
             aria-label="Upload Profile Photo"
             title="Upload Profile Photo"
-            className="absolute bottom-4 left-1/2 z-10 flex h-12 w-12 -translate-x-1/2 items-center justify-center rounded-full border border-[#D8A35B] bg-[#0F172A]/90 text-[#f0c98e] shadow-lg shadow-black/40 backdrop-blur transition hover:scale-105 hover:bg-[#D8A35B] hover:text-[#0F172A] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B] sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+            disabled={isPhotoPreparing}
+            className="absolute bottom-4 left-1/2 z-10 flex h-12 w-12 -translate-x-1/2 items-center justify-center rounded-full border border-[#D8A35B] bg-[#0F172A]/90 text-[#f0c98e] shadow-lg shadow-black/40 backdrop-blur transition hover:scale-105 hover:bg-[#D8A35B] hover:text-[#0F172A] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B] disabled:cursor-wait disabled:opacity-70 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
           >
             <svg
               aria-hidden="true"
@@ -484,16 +503,24 @@ export default function ProfileEditor({
               <circle cx="12" cy="13.5" r="3.25" />
             </svg>
             <span className="pointer-events-none absolute bottom-full mb-3 whitespace-nowrap rounded-lg border border-[#D8A35B]/30 bg-[#0F172A] px-3 py-2 text-xs font-medium text-white opacity-0 shadow-xl transition group-hover:opacity-100 group-focus-visible:opacity-100">
-              Upload Profile Photo
+              {isPhotoPreparing ? "Preparing Photo…" : "Upload Profile Photo"}
             </span>
           </button>
+          {isPhotoPreparing && (
+            <p
+              role="status"
+              className="absolute inset-x-0 bottom-20 z-10 text-center text-sm text-white"
+            >
+              Preparing your photo…
+            </p>
+          )}
           <input
             ref={fileInput}
             type="file"
-            accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+            accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif"
             className="hidden"
             onChange={handleFileChange}
-            aria-label="Choose a JPG, PNG, or WEBP profile photo"
+            aria-label="Choose a JPG, JPEG, PNG, WEBP, HEIC, or HEIF profile photo"
           />
         </div>
       </section>

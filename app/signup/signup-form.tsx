@@ -54,6 +54,29 @@ const displayOptions = [
   { value: "custom", label: "Custom Display Name" },
 ] as const;
 
+function PasswordVisibilityIcon({ visible }: { visible: boolean }) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      className="h-5 w-5"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M2.5 12s3.2-6 9.5-6 9.5 6 9.5 6-3.2 6-9.5 6-9.5-6-9.5-6Z"
+      />
+      <circle cx="12" cy="12" r="2.5" />
+      {!visible && (
+        <path strokeLinecap="round" d="m4 4 16 16" />
+      )}
+    </svg>
+  );
+}
+
 export default function SignupForm() {
   const [formState, formAction, isPending] = useActionState(signupAction, {});
   const [firstName, setFirstName] = useState("");
@@ -63,6 +86,8 @@ export default function SignupForm() {
   const [displayStyle, setDisplayStyle] =
     useState<(typeof displayOptions)[number]["value"]>("full-name");
   const [selectedPlan, setSelectedPlan] = useState("free");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const accountName = [firstName.trim(), lastName.trim()]
     .filter(Boolean)
@@ -72,10 +97,10 @@ export default function SignupForm() {
     .join(" ");
   const profileName =
     displayStyle === "custom"
-      ? customDisplayName.trim() || accountName || "John Michael Doe"
+      ? customDisplayName.trim() || accountName || "Your Name"
       : displayStyle === "full-name"
-        ? fullName || "John Michael Doe"
-        : accountName || "John Michael Doe";
+        ? fullName || "Your Name"
+        : accountName || "Your Name";
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#0F172A] text-slate-100">
@@ -182,15 +207,26 @@ export default function SignupForm() {
                 >
                   Password
                 </label>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="new-password"
-                  minLength={8}
-                  required
-                  className={inputClassName}
-                />
+                <div className="relative">
+                  <input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="new-password"
+                    minLength={8}
+                    required
+                    className={`${inputClassName} pr-14`}
+                  />
+                  <button
+                    type="button"
+                    aria-label={showPassword ? "Hide Password" : "Show Password"}
+                    aria-pressed={showPassword}
+                    onClick={() => setShowPassword((visible) => !visible)}
+                    className="absolute inset-y-0 right-2 my-auto inline-flex h-10 w-10 items-center justify-center rounded-full text-slate-400 transition hover:bg-white/5 hover:text-[#f0c98e] focus-visible:outline-2 focus-visible:outline-[#D8A35B]"
+                  >
+                    <PasswordVisibilityIcon visible={showPassword} />
+                  </button>
+                </div>
               </div>
               <div>
                 <label
@@ -199,15 +235,30 @@ export default function SignupForm() {
                 >
                   Confirm Password
                 </label>
-                <input
-                  id="confirm-password"
-                  name="confirmPassword"
-                  type="password"
-                  autoComplete="new-password"
-                  minLength={8}
-                  required
-                  className={inputClassName}
-                />
+                <div className="relative">
+                  <input
+                    id="confirm-password"
+                    name="confirmPassword"
+                    type={showConfirmPassword ? "text" : "password"}
+                    autoComplete="new-password"
+                    minLength={8}
+                    required
+                    className={`${inputClassName} pr-14`}
+                  />
+                  <button
+                    type="button"
+                    aria-label={
+                      showConfirmPassword ? "Hide Password" : "Show Password"
+                    }
+                    aria-pressed={showConfirmPassword}
+                    onClick={() =>
+                      setShowConfirmPassword((visible) => !visible)
+                    }
+                    className="absolute inset-y-0 right-2 my-auto inline-flex h-10 w-10 items-center justify-center rounded-full text-slate-400 transition hover:bg-white/5 hover:text-[#f0c98e] focus-visible:outline-2 focus-visible:outline-[#D8A35B]"
+                  >
+                    <PasswordVisibilityIcon visible={showConfirmPassword} />
+                  </button>
+                </div>
               </div>
             </div>
           </section>
@@ -455,7 +506,11 @@ export default function SignupForm() {
                     aria-pressed={selectedPlan === plan.value}
                     disabled={plan.unavailable}
                     onClick={() => {
-                      if (!plan.unavailable) setSelectedPlan(plan.value);
+                      if (plan.unavailable) return;
+                      setSelectedPlan(plan.value);
+                      document
+                        .getElementById("terms-and-conditions")
+                        ?.scrollIntoView({ behavior: "smooth", block: "center" });
                     }}
                     className={`mt-5 min-h-11 w-full rounded-full border px-4 py-2.5 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B] disabled:cursor-not-allowed disabled:border-white/10 disabled:text-slate-500 disabled:hover:border-white/10 disabled:hover:text-slate-500 ${
                       selectedPlan === plan.value
@@ -470,7 +525,11 @@ export default function SignupForm() {
             </fieldset>
           </section>
 
-          <section aria-labelledby="agreements-heading" className="border-t border-white/10 pt-7">
+          <section
+            id="terms-and-conditions"
+            aria-labelledby="agreements-heading"
+            className="scroll-mt-24 border-t border-white/10 pt-7"
+          >
             <h2 id="agreements-heading" className="sr-only">
               Agreements
             </h2>

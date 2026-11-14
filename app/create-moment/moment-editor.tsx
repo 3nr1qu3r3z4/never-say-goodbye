@@ -16,6 +16,7 @@ import {
   type MomentDraft,
   type MomentKind,
 } from "@/lib/moment-types";
+import { isHeicImage, toSupportedImage } from "@/lib/convert-image";
 
 const contentOptions: {
   value: ContentKind;
@@ -23,7 +24,12 @@ const contentOptions: {
   label: string;
   accept?: string;
 }[] = [
-  { value: "photo", icon: "📷", label: "Photo", accept: "image/*" },
+  {
+    value: "photo",
+    icon: "📷",
+    label: "Photo",
+    accept: "image/*,.heic,.heif",
+  },
   { value: "video", icon: "🎥", label: "Video", accept: "video/*" },
   { value: "voice", icon: "🎤", label: "Voice Recording", accept: "audio/*" },
   { value: "written", icon: "✍", label: "Written Message" },
@@ -133,6 +139,40 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
         : [...current.content, content],
     }));
     setStatusMessage("");
+  }
+
+  async function handleMediaSelection(
+    option: (typeof contentOptions)[number],
+    input: HTMLInputElement,
+  ) {
+    const file = input.files?.[0];
+    if (!file) return;
+    input.value = "";
+    setStatusMessage("");
+
+    try {
+      if (option.value === "photo" && isHeicImage(file)) {
+        setStatusMessage("Preparing your iPhone photo…");
+        const supportedFile = await toSupportedImage(file);
+        updateDraft("attachmentNames", {
+          ...draft.attachmentNames,
+          [option.value]: supportedFile.name,
+        });
+        setStatusMessage("iPhone photo is ready to add.");
+        return;
+      }
+
+      updateDraft("attachmentNames", {
+        ...draft.attachmentNames,
+        [option.value]: file.name,
+      });
+    } catch (cause) {
+      setStatusMessage(
+        cause instanceof Error
+          ? cause.message
+          : "This photo could not be prepared. Please try another image.",
+      );
+    }
   }
 
   async function saveDraft() {
@@ -301,10 +341,7 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
                     type="file"
                     accept={option.accept}
                     onChange={(event) =>
-                      updateDraft("attachmentNames", {
-                        ...draft.attachmentNames,
-                        [option.value]: event.target.files?.[0]?.name ?? "",
-                      })
+                      void handleMediaSelection(option, event.currentTarget)
                     }
                     className="mt-2 block w-full cursor-pointer rounded-xl border border-white/10 bg-slate-950/50 text-sm text-slate-300 file:mr-4 file:min-h-12 file:border-0 file:bg-[#D8A35B]/15 file:px-4 file:font-medium file:text-[#f0c98e] hover:file:bg-[#D8A35B]/25"
                   />
