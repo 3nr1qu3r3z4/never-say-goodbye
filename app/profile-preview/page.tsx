@@ -100,7 +100,7 @@ export default function ProfilePreviewPage() {
           <h1 className="font-serif text-4xl tracking-tight text-white sm:text-5xl md:text-6xl">
             John Michael Doe
           </h1>
-          <p className="mt-4 text-sm tracking-wide text-slate-300 sm:text-base">
+          <p className="mt-4 font-serif text-base text-slate-300 sm:text-lg">
             Father <span className="px-1 text-[#D8A35B]">•</span> Veteran{" "}
             <span className="px-1 text-[#D8A35B]">•</span> Musician
           </p>

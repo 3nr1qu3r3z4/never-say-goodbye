@@ -228,19 +228,21 @@ export default async function MyProfilePreviewPage() {
                 {displayName}
               </h1>
               {descriptors.length > 0 && (
-                <ul
-                  aria-label="Three words that describe this Moment Maker"
-                  className="mt-5 flex flex-wrap justify-center gap-2"
-                >
+                <p className="mt-4 flex flex-wrap items-center justify-center font-serif text-base text-slate-300 sm:text-lg">
                   {descriptors.map((word, index) => (
-                    <li
-                      key={`${index}-${word}`}
-                      className="rounded-full border border-[#D8A35B]/30 bg-[#D8A35B]/[0.08] px-4 py-2 text-sm font-medium text-[#f0c98e]"
-                    >
+                    <span key={`${index}-${word}`}>
+                      {index > 0 && (
+                        <span
+                          aria-hidden="true"
+                          className="px-2 text-[#D8A35B]"
+                        >
+                          •
+                        </span>
+                      )}
                       {word}
-                    </li>
+                    </span>
                   ))}
-                </ul>
+                </p>
               )}
               {profile.personalMotto && (
                 <p className="mt-4 font-serif text-lg italic text-[#f0c98e]">
