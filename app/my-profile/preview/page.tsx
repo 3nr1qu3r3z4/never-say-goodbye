@@ -40,19 +40,19 @@ export default async function MyProfilePreviewPage() {
   const [profileRows, moments, connections] = await Promise.all([
     sql`
       SELECT COALESCE(
-               NULLIF(BTRIM(display_name), ''),
-               NULLIF(BTRIM(first_name || ' ' || last_name), ''),
+               NULLIF(BTRIM(u.display_name), ''),
+               NULLIF(BTRIM(u.first_name || ' ' || u.last_name), ''),
                'Moment Maker'
              ) AS "displayName",
-             COALESCE(bio, '') AS bio,
-             COALESCE(descriptor_one, '') AS "descriptorOne",
-             COALESCE(descriptor_two, '') AS "descriptorTwo",
-             COALESCE(descriptor_three, '') AS "descriptorThree",
-             COALESCE(location, '') AS location,
-             COALESCE(personal_motto, '') AS "personalMotto",
-             profile_photo_data AS "profilePhoto"
-      FROM users
-      WHERE id = ${user.id}
+             COALESCE(NULLIF(to_jsonb(u) ->> 'bio', ''), '') AS bio,
+             COALESCE(NULLIF(to_jsonb(u) ->> 'descriptor_one', ''), '') AS "descriptorOne",
+             COALESCE(NULLIF(to_jsonb(u) ->> 'descriptor_two', ''), '') AS "descriptorTwo",
+             COALESCE(NULLIF(to_jsonb(u) ->> 'descriptor_three', ''), '') AS "descriptorThree",
+             COALESCE(to_jsonb(u) ->> 'location', '') AS location,
+             COALESCE(to_jsonb(u) ->> 'personal_motto', '') AS "personalMotto",
+             NULLIF(to_jsonb(u) ->> 'profile_photo_data', '') AS "profilePhoto"
+      FROM users AS u
+      WHERE u.id = ${user.id}
       LIMIT 1
     `,
     sql`
