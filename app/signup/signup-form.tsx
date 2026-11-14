@@ -30,6 +30,7 @@ const plans = [
       "Future Moment Makers™",
     ],
     action: "Choose Tier 2",
+    unavailable: true,
   },
   {
     name: "TIER 3",
@@ -43,6 +44,7 @@ const plans = [
     ],
     action: "Choose Tier 3",
     recommended: true,
+    unavailable: true,
   },
 ];
 
@@ -60,7 +62,7 @@ export default function SignupForm() {
   const [customDisplayName, setCustomDisplayName] = useState("");
   const [displayStyle, setDisplayStyle] =
     useState<(typeof displayOptions)[number]["value"]>("full-name");
-  const [selectedPlan, setSelectedPlan] = useState("tier-3");
+  const [selectedPlan, setSelectedPlan] = useState("free");
 
   const accountName = [firstName.trim(), lastName.trim()]
     .filter(Boolean)
@@ -394,24 +396,41 @@ export default function SignupForm() {
               {plans.map((plan) => (
                 <div
                   key={plan.value}
+                  aria-disabled={plan.unavailable || undefined}
                   className={`relative flex flex-col rounded-2xl border bg-slate-950/40 p-5 transition ${
                     plan.recommended
                       ? "border-[#D8A35B]/70 shadow-lg shadow-[#D8A35B]/10"
                       : "border-white/10"
-                  } ${selectedPlan === plan.value ? "bg-[#D8A35B]/[0.08]" : ""}`}
+                  } ${selectedPlan === plan.value ? "bg-[#D8A35B]/[0.08]" : ""} ${
+                    plan.unavailable ? "opacity-70" : ""
+                  }`}
                 >
                   {plan.recommended && (
                     <span className="absolute right-4 top-4 rounded-full bg-[#D8A35B]/15 px-2.5 py-1 text-[0.6rem] font-semibold tracking-[0.14em] text-[#f0c98e]">
                       RECOMMENDED
                     </span>
                   )}
-                  <label className="flex cursor-pointer items-center gap-3">
+                  {plan.unavailable && (
+                    <span
+                      className={`absolute right-4 rounded-full border border-[#D8A35B]/40 bg-[#D8A35B]/10 px-2.5 py-1 text-[0.6rem] font-semibold tracking-[0.12em] text-[#f0c98e] ${
+                        plan.recommended ? "top-12" : "top-4"
+                      }`}
+                    >
+                      COMING SOON
+                    </span>
+                  )}
+                  <label
+                    className={`flex items-center gap-3 ${
+                      plan.unavailable ? "cursor-not-allowed" : "cursor-pointer"
+                    }`}
+                  >
                     <input
                       type="radio"
                       name="membership"
                       value={plan.value}
                       checked={selectedPlan === plan.value}
                       onChange={() => setSelectedPlan(plan.value)}
+                      disabled={plan.unavailable}
                       className="h-4 w-4 accent-[#D8A35B] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D8A35B]"
                     />
                     <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[#D8A35B]">
@@ -434,8 +453,11 @@ export default function SignupForm() {
                   <button
                     type="button"
                     aria-pressed={selectedPlan === plan.value}
-                    onClick={() => setSelectedPlan(plan.value)}
-                    className={`mt-5 min-h-11 w-full rounded-full border px-4 py-2.5 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B] ${
+                    disabled={plan.unavailable}
+                    onClick={() => {
+                      if (!plan.unavailable) setSelectedPlan(plan.value);
+                    }}
+                    className={`mt-5 min-h-11 w-full rounded-full border px-4 py-2.5 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B] disabled:cursor-not-allowed disabled:border-white/10 disabled:text-slate-500 disabled:hover:border-white/10 disabled:hover:text-slate-500 ${
                       selectedPlan === plan.value
                         ? "border-[#D8A35B] bg-[#D8A35B]/15 text-[#f0c98e]"
                         : "border-white/15 text-slate-300 hover:border-[#D8A35B]/60 hover:text-[#f0c98e]"

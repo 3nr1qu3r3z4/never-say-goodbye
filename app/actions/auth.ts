@@ -9,7 +9,7 @@ import { hashSecret, verifySecret } from "@/lib/password";
 export type AuthFormState = { error?: string };
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const memberships = ["free", "tier-2", "tier-3"] as const;
+const memberships = ["free"] as const;
 const displayStyles = ["full-name", "first-last", "custom"] as const;
 const discoverabilityOptions = ["private", "searchable", "public"] as const;
 
@@ -60,7 +60,7 @@ export async function signupAction(
     return { error: "Choose how your profile name should appear." };
   }
   if (!memberships.includes(membership as (typeof memberships)[number])) {
-    return { error: "Choose a membership option." };
+    return { error: "Only Free membership is available for new accounts right now." };
   }
   if (
     !discoverabilityOptions.includes(

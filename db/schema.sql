@@ -1,3 +1,8 @@
+CREATE TABLE IF NOT EXISTS schema_migrations (
+  version TEXT PRIMARY KEY,
+  applied_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
   email TEXT NOT NULL,
@@ -10,6 +15,7 @@ CREATE TABLE IF NOT EXISTS users (
   membership TEXT NOT NULL CHECK (membership IN ('free', 'tier-2', 'tier-3')),
   discoverability TEXT NOT NULL DEFAULT 'searchable' CHECK (discoverability IN ('private', 'searchable', 'public')),
   featured BOOLEAN NOT NULL DEFAULT FALSE,
+  profile_photo_data TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
@@ -47,6 +53,21 @@ CREATE TABLE IF NOT EXISTS legacy_tree_members (
   PRIMARY KEY (tree_id, user_id)
 );
 CREATE INDEX IF NOT EXISTS legacy_tree_members_user_idx ON legacy_tree_members(user_id);
+
+CREATE TABLE IF NOT EXISTS legacy_successors (
+  id TEXT PRIMARY KEY,
+  legacy_tree_id TEXT NOT NULL REFERENCES legacy_trees(id) ON DELETE CASCADE,
+  owner_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  successor_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+  successor_name TEXT NOT NULL,
+  relationship TEXT NOT NULL DEFAULT 'successor',
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'declined', 'revoked')),
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  CHECK (owner_user_id != successor_user_id)
+);
+CREATE INDEX IF NOT EXISTS legacy_successors_tree_idx ON legacy_successors(legacy_tree_id);
+CREATE INDEX IF NOT EXISTS legacy_successors_user_idx ON legacy_successors(successor_user_id);
 
 CREATE TABLE IF NOT EXISTS connected_lives (
   id TEXT PRIMARY KEY,
@@ -104,3 +125,11 @@ CREATE TABLE IF NOT EXISTS drafts (
   updated_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS drafts_user_kind_idx ON drafts(user_id, kind, updated_at DESC);
+
+INSERT INTO schema_migrations (version)
+VALUES ('001_initial_schema')
+ON CONFLICT (version) DO NOTHING;
+
+INSERT INTO schema_migrations (version)
+VALUES ('002_profile_photo')
+ON CONFLICT (version) DO NOTHING;
