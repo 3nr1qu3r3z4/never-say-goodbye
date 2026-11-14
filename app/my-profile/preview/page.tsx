@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { getSql } from "@/lib/db";
 
@@ -20,12 +19,21 @@ type ProfileDetails = {
   location: string | null;
   personalMotto: string | null;
   profilePhoto: string | null;
+  discoverability: "private" | "searchable" | "public";
+  publicProfilePhoto: boolean;
+  publicProfileBio: boolean;
+  publicSharedMoments: boolean;
+  publicConnectedLives: boolean;
+  publicLegacyTree: boolean;
+  publicFutureMomentMakers: boolean;
+  publicPersonalMoments: boolean;
 };
 
 type Moment = {
   id: string;
   title: string;
   kind: "shared" | "personal";
+  audience: "public" | "connections" | "family" | "private";
 };
 
 type Connection = {
@@ -34,10 +42,22 @@ type Connection = {
   relationship: string;
 };
 
+type LegacyTree = {
+  id: string;
+  name: string;
+};
+
+type FutureMomentMaker = {
+  id: string;
+  name: string;
+  relationship: string;
+};
+
 export default async function MyProfilePreviewPage() {
   const user = await requireUser();
   const sql = getSql();
-  const [profileRows, moments, connections] = await Promise.all([
+  const [profileRows, moments, connections, legacyTrees, futureMomentMakers] =
+    await Promise.all([
     sql`
       SELECT COALESCE(
                NULLIF(BTRIM(u.display_name), ''),
@@ -50,13 +70,21 @@ export default async function MyProfilePreviewPage() {
              COALESCE(NULLIF(to_jsonb(u) ->> 'descriptor_three', ''), '') AS "descriptorThree",
              COALESCE(to_jsonb(u) ->> 'location', '') AS location,
              COALESCE(to_jsonb(u) ->> 'personal_motto', '') AS "personalMotto",
-             NULLIF(to_jsonb(u) ->> 'profile_photo_data', '') AS "profilePhoto"
+             NULLIF(to_jsonb(u) ->> 'profile_photo_data', '') AS "profilePhoto",
+             COALESCE(to_jsonb(u) ->> 'discoverability', 'searchable') AS discoverability,
+             COALESCE((to_jsonb(u) ->> 'public_profile_photo')::boolean, TRUE) AS "publicProfilePhoto",
+             COALESCE((to_jsonb(u) ->> 'public_profile_bio')::boolean, TRUE) AS "publicProfileBio",
+             COALESCE((to_jsonb(u) ->> 'public_shared_moments')::boolean, TRUE) AS "publicSharedMoments",
+             COALESCE((to_jsonb(u) ->> 'public_connected_lives')::boolean, TRUE) AS "publicConnectedLives",
+             COALESCE((to_jsonb(u) ->> 'public_legacy_tree')::boolean, TRUE) AS "publicLegacyTree",
+             COALESCE((to_jsonb(u) ->> 'public_future_moment_makers')::boolean, FALSE) AS "publicFutureMomentMakers",
+             COALESCE((to_jsonb(u) ->> 'public_personal_moments')::boolean, FALSE) AS "publicPersonalMoments"
       FROM users AS u
       WHERE u.id = ${user.id}
       LIMIT 1
     `,
     sql`
-      SELECT id, title, kind
+      SELECT id, title, kind, audience
       FROM moments
       WHERE user_id = ${user.id}
         AND kind IN ('shared', 'personal')
@@ -69,6 +97,19 @@ export default async function MyProfilePreviewPage() {
         AND status = 'accepted'
       ORDER BY created_at DESC
     `,
+    sql`
+      SELECT id, name
+      FROM legacy_trees
+      WHERE owner_user_id = ${user.id}
+      ORDER BY created_at
+    `,
+    sql`
+      SELECT id, name, relationship
+      FROM future_moment_makers
+      WHERE owner_user_id = ${user.id}
+        AND status != 'archived'
+      ORDER BY created_at DESC
+    `,
   ]);
   const profile = (profileRows as ProfileDetails[])[0] ?? {
     displayName: user.displayName || "Moment Maker",
@@ -79,6 +120,14 @@ export default async function MyProfilePreviewPage() {
     location: "",
     personalMotto: "",
     profilePhoto: null,
+    discoverability: "searchable",
+    publicProfilePhoto: true,
+    publicProfileBio: true,
+    publicSharedMoments: true,
+    publicConnectedLives: true,
+    publicLegacyTree: true,
+    publicFutureMomentMakers: false,
+    publicPersonalMoments: false,
   };
   const displayName = profile.displayName || user.displayName || "Moment Maker";
   const descriptors = [
@@ -87,11 +136,39 @@ export default async function MyProfilePreviewPage() {
     profile.descriptorThree,
   ].filter((word): word is string => Boolean(word?.trim()));
   const profileMoments = moments as Moment[];
-  const sharedMoments = profileMoments.filter((moment) => moment.kind === "shared");
-  const personalMoments = profileMoments.filter(
-    (moment) => moment.kind === "personal",
+  const isPubliclyVisible = profile.discoverability !== "private";
+  const sharedMoments = profileMoments.filter(
+    (moment) =>
+      isPubliclyVisible &&
+      profile.publicSharedMoments &&
+      moment.kind === "shared" &&
+      moment.audience === "public",
   );
-  const connectedLives = connections as Connection[];
+  const personalMoments = profileMoments.filter(
+    (moment) =>
+      isPubliclyVisible &&
+      profile.publicPersonalMoments &&
+      moment.kind === "personal" &&
+      moment.audience === "public",
+  );
+  const connectedLives =
+    isPubliclyVisible && profile.publicConnectedLives
+      ? (connections as Connection[])
+      : [];
+  const visibleLegacyTrees =
+    isPubliclyVisible && profile.publicLegacyTree
+      ? (legacyTrees as LegacyTree[])
+      : [];
+  const visibleFutureMomentMakers =
+    isPubliclyVisible && profile.publicFutureMomentMakers
+      ? (futureMomentMakers as FutureMomentMaker[])
+      : [];
+  const discoverabilityLabel =
+    profile.discoverability === "public"
+      ? "Public"
+      : profile.discoverability === "searchable"
+        ? "Searchable Only"
+        : "Private";
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#0F172A] text-slate-100">
@@ -100,28 +177,30 @@ export default async function MyProfilePreviewPage() {
           aria-label={`Moment Maker profile for ${displayName}`}
           className="relative mx-auto flex aspect-square w-full max-w-[42rem] items-end overflow-hidden rounded-[1.75rem] border border-[#D8A35B]/25 bg-gradient-to-br from-[#344255] via-[#172437] to-[#101827] shadow-2xl shadow-black/30 sm:rounded-[2rem]"
         >
-          {profile.profilePhoto ? (
-            <Image
-              src={profile.profilePhoto}
-              alt={`${displayName} profile`}
-              fill
-              unoptimized
-              sizes="(max-width: 640px) calc(100vw - 2rem), (max-width: 1280px) calc(100vw - 4rem), 1152px"
-              className="object-cover object-center"
-            />
-          ) : (
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 160 160"
-              fill="none"
-              className="absolute left-1/2 top-1/2 h-48 w-48 -translate-x-1/2 -translate-y-1/2 text-[#D8A35B]/20 sm:h-56 sm:w-56"
-            >
-              <circle cx="80" cy="52" r="30" fill="currentColor" />
-              <path
-                d="M25 145c4-33 25-51 55-51s51 18 55 51"
-                fill="currentColor"
+          {isPubliclyVisible && profile.publicProfilePhoto && (
+            profile.profilePhoto ? (
+              <Image
+                src={profile.profilePhoto}
+                alt={`${displayName} profile`}
+                fill
+                unoptimized
+                sizes="(max-width: 640px) calc(100vw - 2rem), (max-width: 1280px) calc(100vw - 4rem), 1152px"
+                className="object-cover object-center"
               />
-            </svg>
+            ) : (
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 160 160"
+                fill="none"
+                className="absolute left-1/2 top-1/2 h-48 w-48 -translate-x-1/2 -translate-y-1/2 text-[#D8A35B]/20 sm:h-56 sm:w-56"
+              >
+                <circle cx="80" cy="52" r="30" fill="currentColor" />
+                <path
+                  d="M25 145c4-33 25-51 55-51s51 18 55 51"
+                  fill="currentColor"
+                />
+              </svg>
+            )
           )}
           <div
             aria-hidden="true"
@@ -137,58 +216,63 @@ export default async function MyProfilePreviewPage() {
         </figure>
 
         <div className="mx-auto max-w-4xl px-2 pb-12 pt-8 text-center sm:pb-16 sm:pt-10">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">
-            Moment Maker
-          </p>
-          <h1 className="mt-3 font-serif text-4xl tracking-tight text-white sm:text-5xl md:text-6xl">
-            {displayName}
-          </h1>
-          {descriptors.length > 0 && (
-            <ul
-              aria-label="Three words that describe this Moment Maker"
-              className="mt-5 flex flex-wrap justify-center gap-2"
-            >
-              {descriptors.map((word, index) => (
-                <li
-                  key={`${index}-${word}`}
-                  className="rounded-full border border-[#D8A35B]/30 bg-[#D8A35B]/[0.08] px-4 py-2 text-sm font-medium text-[#f0c98e]"
+          {isPubliclyVisible ? (
+            <>
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">
+                Moment Maker
+              </p>
+              <p className="mt-3 inline-flex rounded-full border border-[#D8A35B]/30 bg-[#D8A35B]/[0.08] px-3 py-1 text-xs font-medium text-[#f0c98e]">
+                Profile visibility: {discoverabilityLabel}
+              </p>
+              <h1 className="mt-3 font-serif text-4xl tracking-tight text-white sm:text-5xl md:text-6xl">
+                {displayName}
+              </h1>
+              {descriptors.length > 0 && (
+                <ul
+                  aria-label="Three words that describe this Moment Maker"
+                  className="mt-5 flex flex-wrap justify-center gap-2"
                 >
-                  {word}
-                </li>
-              ))}
-            </ul>
-          )}
-          {profile.personalMotto && (
-            <p className="mt-4 font-serif text-lg italic text-[#f0c98e]">
-              “{profile.personalMotto}”
+                  {descriptors.map((word, index) => (
+                    <li
+                      key={`${index}-${word}`}
+                      className="rounded-full border border-[#D8A35B]/30 bg-[#D8A35B]/[0.08] px-4 py-2 text-sm font-medium text-[#f0c98e]"
+                    >
+                      {word}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {profile.personalMotto && (
+                <p className="mt-4 font-serif text-lg italic text-[#f0c98e]">
+                  “{profile.personalMotto}”
+                </p>
+              )}
+              {profile.location && (
+                <p className="mt-3 text-sm text-slate-400">{profile.location}</p>
+              )}
+              {profile.publicProfileBio && profile.bio && (
+                <p className="mx-auto mt-6 max-w-2xl whitespace-pre-wrap leading-7 text-slate-300">
+                  {profile.bio}
+                </p>
+              )}
+            </>
+          ) : (
+            <p className="mx-auto max-w-xl rounded-2xl border border-[#D8A35B]/25 bg-white/[0.03] p-6 leading-7 text-slate-300">
+              Your profile is private. Only approved connections can find it.
             </p>
           )}
-          {profile.location && (
-            <p className="mt-3 text-sm text-slate-400">{profile.location}</p>
-          )}
-          {profile.bio && (
-            <p className="mx-auto mt-6 max-w-2xl whitespace-pre-wrap leading-7 text-slate-300">
-              {profile.bio}
-            </p>
-          )}
-          <Link
-            href="/my-profile"
-            className="mt-8 inline-flex min-h-11 items-center justify-center rounded-full border border-[#D8A35B]/60 px-6 py-3 text-sm font-semibold text-[#f0c98e] transition hover:border-[#D8A35B] hover:bg-[#D8A35B]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
-          >
-            Edit My Profile
-          </Link>
         </div>
       </div>
 
-      <section className="border-y border-white/10 bg-slate-950/30 px-6 py-16 sm:px-8 sm:py-20">
-        <div className="mx-auto max-w-6xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">
-            Stories in your own words
-          </p>
-          <h2 className="mt-3 font-serif text-3xl text-white sm:text-4xl">
-            Shared Moments
-          </h2>
-          {sharedMoments.length > 0 ? (
+      {sharedMoments.length > 0 && (
+        <section className="border-y border-white/10 bg-slate-950/30 px-6 py-16 sm:px-8 sm:py-20">
+          <div className="mx-auto max-w-6xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">
+              Stories in your own words
+            </p>
+            <h2 className="mt-3 font-serif text-3xl text-white sm:text-4xl">
+              Shared Moments
+            </h2>
             <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {sharedMoments.map((moment) => (
                 <article
@@ -202,23 +286,19 @@ export default async function MyProfilePreviewPage() {
                 </article>
               ))}
             </div>
-          ) : (
-            <p className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm text-slate-400">
-              Your Shared Moments will appear here.
-            </p>
-          )}
-        </div>
-      </section>
+          </div>
+        </section>
+      )}
 
-      <section className="px-6 py-16 sm:px-8 sm:py-20">
-        <div className="mx-auto max-w-6xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">
-            Saved for the right moment
-          </p>
-          <h2 className="mt-3 font-serif text-3xl text-white sm:text-4xl">
-            Personal Moments
-          </h2>
-          {personalMoments.length > 0 ? (
+      {personalMoments.length > 0 && (
+        <section className="px-6 py-16 sm:px-8 sm:py-20">
+          <div className="mx-auto max-w-6xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">
+              Saved for the right moment
+            </p>
+            <h2 className="mt-3 font-serif text-3xl text-white sm:text-4xl">
+              Personal Moments
+            </h2>
             <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {personalMoments.map((moment) => (
                 <article
@@ -234,23 +314,19 @@ export default async function MyProfilePreviewPage() {
                 </article>
               ))}
             </div>
-          ) : (
-            <p className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm text-slate-400">
-              Your Personal Moments will appear here.
-            </p>
-          )}
-        </div>
-      </section>
+          </div>
+        </section>
+      )}
 
-      <section className="border-y border-white/10 bg-slate-950/30 px-6 py-16 sm:px-8 sm:py-20">
-        <div className="mx-auto max-w-6xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">
-            Always connected
-          </p>
-          <h2 className="mt-3 font-serif text-3xl text-white sm:text-4xl">
-            Connected Lives™
-          </h2>
-          {connectedLives.length > 0 ? (
+      {connectedLives.length > 0 && (
+        <section className="border-y border-white/10 bg-slate-950/30 px-6 py-16 sm:px-8 sm:py-20">
+          <div className="mx-auto max-w-6xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">
+              Always connected
+            </p>
+            <h2 className="mt-3 font-serif text-3xl text-white sm:text-4xl">
+              Connected Lives™
+            </h2>
             <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {connectedLives.map((connection) => (
                 <article
@@ -266,13 +342,52 @@ export default async function MyProfilePreviewPage() {
                 </article>
               ))}
             </div>
-          ) : (
-            <p className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm text-slate-400">
-              Your Connected Lives™ will appear here.
-            </p>
-          )}
-        </div>
-      </section>
+          </div>
+        </section>
+      )}
+
+      {visibleLegacyTrees.length > 0 && (
+        <section className="px-6 py-16 sm:px-8 sm:py-20">
+          <div className="mx-auto max-w-6xl">
+            <h2 className="font-serif text-3xl text-white sm:text-4xl">
+              Legacy Tree™
+            </h2>
+            <div className="mt-8 grid gap-4 sm:grid-cols-2">
+              {visibleLegacyTrees.map((tree) => (
+                <article
+                  key={tree.id}
+                  className="rounded-2xl border border-white/10 bg-white/[0.03] p-6"
+                >
+                  <h3 className="font-serif text-xl text-white">{tree.name}</h3>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {visibleFutureMomentMakers.length > 0 && (
+        <section className="border-y border-white/10 bg-slate-950/30 px-6 py-16 sm:px-8 sm:py-20">
+          <div className="mx-auto max-w-6xl">
+            <h2 className="font-serif text-3xl text-white sm:text-4xl">
+              Future Moment Makers™
+            </h2>
+            <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {visibleFutureMomentMakers.map((maker) => (
+                <article
+                  key={maker.id}
+                  className="rounded-2xl border border-white/10 bg-white/[0.03] p-6"
+                >
+                  <h3 className="font-serif text-xl text-white">{maker.name}</h3>
+                  <p className="mt-1 text-sm text-slate-400">
+                    {maker.relationship}
+                  </p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       <footer className="border-t border-white/10 px-6 py-8 text-center">
         <p className="font-serif text-lg text-white">Never Say Goodbye</p>

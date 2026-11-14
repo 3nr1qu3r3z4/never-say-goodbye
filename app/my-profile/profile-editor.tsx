@@ -14,6 +14,83 @@ import { saveProfile, saveProfilePhoto } from "@/app/actions/profile";
 const maxPhotoBytes = 640 * 1024;
 const acceptedTypes = ["image/jpeg", "image/png", "image/webp"];
 const cropOutputSize = 512;
+const mottoCharacterLimit = 120;
+const locationSuggestions = [
+  "Lakeside",
+  "San Diego, California",
+  "Los Angeles, California",
+  "San Francisco, California",
+  "Phoenix, Arizona",
+  "Denver, Colorado",
+  "Miami, Florida",
+  "Orlando, Florida",
+  "Atlanta, Georgia",
+  "Chicago, Illinois",
+  "Boston, Massachusetts",
+  "Detroit, Michigan",
+  "Minneapolis, Minnesota",
+  "Las Vegas, Nevada",
+  "New York, New York",
+  "Charlotte, North Carolina",
+  "Portland, Oregon",
+  "Philadelphia, Pennsylvania",
+  "Nashville, Tennessee",
+  "Austin, Texas",
+  "Dallas, Texas",
+  "Houston, Texas",
+  "Seattle, Washington",
+  "Washington, D.C.",
+  "Alabama",
+  "Alaska",
+  "Arizona",
+  "Arkansas",
+  "California",
+  "Colorado",
+  "Connecticut",
+  "Delaware",
+  "Florida",
+  "Georgia",
+  "Hawaii",
+  "Idaho",
+  "Illinois",
+  "Indiana",
+  "Iowa",
+  "Kansas",
+  "Kentucky",
+  "Louisiana",
+  "Maine",
+  "Maryland",
+  "Massachusetts",
+  "Michigan",
+  "Minnesota",
+  "Mississippi",
+  "Missouri",
+  "Montana",
+  "Nebraska",
+  "Nevada",
+  "New Hampshire",
+  "New Jersey",
+  "New Mexico",
+  "New York",
+  "North Carolina",
+  "North Dakota",
+  "Ohio",
+  "Oklahoma",
+  "Oregon",
+  "Pennsylvania",
+  "Rhode Island",
+  "South Carolina",
+  "South Dakota",
+  "Tennessee",
+  "Texas",
+  "Utah",
+  "Vermont",
+  "Virginia",
+  "Washington",
+  "West Virginia",
+  "Wisconsin",
+  "Wyoming",
+];
 
 type CropOffset = { x: number; y: number };
 type ImageDimensions = { width: number; height: number };
@@ -146,8 +223,28 @@ export default function ProfileEditor({
   const [offset, setOffset] = useState<CropOffset>({ x: 0, y: 0 });
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [messageVisible, setMessageVisible] = useState(false);
+  const [motto, setMotto] = useState(personalMotto);
   const [isSaving, startSaving] = useTransition();
   const [isPhotoSaving, startPhotoSaving] = useTransition();
+
+  useEffect(() => {
+    if (!message) return;
+    const fadeTimeout = window.setTimeout(
+      () => setMessageVisible(false),
+      3600,
+    );
+    const clearTimeoutId = window.setTimeout(() => setMessage(null), 4100);
+    return () => {
+      window.clearTimeout(fadeTimeout);
+      window.clearTimeout(clearTimeoutId);
+    };
+  }, [message]);
+
+  function showMessage(nextMessage: string) {
+    setMessageVisible(true);
+    setMessage(nextMessage);
+  }
 
   useEffect(
     () => () => {
@@ -282,7 +379,7 @@ export default function ProfileEditor({
           return;
         }
         setPreview(crop);
-        setMessage(result.success ?? "Your profile photo has been saved.");
+        showMessage(result.success ?? "Your profile photo has been saved.");
         releaseSource();
       } catch (cause) {
         setError(
@@ -309,7 +406,7 @@ export default function ProfileEditor({
           setError(result.error);
           return;
         }
-        setMessage(result.success ?? "Your profile has been saved.");
+        showMessage(result.success ?? "Your profile has been saved.");
       } catch {
         setError("Your profile could not be saved. Please try again.");
       }
@@ -336,7 +433,7 @@ export default function ProfileEditor({
         <p className="mt-2 text-sm leading-6 text-slate-400">
           Choose a photo that helps your family recognize you.
         </p>
-        <div className="relative mx-auto mt-5 aspect-square w-full max-w-[32rem] overflow-hidden rounded-2xl border border-[#D8A35B]/30 bg-gradient-to-br from-[#344255] via-[#172437] to-[#101827]">
+        <div className="group relative mx-auto mt-5 aspect-square w-full max-w-[32rem] overflow-hidden rounded-2xl border border-[#D8A35B]/30 bg-gradient-to-br from-[#344255] via-[#172437] to-[#101827]">
           {preview ? (
             <NextImage
               src={preview}
@@ -369,7 +466,7 @@ export default function ProfileEditor({
             onClick={() => fileInput.current?.click()}
             aria-label="Upload Profile Photo"
             title="Upload Profile Photo"
-            className="group absolute bottom-4 left-1/2 z-10 flex h-12 w-12 -translate-x-1/2 items-center justify-center rounded-full border border-[#D8A35B] bg-[#0F172A]/90 text-[#f0c98e] shadow-lg shadow-black/40 backdrop-blur transition hover:scale-105 hover:bg-[#D8A35B] hover:text-[#0F172A] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
+            className="absolute bottom-4 left-1/2 z-10 flex h-12 w-12 -translate-x-1/2 items-center justify-center rounded-full border border-[#D8A35B] bg-[#0F172A]/90 text-[#f0c98e] shadow-lg shadow-black/40 backdrop-blur transition hover:scale-105 hover:bg-[#D8A35B] hover:text-[#0F172A] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B] sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
           >
             <svg
               aria-hidden="true"
@@ -455,13 +552,13 @@ export default function ProfileEditor({
         <label className="block text-sm font-medium text-slate-200">
           Bio
           <span className="mt-1 block text-xs font-normal leading-5 text-slate-500">
-            Tell your personal story, background, or life philosophy.
+            Share a brief introduction, background, story, or personal philosophy.
           </span>
           <textarea
             name="bio"
             defaultValue={bio}
             maxLength={1000}
-            rows={3}
+            rows={2}
             className={`${inputClassName} resize-y py-3`}
           />
         </label>
@@ -474,24 +571,46 @@ export default function ProfileEditor({
               defaultValue={location}
               maxLength={120}
               autoComplete="address-level2"
-              className={inputClassName}
-            />
-          </label>
-          <label className="text-sm font-medium text-slate-200">
-            Personal Motto <span className="text-slate-500">(Optional)</span>
-            <input
-              name="personalMotto"
-              defaultValue={personalMotto}
-              maxLength={240}
-              className={inputClassName}
-            />
-          </label>
+            list="profile-location-suggestions"
+            placeholder="City, State"
+            className={inputClassName}
+          />
+          <datalist id="profile-location-suggestions">
+            {locationSuggestions.map((suggestion) => (
+              <option key={suggestion} value={suggestion} />
+            ))}
+          </datalist>
+        </label>
+        <label className="text-sm font-medium text-slate-200">
+          Personal Motto <span className="text-slate-500">(Optional)</span>
+          <input
+            name="personalMotto"
+            value={motto}
+            onChange={(event) => setMotto(event.currentTarget.value)}
+            maxLength={mottoCharacterLimit}
+            className={inputClassName}
+          />
+          <span
+            aria-live="polite"
+            className="mt-1 block text-right text-xs text-slate-500"
+          >
+            {motto.length} / {mottoCharacterLimit}
+          </span>
+        </label>
         </div>
       </div>
 
       <div aria-live="polite" className="min-h-5">
         {error && <p className="text-sm text-red-200">{error}</p>}
-        {message && <p className="text-sm text-[#f0c98e]">{message}</p>}
+        {message && (
+        <p
+          className={`text-sm text-[#f0c98e] transition-opacity duration-500 ${
+            messageVisible ? "opacity-100" : "opacity-0"
+          }`}
+        >
+          {message}
+        </p>
+        )}
       </div>
 
       <div className="flex flex-col gap-3 border-t border-white/10 pt-6 sm:flex-row">

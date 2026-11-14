@@ -1,10 +1,33 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { saveLegacyControls } from "@/app/actions/legacy-controls";
+import { requireUser } from "@/lib/auth";
+import { getSql } from "@/lib/db";
+import LegacyControlsSaveNotice from "./save-notice";
 
 export const metadata: Metadata = {
   title: "Legacy Controls™ | Never Say Goodbye",
   description:
     "Choose who can find your Moment Maker profile, what they can see, and who can contribute to your story.",
+};
+
+export const instant = false;
+
+type LegacyControlSettings = {
+  discoverability: "private" | "searchable" | "public";
+  featured: boolean;
+  publicProfilePhoto: boolean;
+  publicProfileBio: boolean;
+  publicSharedMoments: boolean;
+  publicConnectedLives: boolean;
+  publicLegacyTree: boolean;
+  publicFutureMomentMakers: boolean;
+  publicPersonalMoments: boolean;
+  privateMomentAccessRequests: boolean;
+  treeParticipation: "owner" | "approved-contributors" | "connected-lives";
+  familyContributions: boolean;
+  connectedLifeContributions: boolean;
+  requireMomentApproval: boolean;
 };
 
 const cardClassName =
@@ -14,11 +37,13 @@ const optionClassName =
 
 function ToggleSetting({
   id,
+  name,
   title,
   description,
   defaultChecked = false,
 }: {
   id: string;
+  name: string;
   title: string;
   description?: string;
   defaultChecked?: boolean;
@@ -39,6 +64,7 @@ function ToggleSetting({
       <span className="relative inline-flex shrink-0">
         <input
           id={id}
+          name={name}
           type="checkbox"
           defaultChecked={defaultChecked}
           className="peer sr-only"
@@ -50,7 +76,35 @@ function ToggleSetting({
   );
 }
 
-export default function LegacyControlsPage() {
+export default async function LegacyControlsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ saved?: string }>;
+}) {
+  const user = await requireUser();
+  const sql = getSql();
+  const [settings] = (await sql`
+    SELECT
+      COALESCE(to_jsonb(u) ->> 'discoverability', 'searchable') AS discoverability,
+      COALESCE((to_jsonb(u) ->> 'featured')::boolean, FALSE) AS featured,
+      COALESCE((to_jsonb(u) ->> 'public_profile_photo')::boolean, TRUE) AS "publicProfilePhoto",
+      COALESCE((to_jsonb(u) ->> 'public_profile_bio')::boolean, TRUE) AS "publicProfileBio",
+      COALESCE((to_jsonb(u) ->> 'public_shared_moments')::boolean, TRUE) AS "publicSharedMoments",
+      COALESCE((to_jsonb(u) ->> 'public_connected_lives')::boolean, TRUE) AS "publicConnectedLives",
+      COALESCE((to_jsonb(u) ->> 'public_legacy_tree')::boolean, TRUE) AS "publicLegacyTree",
+      COALESCE((to_jsonb(u) ->> 'public_future_moment_makers')::boolean, FALSE) AS "publicFutureMomentMakers",
+      COALESCE((to_jsonb(u) ->> 'public_personal_moments')::boolean, FALSE) AS "publicPersonalMoments",
+      COALESCE((to_jsonb(u) ->> 'private_moment_access_requests')::boolean, TRUE) AS "privateMomentAccessRequests",
+      COALESCE(to_jsonb(u) ->> 'tree_participation', 'owner') AS "treeParticipation",
+      COALESCE((to_jsonb(u) ->> 'family_contributions')::boolean, TRUE) AS "familyContributions",
+      COALESCE((to_jsonb(u) ->> 'connected_life_contributions')::boolean, TRUE) AS "connectedLifeContributions",
+      COALESCE((to_jsonb(u) ->> 'require_moment_approval')::boolean, TRUE) AS "requireMomentApproval"
+    FROM users AS u
+    WHERE u.id = ${user.id}
+    LIMIT 1
+  `) as LegacyControlSettings[];
+  const { saved } = await searchParams;
+
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#0F172A] text-slate-100">
       <div
@@ -58,7 +112,10 @@ export default function LegacyControlsPage() {
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(216,163,91,0.12),transparent_58%)]"
       />
 
-      <div className="relative mx-auto max-w-5xl px-5 py-8 sm:px-8 sm:py-12">
+      <form
+        action={saveLegacyControls}
+        className="relative mx-auto max-w-5xl px-5 py-8 sm:px-8 sm:py-12"
+      >
         <Link
           href="/dashboard"
           className="text-xs font-medium uppercase tracking-[0.2em] text-slate-400 transition hover:text-[#f0c98e] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
@@ -80,8 +137,11 @@ export default function LegacyControlsPage() {
 
         <div className="mx-auto mt-10 max-w-3xl space-y-5 sm:mt-12">
           <p className="rounded-xl border border-[#D8A35B]/20 bg-[#D8A35B]/[0.05] px-4 py-3 text-sm leading-6 text-slate-400">
-            These controls are a preview. Changes are not saved yet.
+            Your visibility and contribution choices are saved to your Moment Maker account.
           </p>
+          {saved === "1" && (
+            <LegacyControlsSaveNotice />
+          )}
 
           <section aria-labelledby="discoverability-heading" className={cardClassName}>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#D8A35B]">
@@ -104,8 +164,9 @@ export default function LegacyControlsPage() {
               <label className={optionClassName}>
                 <input
                   type="radio"
-                  name="profile-discoverability"
+                  name="discoverability"
                   value="private"
+                  defaultChecked={settings?.discoverability === "private"}
                   className="mt-0.5 h-4 w-4 shrink-0 accent-[#D8A35B] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D8A35B]"
                 />
                 <span>
@@ -118,13 +179,13 @@ export default function LegacyControlsPage() {
               <label className={optionClassName}>
                 <input
                   type="radio"
-                  name="profile-discoverability"
+                  name="discoverability"
                   value="searchable"
-                  defaultChecked
+                  defaultChecked={settings?.discoverability === "searchable"}
                   className="mt-0.5 h-4 w-4 shrink-0 accent-[#D8A35B] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D8A35B]"
                 />
                 <span>
-                  <span className="block font-medium">Searchable</span>
+                  <span className="block font-medium">Searchable Only</span>
                   <span className="mt-1 block leading-6 text-slate-400">
                     People may find my profile, but access to my content depends
                     on my visibility settings.
@@ -134,8 +195,9 @@ export default function LegacyControlsPage() {
               <label className={optionClassName}>
                 <input
                   type="radio"
-                  name="profile-discoverability"
+                  name="discoverability"
                   value="public"
+                  defaultChecked={settings?.discoverability === "public"}
                   className="mt-0.5 h-4 w-4 shrink-0 accent-[#D8A35B] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D8A35B]"
                 />
                 <span>
@@ -151,9 +213,10 @@ export default function LegacyControlsPage() {
             <div className="mt-5">
               <ToggleSetting
                 id="feature-profile"
+                name="featured"
                 title="Feature my profile in This Week's Moment Makers™"
                 description="Allow my profile to appear in featured Moment Maker listings throughout the platform."
-                defaultChecked
+                defaultChecked={settings?.featured ?? false}
               />
             </div>
           </section>
@@ -175,38 +238,52 @@ export default function LegacyControlsPage() {
             <div className="mt-5 space-y-3">
               <ToggleSetting
                 id="public-profile-photo"
+                name="publicProfilePhoto"
                 title="Profile Photo"
-                defaultChecked
+                defaultChecked={settings?.publicProfilePhoto ?? true}
               />
-              <ToggleSetting id="public-profile-bio" title="Bio" defaultChecked />
+              <ToggleSetting
+                id="public-profile-bio"
+                name="publicProfileBio"
+                title="Bio"
+                defaultChecked={settings?.publicProfileBio ?? true}
+              />
               <ToggleSetting
                 id="public-shared-moments"
+                name="publicSharedMoments"
                 title="Shared Moments"
-                defaultChecked
+                defaultChecked={settings?.publicSharedMoments ?? true}
               />
               <ToggleSetting
                 id="public-connected-lives"
+                name="publicConnectedLives"
                 title="Connected Lives™"
-                defaultChecked
+                defaultChecked={settings?.publicConnectedLives ?? true}
               />
               <ToggleSetting
                 id="public-legacy-tree"
+                name="publicLegacyTree"
                 title="Legacy Tree™"
-                defaultChecked
+                defaultChecked={settings?.publicLegacyTree ?? true}
               />
               <ToggleSetting
                 id="public-future-moment-makers"
+                name="publicFutureMomentMakers"
                 title="Future Moment Makers™"
+                defaultChecked={settings?.publicFutureMomentMakers ?? false}
               />
               <ToggleSetting
                 id="public-personal-moments"
+                name="publicPersonalMoments"
                 title="Personal Moments"
+                defaultChecked={settings?.publicPersonalMoments ?? false}
               />
               <ToggleSetting
                 id="private-moment-access-requests"
+                name="privateMomentAccessRequests"
                 title="Allow visitors to request access to private moments"
                 description="Visitors may request permission to view moments that are not publicly visible."
-                defaultChecked
+                defaultChecked={settings?.privateMomentAccessRequests ?? true}
               />
             </div>
           </section>
@@ -235,9 +312,9 @@ export default function LegacyControlsPage() {
               <label className={optionClassName}>
                 <input
                   type="radio"
-                  name="tree-participation"
+                  name="treeParticipation"
                   value="owner"
-                  defaultChecked
+                  defaultChecked={settings?.treeParticipation === "owner"}
                   className="mt-0.5 h-4 w-4 shrink-0 accent-[#D8A35B] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D8A35B]"
                 />
                 <span>
@@ -254,8 +331,9 @@ export default function LegacyControlsPage() {
               <label className={optionClassName}>
                 <input
                   type="radio"
-                  name="tree-participation"
+                  name="treeParticipation"
                   value="approved-contributors"
+                  defaultChecked={settings?.treeParticipation === "approved-contributors"}
                   className="mt-0.5 h-4 w-4 shrink-0 accent-[#D8A35B] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D8A35B]"
                 />
                 <span>
@@ -269,8 +347,9 @@ export default function LegacyControlsPage() {
               <label className={optionClassName}>
                 <input
                   type="radio"
-                  name="tree-participation"
+                  name="treeParticipation"
                   value="connected-lives"
+                  defaultChecked={settings?.treeParticipation === "connected-lives"}
                   className="mt-0.5 h-4 w-4 shrink-0 accent-[#D8A35B] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D8A35B]"
                 />
                 <span>
@@ -290,18 +369,21 @@ export default function LegacyControlsPage() {
               <div className="mt-4 space-y-3">
                 <ToggleSetting
                   id="family-contributions"
+                  name="familyContributions"
                   title="Allow family members to contribute moments"
-                  defaultChecked
+                  defaultChecked={settings?.familyContributions ?? true}
                 />
                 <ToggleSetting
                   id="connected-life-contributions"
+                  name="connectedLifeContributions"
                   title="Allow Connected Lives™ to contribute moments"
-                  defaultChecked
+                  defaultChecked={settings?.connectedLifeContributions ?? true}
                 />
                 <ToggleSetting
                   id="require-moment-approval"
+                  name="requireMomentApproval"
                   title="Require approval before moments are added"
-                  defaultChecked
+                  defaultChecked={settings?.requireMomentApproval ?? true}
                 />
               </div>
             </div>
@@ -324,6 +406,13 @@ export default function LegacyControlsPage() {
             </div>
           </section>
 
+          <button
+            type="submit"
+            className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[#D8A35B] px-7 py-3 text-sm font-semibold text-[#0F172A] shadow-lg shadow-[#D8A35B]/10 transition hover:bg-[#e6b66f] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
+          >
+            Save Legacy Controls™
+          </button>
+
           <section
             aria-labelledby="profile-preview-heading"
             className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-center sm:p-7"
@@ -345,7 +434,7 @@ export default function LegacyControlsPage() {
             </Link>
           </section>
         </div>
-      </div>
+      </form>
     </main>
   );
 }

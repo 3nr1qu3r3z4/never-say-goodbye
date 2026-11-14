@@ -94,7 +94,7 @@ export async function saveProfile(
   ) {
     return { error: "Each describing word must be 40 characters or fewer." };
   }
-  if (bio.length > 1000 || location.length > 120 || personalMotto.length > 240) {
+  if (bio.length > 1000 || location.length > 120 || personalMotto.length > 120) {
     return { error: "One or more profile fields exceed the allowed length." };
   }
 

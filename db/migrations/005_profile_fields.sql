@@ -1,0 +1,16 @@
+BEGIN;
+
+ALTER TABLE users
+  ADD COLUMN IF NOT EXISTS profile_photo_data TEXT,
+  ADD COLUMN IF NOT EXISTS bio TEXT NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS location TEXT,
+  ADD COLUMN IF NOT EXISTS personal_motto TEXT,
+  ADD COLUMN IF NOT EXISTS descriptor_one TEXT NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS descriptor_two TEXT NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS descriptor_three TEXT NOT NULL DEFAULT '';
+
+INSERT INTO schema_migrations (version)
+VALUES ('005_profile_fields')
+ON CONFLICT (version) DO NOTHING;
+
+COMMIT;

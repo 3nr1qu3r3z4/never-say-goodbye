@@ -15,6 +15,18 @@ CREATE TABLE IF NOT EXISTS users (
   membership TEXT NOT NULL CHECK (membership IN ('free', 'tier-2', 'tier-3')),
   discoverability TEXT NOT NULL DEFAULT 'searchable' CHECK (discoverability IN ('private', 'searchable', 'public')),
   featured BOOLEAN NOT NULL DEFAULT FALSE,
+  public_profile_photo BOOLEAN NOT NULL DEFAULT TRUE,
+  public_profile_bio BOOLEAN NOT NULL DEFAULT TRUE,
+  public_shared_moments BOOLEAN NOT NULL DEFAULT TRUE,
+  public_connected_lives BOOLEAN NOT NULL DEFAULT TRUE,
+  public_legacy_tree BOOLEAN NOT NULL DEFAULT TRUE,
+  public_future_moment_makers BOOLEAN NOT NULL DEFAULT FALSE,
+  public_personal_moments BOOLEAN NOT NULL DEFAULT FALSE,
+  private_moment_access_requests BOOLEAN NOT NULL DEFAULT TRUE,
+  tree_participation TEXT NOT NULL DEFAULT 'owner',
+  family_contributions BOOLEAN NOT NULL DEFAULT TRUE,
+  connected_life_contributions BOOLEAN NOT NULL DEFAULT TRUE,
+  require_moment_approval BOOLEAN NOT NULL DEFAULT TRUE,
   profile_photo_data TEXT,
   bio TEXT NOT NULL DEFAULT '',
   descriptor_one TEXT NOT NULL DEFAULT '',
@@ -146,4 +158,12 @@ ON CONFLICT (version) DO NOTHING;
 
 INSERT INTO schema_migrations (version)
 VALUES ('004_profile_words')
+ON CONFLICT (version) DO NOTHING;
+
+INSERT INTO schema_migrations (version)
+VALUES ('005_profile_fields')
+ON CONFLICT (version) DO NOTHING;
+
+INSERT INTO schema_migrations (version)
+VALUES ('006_legacy_control_visibility')
 ON CONFLICT (version) DO NOTHING;
