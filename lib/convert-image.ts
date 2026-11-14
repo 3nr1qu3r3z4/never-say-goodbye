@@ -7,8 +7,37 @@ export function isHeicImage(file: File): boolean {
   );
 }
 
+export async function isHeicFile(file: File): Promise<boolean> {
+  if (isHeicImage(file)) return true;
+
+  const header = new Uint8Array(await file.slice(0, 32).arrayBuffer());
+  if (
+    header.length < 12 ||
+    String.fromCharCode(...header.slice(4, 8)) !== "ftyp"
+  ) {
+    return false;
+  }
+
+  const brands = String.fromCharCode(...header.slice(8)).match(/.{4}/g) ?? [];
+  return brands.some((brand) =>
+    [
+      "heic",
+      "heif",
+      "heix",
+      "hevc",
+      "hevx",
+      "heim",
+      "heis",
+      "hevm",
+      "hevs",
+      "mif1",
+      "msf1",
+    ].includes(brand),
+  );
+}
+
 export async function toSupportedImage(file: File): Promise<File> {
-  if (!isHeicImage(file)) return file;
+  if (!(await isHeicFile(file))) return file;
 
   const { default: heic2any } = await import("heic2any");
   const converted = await heic2any({

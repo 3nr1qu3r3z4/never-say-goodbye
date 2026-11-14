@@ -16,7 +16,7 @@ import {
   type MomentDraft,
   type MomentKind,
 } from "@/lib/moment-types";
-import { isHeicImage, toSupportedImage } from "@/lib/convert-image";
+import { isHeicFile, toSupportedImage } from "@/lib/convert-image";
 
 const contentOptions: {
   value: ContentKind;
@@ -151,7 +151,7 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
     setStatusMessage("");
 
     try {
-      if (option.value === "photo" && isHeicImage(file)) {
+      if (option.value === "photo" && (await isHeicFile(file))) {
         setStatusMessage("Preparing your iPhone photo…");
         const supportedFile = await toSupportedImage(file);
         updateDraft("attachmentNames", {

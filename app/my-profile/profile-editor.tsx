@@ -10,10 +10,16 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { saveProfile, saveProfilePhoto } from "@/app/actions/profile";
-import { isHeicImage, toSupportedImage } from "@/lib/convert-image";
+import { isHeicFile, toSupportedImage } from "@/lib/convert-image";
 
 const maxPhotoBytes = 640 * 1024;
-const acceptedTypes = ["image/jpeg", "image/png", "image/webp"];
+const acceptedTypes = [
+  "image/jpeg",
+  "image/jpg",
+  "image/pjpeg",
+  "image/png",
+  "image/webp",
+];
 const cropOutputSize = 512;
 const mottoCharacterLimit = 120;
 const locationSuggestions = [
@@ -113,7 +119,7 @@ function constrainOffset(
   };
 }
 
-function createCroppedWebp(
+function createCroppedPhoto(
   image: HTMLImageElement,
   dimensions: ImageDimensions,
   offset: CropOffset,
@@ -155,31 +161,60 @@ function createCroppedWebp(
       cropOutputSize,
       cropOutputSize,
     );
-    const encode = (quality: number) => {
-      canvas.toBlob((blob) => {
-        if (!blob) {
-          reject(new Error("The cropped photo could not be prepared."));
-          return;
-        }
-        if (blob.size <= maxPhotoBytes) {
-          const reader = new FileReader();
-          reader.onload = () => {
-            if (typeof reader.result === "string") resolve(reader.result);
-            else reject(new Error("The cropped photo could not be read."));
-          };
-          reader.onerror = () =>
-            reject(new Error("The cropped photo could not be read."));
-          reader.readAsDataURL(blob);
-          return;
-        }
-        if (quality <= 0.45) {
-          reject(new Error("This photo is too large to save."));
-          return;
-        }
-        encode(quality - 0.1);
-      }, "image/webp", quality);
+    const readBlob = (blob: Blob) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === "string") resolve(reader.result);
+        else reject(new Error("The cropped photo could not be read."));
+      };
+      reader.onerror = () =>
+        reject(new Error("The cropped photo could not be read."));
+      reader.readAsDataURL(blob);
     };
-    encode(0.85);
+
+    const encodeJpeg = (quality: number) => {
+      canvas.toBlob(
+        (blob) => {
+          if (!blob || blob.type !== "image/jpeg") {
+            reject(new Error("This browser could not prepare the cropped photo."));
+            return;
+          }
+          if (blob.size <= maxPhotoBytes) {
+            readBlob(blob);
+          } else if (quality > 0.3) {
+            encodeJpeg(Math.max(0.3, quality - 0.1));
+          } else {
+            reject(new Error("This photo is too large to save."));
+          }
+        },
+        "image/jpeg",
+        quality,
+      );
+    };
+
+    const encodeWebp = (quality: number) => {
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            reject(new Error("The cropped photo could not be prepared."));
+            return;
+          }
+          if (blob.type !== "image/webp") {
+            encodeJpeg(0.85);
+          } else if (blob.size <= maxPhotoBytes) {
+            readBlob(blob);
+          } else if (quality > 0.45) {
+            encodeWebp(quality - 0.1);
+          } else {
+            encodeJpeg(0.85);
+          }
+        },
+        "image/webp",
+        quality,
+      );
+    };
+
+    encodeWebp(0.85);
   });
 }
 
@@ -288,7 +323,13 @@ export default function ProfileEditor({
     setError(null);
     setMessage(null);
 
-    if (!acceptedTypes.includes(file.type) && !isHeicImage(file)) {
+    const mimeType = file.type.toLowerCase();
+    const supportedExtension = /\.(jpe?g|png|webp)$/i.test(file.name);
+    if (
+      !acceptedTypes.includes(mimeType) &&
+      !supportedExtension &&
+      !(await isHeicFile(file))
+    ) {
       setError("Choose a JPG, JPEG, PNG, WEBP, HEIC, or HEIF image.");
       input.value = "";
       return;
@@ -303,7 +344,11 @@ export default function ProfileEditor({
     setIsPhotoPreparing(true);
     try {
       const supportedFile = await toSupportedImage(file);
-      if (!acceptedTypes.includes(supportedFile.type)) {
+      const supportedMimeType = supportedFile.type.toLowerCase();
+      if (
+        !acceptedTypes.includes(supportedMimeType) &&
+        !/\.(jpe?g|png|webp)$/i.test(supportedFile.name)
+      ) {
         throw new Error("Choose a JPG, JPEG, PNG, WEBP, HEIC, or HEIF image.");
       }
       const nextSource = URL.createObjectURL(supportedFile);
@@ -384,7 +429,7 @@ export default function ProfileEditor({
 
     startPhotoSaving(async () => {
       try {
-        const crop = await createCroppedWebp(
+        const crop = await createCroppedPhoto(
           image,
           imageDimensions,
           cropOffset,
@@ -547,28 +592,28 @@ export default function ProfileEditor({
           </p>
           <div className="mt-3 grid gap-3 sm:grid-cols-3">
             {[
-              { name: "descriptorOne", label: "Word 1", value: descriptorOne },
-              { name: "descriptorTwo", label: "Word 2", value: descriptorTwo },
+              { name: "descriptorOne", label: "1", value: descriptorOne },
+              { name: "descriptorTwo", label: "2", value: descriptorTwo },
               {
                 name: "descriptorThree",
-                label: "Word 3",
+                label: "3",
                 value: descriptorThree,
               },
-            ].map((word) => (
-              <div key={word.name}>
+            ].map((descriptor) => (
+              <div key={descriptor.name}>
                 <label
-                  htmlFor={word.name}
+                  htmlFor={descriptor.name}
                   className="mb-1 block text-xs font-medium text-slate-400"
                 >
-                  {word.label}
+                  {descriptor.label}
                 </label>
                 <input
-                  id={word.name}
-                  name={word.name}
-                  defaultValue={word.value}
+                  id={descriptor.name}
+                  name={descriptor.name}
+                  defaultValue={descriptor.value}
                   maxLength={40}
-                  placeholder={word.label}
-                  aria-label={word.label}
+                  placeholder={descriptor.label}
+                  aria-label={descriptor.label}
                   className={`${inputClassName} mt-0 rounded-full border-[#D8A35B]/25 bg-[#D8A35B]/[0.06] text-center font-serif text-base placeholder:font-sans placeholder:text-slate-500`}
                 />
               </div>
