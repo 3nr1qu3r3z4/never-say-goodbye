@@ -102,7 +102,7 @@ export default async function DashboardPage() {
                 id="connected-lives-heading"
                 className="font-serif text-xl text-white sm:text-2xl"
               >
-                Connected Lives
+                Lives
               </h2>
               <span
                 aria-hidden="true"
@@ -117,8 +117,20 @@ export default async function DashboardPage() {
             >
               <span aria-hidden="true">❤️</span>
               <span>
-                {data.counts.connectedLives}{" "}
-                {data.counts.connectedLives === 1 ? "Connected Life" : "Connected Lives"}
+                ❤️{" "}
+                {data.counts.newLivesRequests > 0
+                  ? `${data.counts.newLivesRequests} ${
+                      data.counts.newLivesRequests === 1
+                        ? "New Request"
+                        : "New Requests"
+                    }`
+                  : data.counts.unreadLivesNotifications > 0
+                    ? `${data.counts.unreadLivesNotifications} ${
+                        data.counts.unreadLivesNotifications === 1
+                          ? "New Update"
+                          : "New Updates"
+                      }`
+                    : "0 New Requests"}
               </span>
               <span aria-hidden="true" className="text-lg">→</span>
             </Link>

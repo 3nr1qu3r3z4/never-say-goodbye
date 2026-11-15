@@ -49,6 +49,7 @@ export async function sendConnectedLivesRequest(
 
   const now = new Date().toISOString();
   const connectionId = randomUUID();
+  const notificationId = randomUUID();
   const pairKey = [user.id, profileUserId].sort().join(":");
   const rows = (await sql`
     WITH pair_lock AS MATERIALIZED (
@@ -82,6 +83,32 @@ export async function sendConnectedLivesRequest(
       SELECT ${connectionId}, ${user.id}, ${profileUserId},
              ${profile.displayName}, 'Connected Life', 'pending', ${now}, ${now}
       WHERE NOT EXISTS (SELECT 1 FROM existing)
+      RETURNING id
+    ),
+    created_request AS (
+      SELECT id FROM updated
+      UNION ALL
+      SELECT id FROM inserted
+    ),
+    request_notification AS (
+      INSERT INTO notifications (
+        id, recipient_user_id, actor_user_id, type, related_entity_type,
+        related_entity_id, message, created_at, updated_at
+      )
+      SELECT ${notificationId}, ${profileUserId}, ${user.id},
+             'connected_lives_request', 'connected_lives', created_request.id,
+             ${`${user.displayName} would like to connect with you.`},
+             ${now}, ${now}
+      FROM created_request
+      ON CONFLICT (
+        recipient_user_id, type, related_entity_type, related_entity_id
+      )
+      DO UPDATE SET
+        actor_user_id = EXCLUDED.actor_user_id,
+        message = EXCLUDED.message,
+        read_at = NULL,
+        created_at = EXCLUDED.created_at,
+        updated_at = EXCLUDED.updated_at
       RETURNING id
     )
     SELECT CASE
@@ -135,14 +162,53 @@ export async function respondToConnectedLivesRequest(
   }
 
   const sql = getSql();
+  const notificationId = randomUUID();
+  const now = new Date().toISOString();
   const [request] = (await sql`
-    UPDATE connected_lives
-    SET status = ${response === "accept" ? "accepted" : "declined"},
-        updated_at = ${new Date().toISOString()}
-    WHERE id = ${requestId}
-      AND connected_user_id = ${user.id}
-      AND status = 'pending'
-    RETURNING owner_user_id AS "requesterId"
+    WITH responded AS (
+      UPDATE connected_lives
+      SET status = ${response === "accept" ? "accepted" : "declined"},
+          updated_at = ${now}
+      WHERE id = ${requestId}
+        AND connected_user_id = ${user.id}
+        AND status = 'pending'
+      RETURNING id, owner_user_id AS "requesterId"
+    ),
+    read_request AS (
+      UPDATE notifications
+      SET read_at = ${now}, updated_at = ${now}
+      WHERE related_entity_type = 'connected_lives'
+        AND related_entity_id = ${requestId}
+        AND recipient_user_id = ${user.id}
+        AND type = 'connected_lives_request'
+      RETURNING id
+    ),
+    response_notification AS (
+      INSERT INTO notifications (
+        id, recipient_user_id, actor_user_id, type, related_entity_type,
+        related_entity_id, message, created_at, updated_at
+      )
+      SELECT ${notificationId}, responded."requesterId", ${user.id},
+             ${response === "accept" ? "connected_lives_accepted" : "connected_lives_declined"},
+             'connected_lives', responded.id,
+             ${response === "accept"
+               ? `You are now connected with ${user.displayName}.`
+               : "Connection request declined."},
+             ${now}, ${now}
+      FROM responded
+      ON CONFLICT (
+        recipient_user_id, type, related_entity_type, related_entity_id
+      )
+      DO UPDATE SET
+        actor_user_id = EXCLUDED.actor_user_id,
+        message = EXCLUDED.message,
+        read_at = NULL,
+        created_at = EXCLUDED.created_at,
+        updated_at = EXCLUDED.updated_at
+      RETURNING id
+    )
+    SELECT responded."requesterId"
+    FROM responded
   `) as { requesterId: string }[];
   if (!request) {
     return { error: "This request is no longer available to respond to." };
@@ -156,4 +222,19 @@ export async function respondToConnectedLivesRequest(
         ? "Connected Lives™ request accepted."
         : "Connected Lives™ request declined.",
   };
+}
+
+export async function markLivesNotificationsRead() {
+  const user = await requireUser();
+  const sql = getSql();
+  const now = new Date().toISOString();
+  await sql`
+    UPDATE notifications
+    SET read_at = ${now},
+        updated_at = ${now}
+    WHERE recipient_user_id = ${user.id}
+      AND read_at IS NULL
+  `;
+  revalidatePath("/connected-lives");
+  revalidatePath("/dashboard");
 }

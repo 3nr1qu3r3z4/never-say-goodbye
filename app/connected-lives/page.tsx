@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { getSql } from "@/lib/db";
+import { markLivesNotificationsRead } from "@/app/actions/connected-lives";
 import ConnectionResponse from "./connection-response";
 
 export const metadata: Metadata = {
@@ -20,27 +21,46 @@ type Connection = {
   createdAt: string;
 };
 
+type LivesNotification = {
+  id: string;
+  type: string;
+  message: string;
+  readAt: string | null;
+  createdAt: string;
+};
+
 export default async function ConnectedLivesPage() {
   const user = await requireUser();
   const sql = getSql();
-  const rows = (await sql`
-    SELECT cl.id, cl.status,
-           cl.owner_user_id AS "requesterId",
-           cl.connected_user_id AS "recipientId",
-           CASE
-             WHEN cl.owner_user_id = ${user.id}
-               THEN COALESCE(NULLIF(BTRIM(recipient.display_name), ''), cl.display_name)
-             ELSE COALESCE(NULLIF(BTRIM(requester.display_name), ''), cl.display_name)
-           END AS "displayName",
-           cl.relationship,
-           cl.created_at AS "createdAt"
-    FROM connected_lives AS cl
-    LEFT JOIN users AS requester ON requester.id = cl.owner_user_id
-    LEFT JOIN users AS recipient ON recipient.id = cl.connected_user_id
-    WHERE cl.owner_user_id = ${user.id}
-       OR cl.connected_user_id = ${user.id}
-    ORDER BY cl.updated_at DESC, cl.created_at DESC
-  `) as Connection[];
+  const [connectionRows, notificationRows] = await Promise.all([
+    sql`
+      SELECT cl.id, cl.status,
+             cl.owner_user_id AS "requesterId",
+             cl.connected_user_id AS "recipientId",
+             CASE
+               WHEN cl.owner_user_id = ${user.id}
+                 THEN COALESCE(NULLIF(BTRIM(recipient.display_name), ''), cl.display_name)
+               ELSE COALESCE(NULLIF(BTRIM(requester.display_name), ''), cl.display_name)
+             END AS "displayName",
+             cl.relationship,
+             cl.created_at AS "createdAt"
+      FROM connected_lives AS cl
+      LEFT JOIN users AS requester ON requester.id = cl.owner_user_id
+      LEFT JOIN users AS recipient ON recipient.id = cl.connected_user_id
+      WHERE cl.owner_user_id = ${user.id}
+         OR cl.connected_user_id = ${user.id}
+      ORDER BY cl.updated_at DESC, cl.created_at DESC
+    `,
+    sql`
+      SELECT id, type, message, read_at AS "readAt", created_at AS "createdAt"
+      FROM notifications
+      WHERE recipient_user_id = ${user.id}
+      ORDER BY created_at DESC
+      LIMIT 20
+    `,
+  ]);
+  const rows = connectionRows as Connection[];
+  const notifications = notificationRows as LivesNotification[];
 
   const incoming = rows.filter(
     (connection) =>
@@ -71,8 +91,50 @@ export default async function ConnectedLivesPage() {
           Connected Lives™
         </h1>
         <p className="mt-4 max-w-2xl leading-7 text-slate-400">
-          Accept requests to make a connection visible to both Moment Makers.
+          Review relationship requests and other activity from the people and
+          families connected to your life.
         </p>
+        {notifications.some((notification) => !notification.readAt) && (
+          <form action={markLivesNotificationsRead} className="mt-5">
+            <button
+              type="submit"
+              className="min-h-11 rounded-full border border-[#D8A35B]/50 px-5 text-sm font-semibold text-[#f0c98e] transition hover:bg-[#D8A35B]/10"
+            >
+              Mark Notifications Read
+            </button>
+          </form>
+        )}
+
+        <section className="mt-10" aria-labelledby="requests-heading">
+          <h2
+            id="requests-heading"
+            className="font-serif text-2xl text-white sm:text-3xl"
+          >
+            Connected Lives™ Requests
+          </h2>
+          {incoming.length ? (
+            <ul className="mt-5 grid gap-4 sm:grid-cols-2">
+              {incoming.map((connection) => (
+                <li key={connection.id} className={cardClassName}>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#D8A35B]">
+                    ❤️ Connection request
+                  </p>
+                  <h3 className="mt-2 font-serif text-xl text-white">
+                    {connection.displayName}
+                  </h3>
+                  <p className="mt-2 text-sm leading-6 text-slate-300">
+                    {connection.displayName} would like to connect with you.
+                  </p>
+                  <ConnectionResponse requestId={connection.id} />
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-slate-400">
+              You do not have any requests to review.
+            </p>
+          )}
+        </section>
 
         <section className="mt-10" aria-labelledby="connections-heading">
           <h2
@@ -104,33 +166,32 @@ export default async function ConnectedLivesPage() {
           )}
         </section>
 
-        <section className="mt-10" aria-labelledby="incoming-heading">
+        <section className="mt-10" aria-labelledby="activity-heading">
           <h2
-            id="incoming-heading"
+            id="activity-heading"
             className="font-serif text-2xl text-white sm:text-3xl"
           >
-            Requests Received
+            Lives Notifications
           </h2>
-          {incoming.length ? (
-            <ul className="mt-5 grid gap-4 sm:grid-cols-2">
-              {incoming.map((connection) => (
-                <li key={connection.id} className={cardClassName}>
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#D8A35B]">
-                    ❤️ Connection request
+          {notifications.length ? (
+            <ul className="mt-5 space-y-3">
+              {notifications.map((notification) => (
+                <li
+                  key={notification.id}
+                  className={`${cardClassName} ${notification.readAt ? "opacity-75" : "border-[#D8A35B]/30"}`}
+                >
+                  <p className="text-sm leading-6 text-slate-200">
+                    {notification.message}
                   </p>
-                  <h3 className="mt-2 font-serif text-xl text-white">
-                    {connection.displayName}
-                  </h3>
-                  <p className="mt-1 text-sm text-slate-400">
-                    {connection.relationship}
+                  <p className="mt-2 text-xs text-slate-500">
+                    {notification.type.replaceAll("_", " ")}
                   </p>
-                  <ConnectionResponse requestId={connection.id} />
                 </li>
               ))}
             </ul>
           ) : (
             <p className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-slate-400">
-              You do not have any requests to review.
+              Relationship activity will appear here.
             </p>
           )}
         </section>

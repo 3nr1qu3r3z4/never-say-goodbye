@@ -8,6 +8,8 @@ export type DashboardData = {
     sharedMoments: number;
     personalMoments: number;
     connectedLives: number;
+    newLivesRequests: number;
+    unreadLivesNotifications: number;
     futureMomentMakers: number;
     drafts: number;
   };
@@ -47,6 +49,8 @@ export async function getDashboardData(
     sharedCounts,
     personalCounts,
     connectedCounts,
+    newLivesRequestCounts,
+    unreadLivesNotificationCounts,
     futureCounts,
     draftCounts,
     futureMomentMakers,
@@ -58,6 +62,19 @@ export async function getDashboardData(
     sql`SELECT COUNT(*)::int AS count FROM connected_lives
         WHERE (owner_user_id = ${user.id} OR connected_user_id = ${user.id})
           AND status = 'accepted'`,
+    sql`SELECT COUNT(DISTINCT n.id)::int AS count
+        FROM notifications AS n
+        JOIN connected_lives AS cl
+          ON cl.id = n.related_entity_id
+         AND cl.status = 'pending'
+         AND cl.connected_user_id = ${user.id}
+        WHERE n.recipient_user_id = ${user.id}
+          AND n.type = 'connected_lives_request'
+          AND n.read_at IS NULL`,
+    sql`SELECT COUNT(*)::int AS count
+        FROM notifications
+        WHERE recipient_user_id = ${user.id}
+          AND read_at IS NULL`,
     sql`SELECT COUNT(*)::int AS count FROM future_moment_makers WHERE owner_user_id = ${user.id} AND status != 'archived'`,
     sql`SELECT COUNT(*)::int AS count FROM drafts WHERE user_id = ${user.id}`,
     sql`
@@ -75,7 +92,7 @@ export async function getDashboardData(
     sql`
       SELECT id, kind, title, created_at AS "createdAt"
       FROM moments WHERE user_id = ${user.id}
-      ORDER BY cl.created_at DESC LIMIT 5
+      ORDER BY created_at DESC LIMIT 5
     `,
     sql`
       SELECT cl.id,
@@ -90,7 +107,7 @@ export async function getDashboardData(
       LEFT JOIN users AS recipient ON recipient.id = cl.connected_user_id
       WHERE (cl.owner_user_id = ${user.id} OR cl.connected_user_id = ${user.id})
         AND cl.status = 'accepted'
-      ORDER BY created_at DESC LIMIT 5
+      ORDER BY cl.created_at DESC LIMIT 5
     `,
   ]);
   const count = (rows: unknown) =>
@@ -99,6 +116,8 @@ export async function getDashboardData(
     sharedMoments: count(sharedCounts),
     personalMoments: count(personalCounts),
     connectedLives: count(connectedCounts),
+    newLivesRequests: count(newLivesRequestCounts),
+    unreadLivesNotifications: count(unreadLivesNotificationCounts),
     futureMomentMakers: count(futureCounts),
     drafts: count(draftCounts),
   };
