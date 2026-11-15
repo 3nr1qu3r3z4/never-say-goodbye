@@ -91,11 +91,19 @@ export default async function MyProfilePreviewPage() {
       ORDER BY created_at DESC
     `,
     sql`
-      SELECT id, display_name AS "displayName", relationship
-      FROM connected_lives
-      WHERE owner_user_id = ${user.id}
-        AND status = 'accepted'
-      ORDER BY created_at DESC
+      SELECT cl.id,
+             CASE
+               WHEN cl.owner_user_id = ${user.id}
+                 THEN COALESCE(NULLIF(BTRIM(recipient.display_name), ''), cl.display_name)
+               ELSE COALESCE(NULLIF(BTRIM(requester.display_name), ''), cl.display_name)
+             END AS "displayName",
+             cl.relationship
+      FROM connected_lives AS cl
+      LEFT JOIN users AS requester ON requester.id = cl.owner_user_id
+      LEFT JOIN users AS recipient ON recipient.id = cl.connected_user_id
+      WHERE (cl.owner_user_id = ${user.id} OR cl.connected_user_id = ${user.id})
+        AND cl.status = 'accepted'
+      ORDER BY cl.created_at DESC
     `,
     sql`
       SELECT id, name

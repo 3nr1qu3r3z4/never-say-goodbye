@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
 import { getSql } from "@/lib/db";
 import SearchForm from "./search-form";
 
@@ -91,56 +92,64 @@ export default async function SearchPage({
                   {profiles.map((profile) => (
                     <li
                       key={profile.id}
-                      className="flex gap-4 rounded-2xl border border-[#D8A35B]/20 bg-white/[0.03] p-5 sm:p-6"
+                      className="rounded-2xl border border-[#D8A35B]/20 bg-white/[0.03] transition hover:border-[#D8A35B]/50 hover:bg-white/[0.05]"
                     >
-                      <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-full border border-[#D8A35B]/30 bg-slate-900">
-                        {profile.profilePhoto ? (
-                          <Image
-                            src={profile.profilePhoto}
-                            alt=""
-                            fill
-                            unoptimized
-                            sizes="80px"
-                            className="object-cover"
-                          />
-                        ) : (
-                          <svg
-                            aria-hidden="true"
-                            viewBox="0 0 160 160"
-                            fill="none"
-                            className="absolute inset-0 m-auto h-16 w-16 text-[#D8A35B]/30"
-                          >
-                            <circle cx="80" cy="52" r="30" fill="currentColor" />
-                            <path
-                              d="M25 145c4-33 25-51 55-51s51 18 55 51"
-                              fill="currentColor"
+                      <Link
+                        href={`/moment-maker/${encodeURIComponent(profile.id)}`}
+                        className="flex gap-4 rounded-2xl p-5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D8A35B] sm:p-6"
+                      >
+                        <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-full border border-[#D8A35B]/30 bg-slate-900">
+                          {profile.profilePhoto ? (
+                            <Image
+                              src={profile.profilePhoto}
+                              alt=""
+                              fill
+                              unoptimized
+                              sizes="80px"
+                              className="object-cover"
                             />
-                          </svg>
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#D8A35B]">
-                          Moment Maker
-                        </p>
-                        <h3 className="mt-1 font-serif text-xl text-white">
-                          {profile.displayName}
-                        </h3>
-                        {descriptors(profile).length > 0 && (
-                          <p className="mt-2 text-sm text-slate-300">
-                            {descriptors(profile).join(" · ")}
+                          ) : (
+                            <svg
+                              aria-hidden="true"
+                              viewBox="0 0 160 160"
+                              fill="none"
+                              className="absolute inset-0 m-auto h-16 w-16 text-[#D8A35B]/30"
+                            >
+                              <circle cx="80" cy="52" r="30" fill="currentColor" />
+                              <path
+                                d="M25 145c4-33 25-51 55-51s51 18 55 51"
+                                fill="currentColor"
+                              />
+                            </svg>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#D8A35B]">
+                            Moment Maker
                           </p>
-                        )}
-                        {profile.location && (
-                          <p className="mt-2 text-sm text-slate-400">
-                            {profile.location}
-                          </p>
-                        )}
-                        {profile.bio && (
-                          <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-400">
-                            {profile.bio}
-                          </p>
-                        )}
-                      </div>
+                          <h3 className="mt-1 font-serif text-xl text-white">
+                            {profile.displayName}
+                          </h3>
+                          {descriptors(profile).length > 0 && (
+                            <p className="mt-2 text-sm text-slate-300">
+                              {descriptors(profile).join(" · ")}
+                            </p>
+                          )}
+                          {profile.location && (
+                            <p className="mt-2 text-sm text-slate-400">
+                              {profile.location}
+                            </p>
+                          )}
+                          {profile.bio && (
+                            <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-400">
+                              {profile.bio}
+                            </p>
+                          )}
+                          <span className="mt-4 inline-flex text-sm font-semibold text-[#f0c98e]">
+                            View Profile →
+                          </span>
+                        </div>
+                      </Link>
                     </li>
                   ))}
                 </ul>

@@ -55,7 +55,9 @@ export async function getDashboardData(
   ] = await sql.transaction([
     sql`SELECT COUNT(*)::int AS count FROM moments WHERE user_id = ${user.id} AND kind = 'shared'`,
     sql`SELECT COUNT(*)::int AS count FROM moments WHERE user_id = ${user.id} AND kind = 'personal'`,
-    sql`SELECT COUNT(*)::int AS count FROM connected_lives WHERE owner_user_id = ${user.id} AND status = 'accepted'`,
+    sql`SELECT COUNT(*)::int AS count FROM connected_lives
+        WHERE (owner_user_id = ${user.id} OR connected_user_id = ${user.id})
+          AND status = 'accepted'`,
     sql`SELECT COUNT(*)::int AS count FROM future_moment_makers WHERE owner_user_id = ${user.id} AND status != 'archived'`,
     sql`SELECT COUNT(*)::int AS count FROM drafts WHERE user_id = ${user.id}`,
     sql`
@@ -73,11 +75,21 @@ export async function getDashboardData(
     sql`
       SELECT id, kind, title, created_at AS "createdAt"
       FROM moments WHERE user_id = ${user.id}
-      ORDER BY created_at DESC LIMIT 5
+      ORDER BY cl.created_at DESC LIMIT 5
     `,
     sql`
-      SELECT id, display_name AS "displayName", created_at AS "createdAt"
-      FROM connected_lives WHERE owner_user_id = ${user.id}
+      SELECT cl.id,
+             CASE
+               WHEN cl.owner_user_id = ${user.id}
+                 THEN COALESCE(NULLIF(BTRIM(recipient.display_name), ''), cl.display_name)
+               ELSE COALESCE(NULLIF(BTRIM(requester.display_name), ''), cl.display_name)
+             END AS "displayName",
+             cl.created_at AS "createdAt"
+      FROM connected_lives AS cl
+      LEFT JOIN users AS requester ON requester.id = cl.owner_user_id
+      LEFT JOIN users AS recipient ON recipient.id = cl.connected_user_id
+      WHERE (cl.owner_user_id = ${user.id} OR cl.connected_user_id = ${user.id})
+        AND cl.status = 'accepted'
       ORDER BY created_at DESC LIMIT 5
     `,
   ]);

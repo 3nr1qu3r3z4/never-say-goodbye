@@ -31,7 +31,7 @@ export default async function DashboardPage() {
       icon: "❤️",
       title: "Connected Lives™",
       description: "Manage the people who matter most.",
-      href: "/search",
+      href: "/connected-lives",
     },
     {
       icon: "🌳",
@@ -112,7 +112,7 @@ export default async function DashboardPage() {
               </span>
             </div>
             <Link
-              href="/search"
+              href="/connected-lives"
               className="mt-5 flex min-h-14 w-full items-center justify-center gap-3 rounded-xl border border-[#D8A35B]/70 bg-[#D8A35B]/10 px-5 py-3 font-semibold text-[#f0c98e] shadow-lg shadow-[#D8A35B]/10 transition hover:-translate-y-0.5 hover:border-[#D8A35B] hover:bg-[#D8A35B]/15 hover:shadow-[#D8A35B]/20 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
             >
               <span aria-hidden="true">❤️</span>
