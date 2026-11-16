@@ -25,10 +25,23 @@ type SearchProfile = {
 export default async function SearchPage({
   searchParams,
 }: {
-  searchParams: Promise<{ name?: string }>;
+  searchParams: Promise<{
+    name?: string;
+    birthYear?: string;
+    birthLocation?: string;
+    homeLocation?: string;
+  }>;
 }) {
-  const { name: rawName } = await searchParams;
+  const {
+    name: rawName,
+    birthYear: rawBirthYear,
+    birthLocation: rawBirthLocation,
+    homeLocation: rawHomeLocation,
+  } = await searchParams;
   const name = rawName?.trim().slice(0, 100) ?? "";
+  const birthYear = rawBirthYear?.trim().slice(0, 4) ?? "";
+  const birthLocation = rawBirthLocation?.trim().slice(0, 100) ?? "";
+  const homeLocation = rawHomeLocation?.trim().slice(0, 100) ?? "";
   const sql = getSql();
   const profiles = name
     ? ((await sql`
@@ -80,7 +93,12 @@ export default async function SearchPage({
             </p>
           </header>
 
-          <SearchForm initialName={name} />
+          <SearchForm
+            initialName={name}
+            initialBirthYear={birthYear}
+            initialBirthLocation={birthLocation}
+            initialHomeLocation={homeLocation}
+          />
 
           {name ? (
             <section aria-live="polite" className="mt-12">
