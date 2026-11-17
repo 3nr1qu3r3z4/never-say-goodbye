@@ -114,6 +114,9 @@ CREATE TABLE IF NOT EXISTS connected_lives (
   connected_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
   display_name TEXT NOT NULL,
   relationship TEXT NOT NULL,
+  relationship_type TEXT CHECK (
+    relationship_type IN ('family', 'close_friend', 'mentor', 'other')
+  ),
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'declined')),
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
@@ -225,4 +228,8 @@ ON CONFLICT (version) DO NOTHING;
 
 INSERT INTO schema_migrations (version)
 VALUES ('008_lives_notifications')
+ON CONFLICT (version) DO NOTHING;
+
+INSERT INTO schema_migrations (version)
+VALUES ('009_connected_lives_relationship_type')
 ON CONFLICT (version) DO NOTHING;

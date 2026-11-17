@@ -23,7 +23,13 @@ create a local data directory or write account data to the app filesystem.
      then
      `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/005_profile_fields.sql`
      then
-     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/006_legacy_control_visibility.sql`.
+     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/006_legacy_control_visibility.sql`
+     then
+     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/007_family_placeholders.sql`
+     then
+     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/008_lives_notifications.sql`
+     then
+     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/009_connected_lives_relationship_type.sql`.
    - In Bash, export `DATABASE_URL` and run
      `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/001_initial_schema.sql`
      then
@@ -35,7 +41,13 @@ create a local data directory or write account data to the app filesystem.
      then
      `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/005_profile_fields.sql`
      then
-     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/006_legacy_control_visibility.sql`.
+     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/006_legacy_control_visibility.sql`
+     then
+     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/007_family_placeholders.sql`
+     then
+     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/008_lives_notifications.sql`
+     then
+     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/009_connected_lives_relationship_type.sql`.
    - In the Neon Console, open the SQL Editor for the intended database. Run
      [`db/migrations/001_initial_schema.sql`](./db/migrations/001_initial_schema.sql)
      first, then run
@@ -44,6 +56,9 @@ create a local data directory or write account data to the app filesystem.
      then [`db/migrations/004_profile_words.sql`](./db/migrations/004_profile_words.sql)
      then [`db/migrations/005_profile_fields.sql`](./db/migrations/005_profile_fields.sql)
      then [`db/migrations/006_legacy_control_visibility.sql`](./db/migrations/006_legacy_control_visibility.sql)
+     then [`db/migrations/007_family_placeholders.sql`](./db/migrations/007_family_placeholders.sql)
+     then [`db/migrations/008_lives_notifications.sql`](./db/migrations/008_lives_notifications.sql)
+     then [`db/migrations/009_connected_lives_relationship_type.sql`](./db/migrations/009_connected_lives_relationship_type.sql)
      in order.
 3. Set `DATABASE_URL` to the same pooled connection string in local
    `.env.local` and in Vercel Project Settings → Environment Variables for each
@@ -51,9 +66,9 @@ create a local data directory or write account data to the app filesystem.
    database where you ran the migration.
 4. Redeploy after setting or changing Vercel environment variables.
 
-All six migrations are idempotent and record their application in
+All nine migrations are idempotent and record their application in
 `schema_migrations`. [`db/schema.sql`](./db/schema.sql) is the standalone
-bootstrap copy of the current schema; use all six versioned migrations above for
+bootstrap copy of the current schema; use all nine versioned migrations above for
 an existing database. There is no automatic migration runner in the
 application, so SQL must be applied to Neon before database-backed features
 can use new schema changes. The initial migration creates
@@ -81,7 +96,9 @@ SELECT version, applied_at
 FROM schema_migrations
 WHERE version IN (
   '001_initial_schema', '002_profile_photo', '003_profile_details',
-  '004_profile_words', '005_profile_fields', '006_legacy_control_visibility'
+  '004_profile_words', '005_profile_fields', '006_legacy_control_visibility',
+  '007_family_placeholders', '008_lives_notifications',
+  '009_connected_lives_relationship_type'
 )
 ORDER BY version;
 
@@ -100,16 +117,26 @@ WHERE table_schema = 'public'
     'require_moment_approval'
   )
 ORDER BY column_name;
+
+SELECT column_name, data_type, is_nullable
+FROM information_schema.columns
+WHERE table_schema = 'public'
+  AND table_name = 'connected_lives'
+  AND column_name = 'relationship_type';
 ```
 
 The table query should return all ten listed tables; the migration query should
-return all six migration versions when each has been applied, and the column
+return all nine migration versions when each has been applied, and the user column
 query should return all profile and visibility columns. The profile migrations
 add the photo, bio, location, motto, and descriptor fields used by `/my-profile`;
 migration 006 adds the persisted Legacy Controls™ visibility and contribution
 settings. Signup creates
 the user and that user's Legacy Tree and membership in one transaction, then
 writes a session.
+
+Migration 009 adds the shared Connected Lives™ relationship type. Existing
+connections remain unclassified until either participant edits the relationship;
+new requests require the recipient to select a type when accepting.
 
 Create an account at `/signup`, sign in at `/login`, and use the authenticated
 dashboard at `/dashboard`. Passwords are stored as scrypt hashes; sessions use

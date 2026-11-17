@@ -2,8 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { getSql } from "@/lib/db";
+import {
+  relationshipTypes,
+  type RelationshipType,
+} from "@/lib/connected-lives";
 import { markLivesNotificationsRead } from "@/app/actions/connected-lives";
 import ConnectionResponse from "./connection-response";
+import RelationshipEditor from "./relationship-editor";
 
 export const metadata: Metadata = {
   title: "Connected Lives™ | Never Say Goodbye",
@@ -17,7 +22,7 @@ type Connection = {
   requesterId: string;
   recipientId: string | null;
   displayName: string;
-  relationship: string;
+  relationshipType: RelationshipType | null;
   createdAt: string;
 };
 
@@ -42,7 +47,7 @@ export default async function ConnectedLivesPage() {
                  THEN COALESCE(NULLIF(BTRIM(recipient.display_name), ''), cl.display_name)
                ELSE COALESCE(NULLIF(BTRIM(requester.display_name), ''), cl.display_name)
              END AS "displayName",
-             cl.relationship,
+             cl.relationship_type AS "relationshipType",
              cl.created_at AS "createdAt"
       FROM connected_lives AS cl
       LEFT JOIN users AS requester ON requester.id = cl.owner_user_id
@@ -144,21 +149,40 @@ export default async function ConnectedLivesPage() {
             Your Connections
           </h2>
           {connected.length ? (
-            <ul className="mt-5 grid gap-4 sm:grid-cols-2">
-              {connected.map((connection) => (
-                <li key={connection.id} className={cardClassName}>
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#D8A35B]">
-                    ❤️ Connected
-                  </p>
-                  <h3 className="mt-2 font-serif text-xl text-white">
-                    {connection.displayName}
-                  </h3>
-                  <p className="mt-1 text-sm text-slate-400">
-                    {connection.relationship}
-                  </p>
-                </li>
-              ))}
-            </ul>
+            <div className="mt-5 space-y-8">
+              {[
+                ...relationshipTypes,
+                { value: null, group: "Unclassified" },
+              ].map((type) => {
+                const connections = connected.filter(
+                  (connection) => connection.relationshipType === type.value,
+                );
+                if (!connections.length) return null;
+                return (
+                  <section key={type.value ?? "unclassified"}>
+                    <h3 className="font-serif text-xl text-white">
+                      {type.group}
+                    </h3>
+                    <ul className="mt-4 grid gap-4 sm:grid-cols-2">
+                      {connections.map((connection) => (
+                        <li key={connection.id} className={cardClassName}>
+                          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#D8A35B]">
+                            ❤️ Connected
+                          </p>
+                          <h4 className="mt-2 font-serif text-xl text-white">
+                            {connection.displayName}
+                          </h4>
+                          <RelationshipEditor
+                            connectionId={connection.id}
+                            relationshipType={connection.relationshipType}
+                          />
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                );
+              })}
+            </div>
           ) : (
             <p className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-slate-400">
               Your accepted Connected Lives™ will appear here.

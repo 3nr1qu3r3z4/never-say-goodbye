@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
 import { getSql } from "@/lib/db";
+import { isRelationshipType } from "@/lib/connected-lives";
 
 export type ConnectionStatus = "none" | "sent" | "received" | "connected";
 export type ConnectionActionResult = {
@@ -70,6 +71,7 @@ export async function sendConnectedLivesRequest(
           connected_user_id = ${profileUserId},
           display_name = ${profile.displayName},
           relationship = 'Connected Life',
+          relationship_type = NULL,
           status = 'pending',
           updated_at = ${now}
       WHERE id = (SELECT id FROM existing WHERE status = 'declined')
@@ -152,6 +154,10 @@ export async function respondToConnectedLivesRequest(
   const user = await requireUser();
   const requestId = formData.get("requestId");
   const response = formData.get("response");
+  const relationshipType = formData.get("relationshipType");
+  const selectedRelationship = isRelationshipType(relationshipType)
+    ? relationshipType
+    : null;
   if (
     typeof requestId !== "string" ||
     requestId.length < 1 ||
@@ -159,6 +165,9 @@ export async function respondToConnectedLivesRequest(
     (response !== "accept" && response !== "decline")
   ) {
     return { error: "Choose a valid response to this connection request." };
+  }
+  if (response === "accept" && !selectedRelationship) {
+    return { error: "Choose how you know this person." };
   }
 
   const sql = getSql();
@@ -168,6 +177,7 @@ export async function respondToConnectedLivesRequest(
     WITH responded AS (
       UPDATE connected_lives
       SET status = ${response === "accept" ? "accepted" : "declined"},
+          relationship_type = ${response === "accept" ? selectedRelationship : null},
           updated_at = ${now}
       WHERE id = ${requestId}
         AND connected_user_id = ${user.id}
@@ -181,6 +191,7 @@ export async function respondToConnectedLivesRequest(
         AND related_entity_id = ${requestId}
         AND recipient_user_id = ${user.id}
         AND type = 'connected_lives_request'
+        AND EXISTS (SELECT 1 FROM responded)
       RETURNING id
     ),
     response_notification AS (
@@ -222,6 +233,41 @@ export async function respondToConnectedLivesRequest(
         ? "Connected Lives™ request accepted."
         : "Connected Lives™ request declined.",
   };
+}
+
+export async function updateConnectedLivesRelationship(
+  _previousState: ConnectionActionResult,
+  formData: FormData,
+): Promise<ConnectionActionResult> {
+  const user = await requireUser();
+  const connectionId = formData.get("connectionId");
+  const relationshipType = formData.get("relationshipType");
+  if (
+    typeof connectionId !== "string" ||
+    connectionId.length < 1 ||
+    connectionId.length > 200 ||
+    !isRelationshipType(relationshipType)
+  ) {
+    return { error: "Choose a valid relationship type." };
+  }
+
+  const sql = getSql();
+  const [connection] = (await sql`
+    UPDATE connected_lives
+    SET relationship_type = ${relationshipType},
+        updated_at = ${new Date().toISOString()}
+    WHERE id = ${connectionId}
+      AND status = 'accepted'
+      AND (owner_user_id = ${user.id} OR connected_user_id = ${user.id})
+    RETURNING id
+  `) as { id: string }[];
+
+  if (!connection) {
+    return { error: "This connection is no longer available to update." };
+  }
+
+  refreshConnectionViews();
+  return { message: "Relationship updated." };
 }
 
 export async function markLivesNotificationsRead() {
