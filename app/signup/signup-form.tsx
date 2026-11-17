@@ -185,6 +185,28 @@ export default function SignupForm() {
               </div>
               <div className="sm:col-span-2">
                 <label
+                  htmlFor="username"
+                  className="mb-2 block text-sm text-slate-300"
+                >
+                  Username
+                </label>
+                <input
+                  id="username"
+                  name="username"
+                  type="text"
+                  autoComplete="username"
+                  minLength={3}
+                  maxLength={40}
+                  pattern="[A-Za-z0-9_]{3,40}"
+                  required
+                  className={inputClassName}
+                />
+                <p className="mt-2 text-xs text-slate-400">
+                  Use 3 to 40 letters, numbers, or underscores.
+                </p>
+              </div>
+              <div className="sm:col-span-2">
+                <label
                   htmlFor="email"
                   className="mb-2 block text-sm text-slate-300"
                 >

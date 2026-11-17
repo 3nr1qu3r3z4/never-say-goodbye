@@ -36,14 +36,15 @@ export default function LoginForm() {
 
           <form action={formAction} className="mt-8 space-y-5">
             <div>
-              <label htmlFor="login-email" className="block text-sm text-slate-300">
-                Email Address
+              <label htmlFor="login-identifier" className="block text-sm text-slate-300">
+                Username or Email Address
               </label>
               <input
-                id="login-email"
-                name="email"
-                type="email"
-                autoComplete="email"
+                id="login-identifier"
+                name="identifier"
+                type="text"
+                autoComplete="username"
+                autoCapitalize="none"
                 required
                 className={inputClassName}
               />
@@ -77,6 +78,15 @@ export default function LoginForm() {
               {isPending ? "Signing in..." : "Sign In"}
             </button>
           </form>
+
+          <div className="mt-5 flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm">
+            <Link href="/forgot-username" className="text-[#f0c98e] underline decoration-[#D8A35B]/40 underline-offset-4 hover:text-white">
+              Forgot Username?
+            </Link>
+            <Link href="/forgot-password" className="text-[#f0c98e] underline decoration-[#D8A35B]/40 underline-offset-4 hover:text-white">
+              Forgot Password?
+            </Link>
+          </div>
 
           <p className="mt-6 text-center text-sm text-slate-400">
             New to Never Say Goodbye?{" "}

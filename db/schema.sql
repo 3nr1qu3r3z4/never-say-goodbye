@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
   email TEXT NOT NULL,
+  username TEXT NOT NULL DEFAULT ('member_' || replace(gen_random_uuid()::text, '-', '')),
   password_hash TEXT NOT NULL,
   first_name TEXT NOT NULL,
   middle_name TEXT,
@@ -38,6 +39,7 @@ CREATE TABLE IF NOT EXISTS users (
   updated_at TEXT NOT NULL
 );
 CREATE UNIQUE INDEX IF NOT EXISTS users_email_unique_idx ON users (LOWER(email));
+CREATE UNIQUE INDEX IF NOT EXISTS users_username_unique_idx ON users (LOWER(username));
 
 CREATE TABLE IF NOT EXISTS legacy_frame_interests (
   email TEXT PRIMARY KEY,
@@ -54,6 +56,20 @@ CREATE TABLE IF NOT EXISTS sessions (
 );
 CREATE INDEX IF NOT EXISTS sessions_user_idx ON sessions(user_id);
 CREATE INDEX IF NOT EXISTS sessions_expiry_idx ON sessions(expires_at);
+
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+  user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  token_hash TEXT NOT NULL UNIQUE,
+  expires_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS account_recovery_attempts (
+  email_hash TEXT NOT NULL,
+  purpose TEXT NOT NULL CHECK (purpose IN ('username', 'password')),
+  requested_at TIMESTAMPTZ NOT NULL,
+  PRIMARY KEY (email_hash, purpose)
+);
 
 CREATE TABLE IF NOT EXISTS legacy_trees (
   id TEXT PRIMARY KEY,
@@ -232,4 +248,8 @@ ON CONFLICT (version) DO NOTHING;
 
 INSERT INTO schema_migrations (version)
 VALUES ('009_connected_lives_relationship_type')
+ON CONFLICT (version) DO NOTHING;
+
+INSERT INTO schema_migrations (version)
+VALUES ('010_account_recovery')
 ON CONFLICT (version) DO NOTHING;

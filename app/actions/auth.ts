@@ -5,10 +5,10 @@ import { redirect } from "next/navigation";
 import { createSession, deleteCurrentSession } from "@/lib/auth";
 import { getSql } from "@/lib/db";
 import { hashSecret, verifySecret } from "@/lib/password";
+import { emailPattern, usernamePattern } from "@/lib/account-validation";
 
 export type AuthFormState = { error?: string };
 
-const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const memberships = ["free"] as const;
 const displayStyles = ["full-name", "first-last", "custom"] as const;
 const discoverabilityOptions = ["private", "searchable", "public"] as const;
@@ -26,6 +26,7 @@ export async function signupAction(
   const middleName = value(formData, "middleName");
   const lastName = value(formData, "lastName");
   const email = value(formData, "email").toLowerCase();
+  const username = value(formData, "username").toLowerCase();
   const password = formData.get("password");
   const confirmPassword = formData.get("confirmPassword");
   const displayStyle = value(formData, "displayStyle");
@@ -44,6 +45,9 @@ export async function signupAction(
   }
   if (email.length > 254 || !emailPattern.test(email)) {
     return { error: "Enter a valid email address." };
+  }
+  if (!usernamePattern.test(username)) {
+    return { error: "Choose a username of 3 to 40 letters, numbers, or underscores." };
   }
   if (
     typeof password !== "string" ||
@@ -100,11 +104,11 @@ export async function signupAction(
     await sql.transaction([
       sql`
         INSERT INTO users (
-          id, email, password_hash, first_name, middle_name, last_name,
+          id, email, username, password_hash, first_name, middle_name, last_name,
           display_name, display_style, membership, discoverability, featured,
           created_at, updated_at
         ) VALUES (
-          ${userId}, ${email}, ${passwordHash}, ${firstName}, ${middleName || null},
+          ${userId}, ${email}, ${username}, ${passwordHash}, ${firstName}, ${middleName || null},
           ${lastName}, ${displayName}, ${selectedStyle}, ${membership},
           ${discoverability}, ${formData.get("featured") === "on"},
           ${now}, ${now}
@@ -126,7 +130,7 @@ export async function signupAction(
       "code" in error &&
       error.code === "23505"
     ) {
-      return { error: "An account with that email already exists. Try signing in." };
+      return { error: "That email address or username is already in use." };
     }
     throw error;
   }
@@ -139,20 +143,26 @@ export async function loginAction(
   _previousState: AuthFormState,
   formData: FormData,
 ): Promise<AuthFormState> {
-  const email = value(formData, "email").toLowerCase();
+  const identifier = value(formData, "identifier").toLowerCase();
   const password = formData.get("password");
-  if (!emailPattern.test(email) || typeof password !== "string" || !password) {
-    return { error: "Enter your email and password." };
+  if (
+    identifier.length > 254 ||
+    (!emailPattern.test(identifier) && !usernamePattern.test(identifier)) ||
+    typeof password !== "string" ||
+    !password
+  ) {
+    return { error: "Enter your username or email and password." };
   }
 
   const sql = getSql();
   const [user] = (await sql`
     SELECT id, password_hash AS "passwordHash"
-    FROM users WHERE LOWER(email) = ${email}
+    FROM users
+    WHERE LOWER(email) = ${identifier} OR LOWER(username) = ${identifier}
     LIMIT 1
   `) as { id: string; passwordHash: string }[];
   if (!user || !(await verifySecret(password, user.passwordHash))) {
-    return { error: "The email or password is not correct." };
+    return { error: "The username, email, or password is not correct." };
   }
 
   await createSession(user.id);

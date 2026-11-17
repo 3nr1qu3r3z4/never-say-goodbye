@@ -54,17 +54,15 @@ async function HomepageAccountActions() {
           Find A Moment Maker
         </Link>
       </div>
-      {!user && (
-        <p className="mt-4 text-sm text-slate-400">
-          Not quite ready?{" "}
-          <Link
-            href="/about"
-            className="font-medium text-[#f0c98e] underline decoration-[#D8A35B]/40 underline-offset-4 transition hover:text-white"
-          >
-            Learn why Never Say Goodbye exists.
-          </Link>
-        </p>
-      )}
+      <p className="mt-4 text-sm text-slate-400">
+        Not quite ready?{" "}
+        <Link
+          href="/about"
+          className="font-medium text-[#f0c98e] underline decoration-[#D8A35B]/40 underline-offset-4 transition hover:text-white"
+        >
+          Learn why Never Say Goodbye exists.
+        </Link>
+      </p>
     </>
   );
 }

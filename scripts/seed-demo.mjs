@@ -125,7 +125,7 @@ for (const sample of samples) {
   const id = `demo-${sample.key}`;
   const rows = await sql`
     INSERT INTO users (
-      id, email, password_hash, first_name, middle_name, last_name,
+      id, email, username, password_hash, first_name, middle_name, last_name,
       display_name, display_style, membership, discoverability, featured,
       public_profile_photo, public_profile_bio, public_shared_moments,
       public_connected_lives, public_legacy_tree, public_future_moment_makers,
@@ -135,7 +135,7 @@ for (const sample of samples) {
       descriptor_two, descriptor_three, location, personal_motto,
       created_at, updated_at
     ) VALUES (
-      ${id}, ${sample.email}, ${hashDemoPassword()}, ${sample.firstName},
+      ${id}, ${sample.email}, 'member_' || md5(${id}), ${hashDemoPassword()}, ${sample.firstName},
       ${sample.middleName}, ${sample.lastName}, ${sample.displayName},
       'full-name', ${sample.membership}, 'searchable', ${sample.featured},
       TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, 'owner', TRUE, TRUE,
