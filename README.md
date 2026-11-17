@@ -147,6 +147,13 @@ new requests require the recipient to select a type when accepting.
 Migration 010 assigns existing users generated usernames; their email addresses
 continue to work for sign-in. New users choose a username at signup.
 
+Family Placeholders use migration 007. Tree members can add a name and
+relationship, optional years and notes, and link their own written moments when
+publishing. The tree shows only the viewer's own linked moments; protected and
+scheduled content is not displayed there. Placeholders have no accounts or
+notifications. Photo and other media storage for placeholders is not part of
+this feature.
+
 To enable account recovery, set these server-side environment variables in
 each deployment environment:
 

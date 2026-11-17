@@ -632,8 +632,9 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
                   ))}
                 </select>
                 <p className="mt-2 text-xs leading-5 text-slate-400">
-                  This moment will be connected to the selected person in your
-                  Legacy Tree™.
+                  This written moment will be connected to the selected person
+                  in your Legacy Tree™. Your existing audience and access
+                  settings still apply.
                 </p>
               </div>
             )}

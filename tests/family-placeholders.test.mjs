@@ -1,0 +1,163 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+import test from "node:test";
+import { fileURLToPath } from "node:url";
+import vm from "node:vm";
+import ts from "typescript";
+
+const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+
+function loadModule(relativePath, dependencies) {
+  const source = fs.readFileSync(path.join(root, relativePath), "utf8");
+  const compiled = ts.transpileModule(source, {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX },
+  }).outputText;
+  const exports = {};
+  vm.runInNewContext(compiled, {
+    exports,
+    require: (name) => {
+      if (!(name in dependencies)) throw new Error(`Unexpected import: ${name}`);
+      return dependencies[name];
+    },
+    Date,
+  });
+  return exports;
+}
+
+function form(values) {
+  const data = new FormData();
+  for (const [key, value] of Object.entries(values)) data.set(key, value);
+  return data;
+}
+
+function createActions(treeExists = true) {
+  const calls = [];
+  const actions = loadModule("app/actions/family-tree.ts", {
+    "node:crypto": { randomUUID: () => "placeholder-id" },
+    "next/cache": { revalidatePath: () => {} },
+    "@/lib/auth": { getCurrentUser: async () => ({ id: "author" }) },
+    "@/lib/db": {
+      getSql: () => async (strings, ...values) => {
+        const text = strings.join("?");
+        calls.push({ text, values });
+        return text.includes("SELECT lt.id") && treeExists ? [{ id: "tree" }] : [];
+      },
+    },
+  });
+  return { actions, calls };
+}
+
+test("tree members can add a placeholder with optional fields omitted", async () => {
+  const { actions, calls } = createActions();
+  const result = await actions.addFamilyMember({}, form({
+    treeId: "tree",
+    memberType: "placeholder",
+    name: "  Grandmother  ",
+    relationship: "  Grandmother  ",
+  }));
+  assert.match(result.success, /Family Placeholder added/);
+  assert.match(calls[0].text, /ltm\.user_id = \?/);
+  assert.match(calls[1].text, /INSERT INTO family_placeholders/);
+  assert.deepEqual(calls[1].values.slice(0, 9), [
+    "placeholder-id", "tree", "author", "Grandmother", "Grandmother",
+    null, null, null, calls[1].values[8],
+  ]);
+  assert.equal(calls.length, 2);
+});
+
+test("placeholder creation rejects outsiders and invalid years", async () => {
+  const base = {
+    treeId: "tree", memberType: "placeholder", name: "Relative",
+    relationship: "Parent",
+  };
+  const outsider = createActions(false);
+  const denied = await outsider.actions.addFamilyMember({}, form(base));
+  assert.match(denied.error, /tree you belong to/);
+  assert.equal(outsider.calls.length, 1);
+
+  for (const years of [
+    { birthYear: "999" },
+    { birthYear: "1950", deathYear: "1949" },
+  ]) {
+    const { actions, calls } = createActions();
+    const result = await actions.addFamilyMember({}, form({ ...base, ...years }));
+    assert.ok(result.error);
+    assert.equal(calls.length, 1);
+  }
+});
+
+test("placeholder years and notes are stored when provided", async () => {
+  const { actions, calls } = createActions();
+  const result = await actions.addFamilyMember({}, form({
+    treeId: "tree", memberType: "placeholder", name: "Relative",
+    relationship: "Parent", birthYear: "1942", deathYear: "2018",
+    notes: "  A family story  ",
+  }));
+  assert.ok(result.success);
+  assert.deepEqual(calls[1].values.slice(5, 8), [1942, 2018, "A family story"]);
+});
+
+test("publishing links only an accessible placeholder and preserves audience", async () => {
+  async function publish(available) {
+    const calls = [];
+    const sql = (strings, ...values) => {
+      const text = strings.join("?");
+      calls.push({ text, values });
+      return text.includes("SELECT fp.id") && available ? [{ id: "relative" }] : [];
+    };
+    sql.transaction = async () => [];
+    const actions = loadModule("lib/moment-actions.ts", {
+      "node:crypto": { randomUUID: () => "moment-id" },
+      "@/lib/auth": { getCurrentUser: async () => ({ id: "author" }) },
+      "@/lib/db": { getSql: () => sql },
+      "@/lib/password": { hashSecret: async () => "hash" },
+    });
+    const result = await actions.publishMoment("shared", "", {
+      title: "A story", story: "A memory", tags: "", content: ["written"],
+      attachmentNames: {}, writtenMessage: "", audience: "family",
+      accessCodeRequired: false, accessCode: "", releaseKind: "date",
+      releaseDate: "", occasion: "", customOccasionDate: "", recipientName: "",
+      relationship: "", createRecipient: false, familyPlaceholderId: "relative",
+    });
+    return { result, calls };
+  }
+
+  const denied = await publish(false);
+  assert.match(denied.result.error, /not available in your tree/);
+  assert.equal(denied.calls.length, 1);
+  assert.match(denied.calls[0].text, /ltm\.user_id = \?/);
+
+  const allowed = await publish(true);
+  assert.equal(allowed.result.success, true);
+  assert.match(allowed.calls[1].text, /INSERT INTO moments/);
+  assert.ok(allowed.calls[1].values.includes("relative"));
+  assert.ok(allowed.calls[1].values.includes("family"));
+});
+
+test("linked story query stays author-only and withholds protected content", async () => {
+  const queries = [];
+  const sql = (strings, ...values) => {
+    const query = { text: strings.join("?"), values };
+    queries.push(query);
+    return query;
+  };
+  sql.transaction = async () => [[], [], [], [], [], []];
+  const jsx = (type, props) => ({ type, props });
+  const components = loadModule("app/legacy-tree/family-members.tsx", {
+    "react/jsx-runtime": { jsx, jsxs: jsx },
+    "next/link": { default: () => null },
+    "@/lib/auth": { getCurrentUser: async () => ({ id: "author" }) },
+    "@/lib/db": { getSql: () => sql },
+    "./family-member-form": { default: () => null },
+  });
+  const section = await components.default();
+  const children = section.props.children;
+  const userSection = children.find((child) => typeof child?.type === "function");
+  await userSection.type(userSection.props);
+  const linked = queries.find((query) => query.text.includes("FROM moments"));
+  assert.ok(linked.values.includes("author"));
+  assert.match(linked.text, /WHERE user_id = \?/);
+  assert.match(linked.text, /access_code_hash IS NULL AND kind <> 'cannot-open-until'/);
+  assert.match(linked.text, /details_json::jsonb ->> 'writtenMessage'/);
+});

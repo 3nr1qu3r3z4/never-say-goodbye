@@ -103,7 +103,10 @@ export async function addFamilyMember(
   if (birthYear !== null && deathYear !== null && deathYear < birthYear) {
     return { error: "Death year cannot be earlier than birth year." };
   }
-  if (typeof notesValue !== "string" || notesValue.trim().length > 1000) {
+  if (
+    notesValue !== null &&
+    (typeof notesValue !== "string" || notesValue.trim().length > 1000)
+  ) {
     return { error: "Notes must be 1,000 characters or fewer." };
   }
 
@@ -114,7 +117,7 @@ export async function addFamilyMember(
     ) VALUES (
       ${randomUUID()}, ${tree.id}, ${user.id}, ${name.trim()},
       ${normalizedRelationship}, ${birthYear}, ${deathYear},
-      ${notesValue.trim() || null}, ${now}, ${now}
+      ${notesValue?.trim() || null}, ${now}, ${now}
     )
   `;
   revalidatePath("/legacy-tree");

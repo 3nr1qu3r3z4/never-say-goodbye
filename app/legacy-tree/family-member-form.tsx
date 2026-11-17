@@ -55,7 +55,7 @@ export default function FamilyMemberForm({
           {([
             ["existing", "Existing Moment Maker™"],
             ["future", "Future Moment Maker™"],
-            ["placeholder", "Family Placeholder"],
+            ["placeholder", "Family Placeholder 🕊️"],
           ] as const).map(([value, label]) => (
             <label
               key={value}
@@ -167,8 +167,9 @@ export default function FamilyMemberForm({
                 />
               </label>
               <p className="rounded-xl border border-[#D8A35B]/20 bg-[#D8A35B]/[0.05] p-4 text-sm leading-6 text-slate-300">
-                Family Placeholders do not need an account and cannot log in.
-                They preserve family connections in your Legacy Tree™.
+                Family Placeholders do not have accounts, cannot log in, and
+                cannot receive email or notifications. They preserve family
+                connections in your Legacy Tree™.
               </p>
             </>
           )}

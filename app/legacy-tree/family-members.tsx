@@ -7,6 +7,7 @@ type FamilyTree = { id: string; name: string };
 type MomentMaker = { id: string; displayName: string };
 type TreeMember = {
   id: string;
+  treeId: string;
   displayName: string;
   relationship: string;
 };
@@ -28,7 +29,9 @@ type LinkedMoment = {
   id: string;
   familyPlaceholderId: string;
   title: string;
-  story: string;
+  story: string | null;
+  writtenMessage: string | null;
+  restricted: boolean;
 };
 
 const cardClassName =
@@ -95,7 +98,7 @@ async function FamilyMembersForUser({ userId }: { userId: string }) {
         LIMIT 100
       `,
       sql`
-        SELECT u.id, u.display_name AS "displayName",
+        SELECT u.id, ltm.tree_id AS "treeId", u.display_name AS "displayName",
                ltm.relationship AS relationship
         FROM legacy_tree_members AS ltm
         JOIN legacy_trees AS lt ON lt.id = ltm.tree_id
@@ -127,7 +130,12 @@ async function FamilyMembersForUser({ userId }: { userId: string }) {
       `,
       sql`
         SELECT id, family_placeholder_id AS "familyPlaceholderId",
-               title, story
+               title,
+               access_code_hash IS NOT NULL OR kind = 'cannot-open-until' AS restricted,
+               CASE WHEN access_code_hash IS NULL AND kind <> 'cannot-open-until'
+                 THEN story END AS story,
+               CASE WHEN access_code_hash IS NULL AND kind <> 'cannot-open-until'
+                 THEN details_json::jsonb ->> 'writtenMessage' END AS "writtenMessage"
         FROM moments
         WHERE user_id = ${userId}
           AND family_placeholder_id IS NOT NULL
@@ -161,20 +169,26 @@ async function FamilyMembersForUser({ userId }: { userId: string }) {
         {memberRows.length + futureRows.length + placeholderRows.length > 0 ? (
           <ul className="mt-4 grid gap-3 sm:grid-cols-2">
             {memberRows.map((member) => (
-              <li key={`member-${member.id}`} className={cardClassName}>
-                <p className="font-serif text-lg text-white">
+              <li key={`member-${member.treeId}-${member.id}`} className={cardClassName}>
+                <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.04] px-3 py-1 text-xs font-semibold text-slate-300">
+                  <span aria-hidden="true">●</span> Moment Maker™
+                </span>
+                <p className="mt-3 font-serif text-lg text-white">
                   {member.displayName}
                 </p>
                 <p className="mt-1 text-sm text-slate-400">
-                  {member.relationship || "Family Member"} · Moment Maker™
+                  {member.relationship || "Family Member"}
                 </p>
               </li>
             ))}
             {futureRows.map((member) => (
               <li key={`future-${member.id}`} className={cardClassName}>
-                <p className="font-serif text-lg text-white">{member.name}</p>
+                <span className="inline-flex items-center gap-2 rounded-full border border-[#D8A35B]/30 bg-[#D8A35B]/[0.05] px-3 py-1 text-xs font-semibold text-[#f0c98e]">
+                  <span aria-hidden="true">✦</span> Future Moment Maker™
+                </span>
+                <p className="mt-3 font-serif text-lg text-white">{member.name}</p>
                 <p className="mt-1 text-sm text-slate-400">
-                  {member.relationship} · Future Moment Maker™
+                  {member.relationship}
                 </p>
                 <p className="mt-2 text-xs text-[#f0c98e]">Awaiting Claim</p>
               </li>
@@ -194,7 +208,7 @@ async function FamilyMembersForUser({ userId }: { userId: string }) {
                 <p className="mt-1 text-sm text-slate-300">
                   {member.relationship}
                   {member.birthYear || member.deathYear
-                    ? ` · ${member.birthYear ?? "?"}–${member.deathYear ?? "Present"}`
+                    ? ` · ${member.birthYear ?? "?"}–${member.deathYear ?? "?"}`
                     : ""}
                 </p>
                 {member.notes && (
@@ -218,15 +232,31 @@ async function FamilyMembersForUser({ userId }: { userId: string }) {
                               {moment.story}
                             </p>
                           )}
+                          {moment.writtenMessage && (
+                            <p className="mt-1 line-clamp-3 whitespace-pre-wrap text-sm leading-5 text-slate-400">
+                              {moment.writtenMessage}
+                            </p>
+                          )}
+                          {moment.restricted && (
+                            <p className="mt-1 text-xs text-slate-400">
+                              Protected or scheduled content is not shown here.
+                            </p>
+                          )}
                         </li>
                       ))}
                     </ul>
                   </div>
                 )}
                 <p className="mt-3 text-xs leading-5 text-slate-500">
-                  No account or login is required. Family stories and moments
-                  can be linked to this person when published.
+                  Link a written moment to this person when publishing. Only
+                  your own linked moments appear here.
                 </p>
+                <Link
+                  href="/create-moment"
+                  className="mt-2 inline-block text-xs font-medium text-[#f0c98e] underline decoration-[#D8A35B]/40 underline-offset-4 hover:text-white"
+                >
+                  Create a moment
+                </Link>
               </li>
             ))}
           </ul>

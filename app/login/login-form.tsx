@@ -37,7 +37,7 @@ export default function LoginForm() {
           <form action={formAction} className="mt-8 space-y-5">
             <div>
               <label htmlFor="login-identifier" className="block text-sm text-slate-300">
-                Username or Email Address
+                Username
               </label>
               <input
                 id="login-identifier"
@@ -48,6 +48,9 @@ export default function LoginForm() {
                 required
                 className={inputClassName}
               />
+              <p className="mt-2 text-xs text-slate-400">
+                You can also sign in with your email address.
+              </p>
             </div>
             <div>
               <label
@@ -79,7 +82,7 @@ export default function LoginForm() {
             </button>
           </form>
 
-          <div className="mt-5 flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm">
+          <div className="mt-5 flex flex-col items-center gap-2 text-sm">
             <Link href="/forgot-username" className="text-[#f0c98e] underline decoration-[#D8A35B]/40 underline-offset-4 hover:text-white">
               Forgot Username?
             </Link>
