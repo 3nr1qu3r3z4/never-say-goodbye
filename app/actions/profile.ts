@@ -46,17 +46,23 @@ function validatePhoto(value: unknown): string | ProfileSaveResult {
 export async function saveProfilePhoto(
   value: string,
 ): Promise<ProfileSaveResult> {
+  console.info("[profile-photo] server save received");
   const user = await requireUser();
   const photoData = validatePhoto(value);
-  if (typeof photoData !== "string") return photoData;
+  if (typeof photoData !== "string") {
+    console.warn("[profile-photo] server validation rejected photo");
+    return photoData;
+  }
 
   const sql = getSql();
+  console.info("[profile-photo] database save started");
   await sql`
     UPDATE users
     SET profile_photo_data = ${photoData},
         updated_at = ${new Date().toISOString()}
     WHERE id = ${user.id}
   `;
+  console.info("[profile-photo] database save completed");
   revalidatePath("/my-profile");
   revalidatePath("/my-profile/preview");
 

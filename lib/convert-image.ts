@@ -36,15 +36,25 @@ export async function isHeicFile(file: File): Promise<boolean> {
   );
 }
 
-export async function toSupportedImage(file: File): Promise<File> {
-  if (!(await isHeicFile(file))) return file;
+export async function toSupportedImage(
+  file: File,
+  onStage?: (stage: string) => void,
+): Promise<File> {
+  onStage?.("format detection started");
+  if (!(await isHeicFile(file))) {
+    onStage?.("conversion not needed");
+    return file;
+  }
 
+  onStage?.("HEIC converter import started");
   const { default: heic2any } = await import("heic2any");
+  onStage?.("HEIC conversion started");
   const converted = await heic2any({
     blob: file,
     toType: "image/jpeg",
     quality: 0.92,
   });
+  onStage?.("HEIC conversion completed");
   const blob = Array.isArray(converted) ? converted[0] : converted;
 
   if (!blob) {

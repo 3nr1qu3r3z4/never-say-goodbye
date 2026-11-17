@@ -21,6 +21,7 @@ const acceptedTypes = [
   "image/webp",
 ];
 const cropOutputSize = 512;
+const photoPreparationTimeoutMs = 60_000;
 const mottoCharacterLimit = 120;
 const locationSuggestions = [
   "Lakeside",
@@ -102,6 +103,30 @@ const locationSuggestions = [
 type CropOffset = { x: number; y: number };
 type ImageDimensions = { width: number; height: number };
 
+function withPhotoTimeout<T>(operation: Promise<T>): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = window.setTimeout(
+      () =>
+        reject(
+          new Error(
+            "Preparing this photo took too long. Please try a smaller image or another photo.",
+          ),
+        ),
+      photoPreparationTimeoutMs,
+    );
+    operation.then(
+      (value) => {
+        window.clearTimeout(timer);
+        resolve(value);
+      },
+      (error: unknown) => {
+        window.clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
 function constrainOffset(
   offset: CropOffset,
   dimensions: ImageDimensions,
@@ -125,6 +150,7 @@ function createCroppedPhoto(
   offset: CropOffset,
   frameSize: number,
   zoom: number,
+  logStage: (stage: string, details?: Record<string, number | string>) => void,
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const scale =
@@ -150,6 +176,12 @@ function createCroppedPhoto(
       return;
     }
 
+    logStage("resize started", {
+      sourceWidth: dimensions.width,
+      sourceHeight: dimensions.height,
+      outputWidth: cropOutputSize,
+      outputHeight: cropOutputSize,
+    });
     context.drawImage(
       image,
       sourceX,
@@ -161,11 +193,17 @@ function createCroppedPhoto(
       cropOutputSize,
       cropOutputSize,
     );
+    logStage("resize completed");
     const readBlob = (blob: Blob) => {
+      logStage("encoded image read started", { sizeBytes: blob.size });
       const reader = new FileReader();
       reader.onload = () => {
-        if (typeof reader.result === "string") resolve(reader.result);
-        else reject(new Error("The cropped photo could not be read."));
+        if (typeof reader.result === "string") {
+          logStage("encoded image read completed");
+          resolve(reader.result);
+        } else {
+          reject(new Error("The cropped photo could not be read."));
+        }
       };
       reader.onerror = () =>
         reject(new Error("The cropped photo could not be read."));
@@ -173,8 +211,10 @@ function createCroppedPhoto(
     };
 
     const encodeJpeg = (quality: number) => {
+      logStage("JPEG encoding started", { quality });
       canvas.toBlob(
         (blob) => {
+          logStage("JPEG encoding completed", { sizeBytes: blob?.size ?? 0 });
           if (!blob || blob.type !== "image/jpeg") {
             reject(new Error("This browser could not prepare the cropped photo."));
             return;
@@ -193,8 +233,13 @@ function createCroppedPhoto(
     };
 
     const encodeWebp = (quality: number) => {
+      logStage("WebP encoding started", { quality });
       canvas.toBlob(
         (blob) => {
+          logStage("WebP encoding completed", {
+            sizeBytes: blob?.size ?? 0,
+            type: blob?.type ?? "none",
+          });
           if (!blob) {
             reject(new Error("The cropped photo could not be prepared."));
             return;
@@ -246,6 +291,7 @@ export default function ProfileEditor({
   const cropFrame = useRef<HTMLDivElement>(null);
   const sourceImage = useRef<HTMLImageElement>(null);
   const sourceUrlRef = useRef<string | null>(null);
+  const photoAttempt = useRef(0);
   const dragStart = useRef<{
     pointerX: number;
     pointerY: number;
@@ -256,6 +302,9 @@ export default function ProfileEditor({
   const [dimensions, setDimensions] = useState<ImageDimensions | null>(null);
   const [cropFrameSize, setCropFrameSize] = useState(0);
   const [isPhotoPreparing, setIsPhotoPreparing] = useState(false);
+  const [photoPreparationError, setPhotoPreparationError] = useState<
+    string | null
+  >(null);
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState<CropOffset>({ x: 0, y: 0 });
   const [error, setError] = useState<string | null>(null);
@@ -285,6 +334,7 @@ export default function ProfileEditor({
 
   useEffect(
     () => () => {
+      photoAttempt.current += 1;
       if (sourceUrlRef.current) URL.revokeObjectURL(sourceUrlRef.current);
     },
     [],
@@ -319,31 +369,49 @@ export default function ProfileEditor({
     const input = event.currentTarget;
     const file = input.files?.[0];
     if (!file) return;
+    if (isPhotoSaving) {
+      input.value = "";
+      return;
+    }
 
+    const attempt = ++photoAttempt.current;
+    let stage = "selection";
+    let active = true;
+    const logStage = (
+      nextStage: string,
+      details?: Record<string, number | string>,
+    ) => {
+      if (!active || attempt !== photoAttempt.current) return;
+      stage = nextStage;
+      console.info("[profile-photo]", { attempt, stage, ...details });
+    };
+    logStage("image selected", { sizeBytes: file.size, type: file.type });
     setError(null);
+    setPhotoPreparationError(null);
     setMessage(null);
-
-    const mimeType = file.type.toLowerCase();
-    const supportedExtension = /\.(jpe?g|png|webp)$/i.test(file.name);
-    if (
-      !acceptedTypes.includes(mimeType) &&
-      !supportedExtension &&
-      !(await isHeicFile(file))
-    ) {
-      setError("Choose a JPG, JPEG, PNG, WEBP, HEIC, or HEIF image.");
-      input.value = "";
-      return;
-    }
-    if (file.size > 20 * 1024 * 1024) {
-      setError("Choose an image smaller than 20 MB.");
-      input.value = "";
-      return;
-    }
-
     input.value = "";
     setIsPhotoPreparing(true);
     try {
-      const supportedFile = await toSupportedImage(file);
+      logStage("input validation started");
+      if (file.size > 20 * 1024 * 1024) {
+        throw new Error("Choose an image smaller than 20 MB.");
+      }
+      const mimeType = file.type.toLowerCase();
+      const supportedExtension = /\.(jpe?g|png|webp)$/i.test(file.name);
+      if (
+        !acceptedTypes.includes(mimeType) &&
+        !supportedExtension &&
+        !(await withPhotoTimeout(isHeicFile(file)))
+      ) {
+        throw new Error("Choose a JPG, JPEG, PNG, WEBP, HEIC, or HEIF image.");
+      }
+      if (attempt !== photoAttempt.current) return;
+      logStage("input validation completed");
+      const supportedFile = await withPhotoTimeout(
+        toSupportedImage(file, (conversionStage) => logStage(conversionStage)),
+      );
+      if (attempt !== photoAttempt.current) return;
+      logStage("conversion completed", { sizeBytes: supportedFile.size });
       const supportedMimeType = supportedFile.type.toLowerCase();
       if (
         !acceptedTypes.includes(supportedMimeType) &&
@@ -353,28 +421,52 @@ export default function ProfileEditor({
       }
       const nextSource = URL.createObjectURL(supportedFile);
       const image = new window.Image();
-      image.onload = () => {
-        if (sourceUrlRef.current) URL.revokeObjectURL(sourceUrlRef.current);
-        sourceUrlRef.current = nextSource;
-        setDimensions({ width: image.naturalWidth, height: image.naturalHeight });
-        setOffset({ x: 0, y: 0 });
-        setZoom(1);
-        setSourceUrl(nextSource);
-        setIsPhotoPreparing(false);
-      };
-      image.onerror = () => {
+      let nextDimensions: ImageDimensions;
+      try {
+        logStage("image decode started");
+        nextDimensions = await withPhotoTimeout(
+          new Promise<ImageDimensions>((resolve, reject) => {
+            image.onload = () =>
+              resolve({ width: image.naturalWidth, height: image.naturalHeight });
+            image.onerror = () => reject(new Error("This image could not be opened."));
+            image.src = nextSource;
+          }),
+        );
+      } catch (cause) {
         URL.revokeObjectURL(nextSource);
-        setError("This image could not be opened.");
-        setIsPhotoPreparing(false);
-      };
-      image.src = nextSource;
+        throw cause;
+      } finally {
+        image.onload = null;
+        image.onerror = null;
+      }
+      if (attempt !== photoAttempt.current) {
+        URL.revokeObjectURL(nextSource);
+        return;
+      }
+      logStage("image decode completed", nextDimensions);
+      if (sourceUrlRef.current) URL.revokeObjectURL(sourceUrlRef.current);
+      sourceUrlRef.current = nextSource;
+      setDimensions(nextDimensions);
+      setOffset({ x: 0, y: 0 });
+      setZoom(1);
+      setSourceUrl(nextSource);
+      logStage("crop editor opened");
     } catch (cause) {
-      setError(
-        cause instanceof Error
-          ? cause.message
-          : "This photo could not be prepared. Please try another image.",
-      );
-      setIsPhotoPreparing(false);
+      console.error("[profile-photo] preparation failed", {
+        attempt,
+        stage,
+        errorType: cause instanceof Error ? cause.name : "unknown",
+      });
+      if (attempt === photoAttempt.current) {
+        setPhotoPreparationError(
+          cause instanceof Error
+            ? cause.message
+            : "This photo could not be prepared. Please try another image.",
+        );
+      }
+    } finally {
+      active = false;
+      if (attempt === photoAttempt.current) setIsPhotoPreparing(false);
     }
   }
 
@@ -419,32 +511,57 @@ export default function ProfileEditor({
 
   function handleSaveCroppedPhoto() {
     const image = sourceImage.current;
-    if (!image || !dimensions || cropFrameSize <= 0) return;
+    if (!image || !dimensions || cropFrameSize <= 0) {
+      console.error("[profile-photo] crop editor not ready", {
+        attempt: photoAttempt.current,
+      });
+      setError("The photo is not ready to save. Please try again.");
+      return;
+    }
     setError(null);
     setMessage(null);
     const imageDimensions = dimensions;
     const cropOffset = offset;
     const frameSize = cropFrameSize;
     const cropZoom = zoom;
+    const attempt = photoAttempt.current;
+    let stage = "crop save started";
+    const logStage = (
+      nextStage: string,
+      details?: Record<string, number | string>,
+    ) => {
+      stage = nextStage;
+      console.info("[profile-photo]", { attempt, stage, ...details });
+    };
 
     startPhotoSaving(async () => {
       try {
+        logStage("crop save started");
         const crop = await createCroppedPhoto(
           image,
           imageDimensions,
           cropOffset,
           frameSize,
           cropZoom,
+          logStage,
         );
+        logStage("server save started");
         const result = await saveProfilePhoto(crop);
         if (result.error) {
+          console.error("[profile-photo] server save rejected", { attempt });
           setError(result.error);
           return;
         }
+        logStage("server save completed");
         setPreview(crop);
         showMessage(result.success ?? "Your profile photo has been saved.");
         releaseSource();
       } catch (cause) {
+        console.error("[profile-photo] save failed", {
+          attempt,
+          stage,
+          errorType: cause instanceof Error ? cause.name : "unknown",
+        });
         setError(
           cause instanceof Error
             ? cause.message
@@ -529,7 +646,7 @@ export default function ProfileEditor({
             onClick={() => fileInput.current?.click()}
             aria-label="Upload Profile Photo"
             title="Upload Profile Photo"
-            disabled={isPhotoPreparing}
+            disabled={isPhotoPreparing || isPhotoSaving}
             className="absolute bottom-4 left-1/2 z-10 flex h-12 w-12 -translate-x-1/2 items-center justify-center rounded-full border border-[#D8A35B] bg-[#0F172A]/90 text-[#f0c98e] shadow-lg shadow-black/40 backdrop-blur transition hover:scale-105 hover:bg-[#D8A35B] hover:text-[#0F172A] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B] disabled:cursor-wait disabled:opacity-70 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
           >
             <svg
@@ -565,9 +682,15 @@ export default function ProfileEditor({
             accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif"
             className="hidden"
             onChange={handleFileChange}
+            disabled={isPhotoPreparing || isPhotoSaving}
             aria-label="Choose a JPG, JPEG, PNG, WEBP, HEIC, or HEIF profile photo"
           />
         </div>
+        {photoPreparationError && (
+          <p role="alert" className="mt-4 text-sm text-red-200">
+            {photoPreparationError}
+          </p>
+        )}
       </section>
 
       <div className="space-y-6">
