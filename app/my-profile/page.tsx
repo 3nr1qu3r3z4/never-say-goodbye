@@ -77,6 +77,12 @@ export default async function MyProfilePage() {
           <p className="mx-auto mt-4 max-w-xl leading-7 text-slate-400">
             Share a little about yourself with the people who matter most.
           </p>
+          <Link
+            href="/my-profile/setup"
+            className="mt-6 inline-flex min-h-12 items-center justify-center rounded-full border border-[#D8A35B]/60 px-7 py-3 text-sm font-semibold text-[#f0c98e] transition hover:border-[#D8A35B] hover:bg-[#D8A35B]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
+          >
+            Edit Profile Setup
+          </Link>
         </header>
 
         <section className="mt-9 rounded-3xl border border-white/10 bg-white/[0.03] p-5 shadow-2xl shadow-black/20 sm:mt-11 sm:p-9">

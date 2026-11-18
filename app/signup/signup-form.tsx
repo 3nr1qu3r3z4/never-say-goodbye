@@ -88,6 +88,7 @@ export default function SignupForm() {
   const [selectedPlan, setSelectedPlan] = useState("free");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   const accountName = [firstName.trim(), lastName.trim()]
     .filter(Boolean)
@@ -561,6 +562,8 @@ export default function SignupForm() {
                   type="checkbox"
                   name="terms"
                   required
+                  checked={termsAccepted}
+                  onChange={(event) => setTermsAccepted(event.target.checked)}
                   className="mt-1 h-4 w-4 shrink-0 accent-[#D8A35B] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D8A35B]"
                 />
                 <span>I agree to the Terms and Conditions.</span>
@@ -580,10 +583,16 @@ export default function SignupForm() {
             </div>
           </section>
 
+          <p id="terms-requirement" aria-live="polite" className="text-center text-sm text-slate-400">
+            {termsAccepted
+              ? "Terms and Conditions accepted."
+              : "Accept the Terms and Conditions to create your account."}
+          </p>
           <button
             type="submit"
-            disabled={isPending}
-            className="min-h-14 w-full rounded-full bg-[#D8A35B] px-8 py-4 text-sm font-semibold tracking-wide text-[#0F172A] shadow-lg shadow-[#D8A35B]/10 transition hover:bg-[#e6b66f] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B] sm:text-base"
+            disabled={isPending || !termsAccepted}
+            aria-describedby="terms-requirement"
+            className="min-h-14 w-full rounded-full bg-[#D8A35B] px-8 py-4 text-sm font-semibold tracking-wide text-[#0F172A] shadow-lg shadow-[#D8A35B]/10 transition hover:bg-[#e6b66f] disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-300 disabled:shadow-none disabled:hover:bg-slate-700 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B] sm:text-base"
           >
             {isPending ? "Creating your account..." : "Become A Moment Maker™"}
           </button>

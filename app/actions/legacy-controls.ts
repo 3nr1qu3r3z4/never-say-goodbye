@@ -52,6 +52,7 @@ export async function saveLegacyControls(formData: FormData): Promise<void> {
   `;
 
   revalidatePath("/legacy-controls");
+  revalidatePath("/my-profile/setup");
   revalidatePath("/my-profile/preview");
   redirect("/legacy-controls?saved=1");
 }

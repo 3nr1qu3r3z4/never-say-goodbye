@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS users (
   descriptor_one TEXT NOT NULL DEFAULT '',
   descriptor_two TEXT NOT NULL DEFAULT '',
   descriptor_three TEXT NOT NULL DEFAULT '',
+  birthplace TEXT,
   location TEXT,
   personal_motto TEXT,
   created_at TEXT NOT NULL,
@@ -252,4 +253,8 @@ ON CONFLICT (version) DO NOTHING;
 
 INSERT INTO schema_migrations (version)
 VALUES ('010_account_recovery')
+ON CONFLICT (version) DO NOTHING;
+
+INSERT INTO schema_migrations (version)
+VALUES ('011_profile_birthplace')
 ON CONFLICT (version) DO NOTHING;
