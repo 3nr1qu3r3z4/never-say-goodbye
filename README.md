@@ -33,7 +33,9 @@ create a local data directory or write account data to the app filesystem.
      then
      `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/010_account_recovery.sql`
      then
-     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/011_profile_birthplace.sql`.
+     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/011_profile_birthplace.sql`
+     then
+     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/012_profile_location_visibility.sql`.
    - In Bash, export `DATABASE_URL` and run
      `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/001_initial_schema.sql`
      then
@@ -55,7 +57,9 @@ create a local data directory or write account data to the app filesystem.
      then
      `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/010_account_recovery.sql`
      then
-     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/011_profile_birthplace.sql`.
+     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/011_profile_birthplace.sql`
+     then
+     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/012_profile_location_visibility.sql`.
    - In the Neon Console, open the SQL Editor for the intended database. Run
      [`db/migrations/001_initial_schema.sql`](./db/migrations/001_initial_schema.sql)
      first, then run
@@ -69,6 +73,7 @@ create a local data directory or write account data to the app filesystem.
      then [`db/migrations/009_connected_lives_relationship_type.sql`](./db/migrations/009_connected_lives_relationship_type.sql)
      then [`db/migrations/010_account_recovery.sql`](./db/migrations/010_account_recovery.sql)
      then [`db/migrations/011_profile_birthplace.sql`](./db/migrations/011_profile_birthplace.sql)
+     then [`db/migrations/012_profile_location_visibility.sql`](./db/migrations/012_profile_location_visibility.sql)
      in order.
 3. Set `DATABASE_URL` to the same pooled connection string in local
    `.env.local` and in Vercel Project Settings → Environment Variables for each
@@ -76,9 +81,9 @@ create a local data directory or write account data to the app filesystem.
    database where you ran the migration.
 4. Redeploy after setting or changing Vercel environment variables.
 
-All eleven migrations are idempotent and record their application in
+All twelve migrations are idempotent and record their application in
 `schema_migrations`. [`db/schema.sql`](./db/schema.sql) is the standalone
-bootstrap copy of the current schema; use all eleven versioned migrations above for
+bootstrap copy of the current schema; use all twelve versioned migrations above for
 an existing database. There is no automatic migration runner in the
 application, so SQL must be applied to Neon before database-backed features
 can use new schema changes. The initial migration creates
@@ -110,7 +115,7 @@ WHERE version IN (
   '004_profile_words', '005_profile_fields', '006_legacy_control_visibility',
   '007_family_placeholders', '008_lives_notifications',
   '009_connected_lives_relationship_type', '010_account_recovery',
-  '011_profile_birthplace'
+  '011_profile_birthplace', '012_profile_location_visibility'
 )
 ORDER BY version;
 
@@ -121,7 +126,8 @@ WHERE table_schema = 'public'
   AND column_name IN (
     'username', 'profile_photo_data', 'bio', 'birthplace', 'location', 'personal_motto',
     'descriptor_one', 'descriptor_two', 'descriptor_three',
-    'public_profile_photo', 'public_profile_bio', 'public_shared_moments',
+    'public_profile_photo', 'public_profile_bio', 'public_birthplace',
+    'public_location', 'public_shared_moments',
     'public_connected_lives', 'public_legacy_tree',
     'public_future_moment_makers', 'public_personal_moments',
     'private_moment_access_requests', 'tree_participation',
@@ -138,7 +144,7 @@ WHERE table_schema = 'public'
 ```
 
 The table query should return all twelve listed tables; the migration query should
-return all eleven migration versions when each has been applied, and the user column
+return all twelve migration versions when each has been applied, and the user column
 query should return all profile and visibility columns. The profile migrations
 add the photo, bio, location, motto, and descriptor fields used by `/my-profile`;
 migration 006 adds the persisted Legacy Controls™ visibility and contribution
@@ -156,7 +162,10 @@ continue to work for sign-in. New users choose a username at signup.
 Migration 011 adds an optional birthplace for the profile setup form. The form
 also edits the existing display name, discoverability, descriptors, current
 location, and personal motto without changing other Legacy Controls™.
-Birthplace is not displayed on public profiles.
+Migration 012 adds public visibility controls for birthplace and current
+location. Birthplace is hidden by default; current location remains visible by
+default. Owners can still view and edit both fields. The location visibility
+setting also controls whether current location appears in search results.
 
 Family Placeholders use migration 007. Tree members can add a name and
 relationship, optional years and notes, and link their own written moments when

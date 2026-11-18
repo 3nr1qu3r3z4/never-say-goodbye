@@ -11,6 +11,7 @@ import {
 } from "react";
 import { saveProfile, saveProfilePhoto } from "@/app/actions/profile";
 import { isHeicFile, toSupportedImage } from "@/lib/convert-image";
+import ProfileLocations from "@/app/profile-locations";
 
 const maxPhotoBytes = 640 * 1024;
 const acceptedTypes = [
@@ -269,6 +270,7 @@ type ProfileEditorProps = {
   descriptorTwo: string;
   descriptorThree: string;
   bio: string;
+  birthplace: string;
   location: string;
   personalMotto: string;
   profilePhoto: string | null;
@@ -283,6 +285,7 @@ export default function ProfileEditor({
   descriptorTwo,
   descriptorThree,
   bio,
+  birthplace,
   location,
   personalMotto,
   profilePhoto,
@@ -311,6 +314,7 @@ export default function ProfileEditor({
   const [message, setMessage] = useState<string | null>(null);
   const [messageVisible, setMessageVisible] = useState(false);
   const [motto, setMotto] = useState(personalMotto);
+  const [currentLocation, setCurrentLocation] = useState(location);
   const [isSaving, startSaving] = useTransition();
   const [isPhotoSaving, startPhotoSaving] = useTransition();
 
@@ -744,6 +748,8 @@ export default function ProfileEditor({
           </div>
         </fieldset>
 
+        <ProfileLocations birthplace={birthplace} location={currentLocation} />
+
         <label className="block text-sm font-medium text-slate-200">
           Bio
           <span className="mt-1 block text-xs font-normal leading-5 text-slate-500">
@@ -760,10 +766,11 @@ export default function ProfileEditor({
 
         <div className="grid gap-5 sm:grid-cols-2">
           <label className="text-sm font-medium text-slate-200">
-            Location <span className="text-slate-500">(Optional)</span>
+            Current Location <span className="text-slate-500">(Optional)</span>
             <input
               name="location"
-              defaultValue={location}
+              value={currentLocation}
+              onChange={(event) => setCurrentLocation(event.currentTarget.value)}
               maxLength={120}
               autoComplete="address-level2"
             list="profile-location-suggestions"

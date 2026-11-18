@@ -37,6 +37,8 @@ export async function saveLegacyControls(formData: FormData): Promise<void> {
         featured = ${formData.get("featured") === "on"},
         public_profile_photo = ${formData.get("publicProfilePhoto") === "on"},
         public_profile_bio = ${formData.get("publicProfileBio") === "on"},
+        public_birthplace = ${formData.get("publicBirthplace") === "on"},
+        public_location = ${formData.get("publicLocation") === "on"},
         public_shared_moments = ${formData.get("publicSharedMoments") === "on"},
         public_connected_lives = ${formData.get("publicConnectedLives") === "on"},
         public_legacy_tree = ${formData.get("publicLegacyTree") === "on"},
@@ -52,7 +54,10 @@ export async function saveLegacyControls(formData: FormData): Promise<void> {
   `;
 
   revalidatePath("/legacy-controls");
+  revalidatePath("/my-profile");
   revalidatePath("/my-profile/setup");
   revalidatePath("/my-profile/preview");
+  revalidatePath("/search");
+  revalidatePath("/moment-maker/[id]", "page");
   redirect("/legacy-controls?saved=1");
 }

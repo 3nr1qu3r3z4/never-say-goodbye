@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { requireUser } from "@/lib/auth";
 import { getSql } from "@/lib/db";
+import ProfileLocations from "@/app/profile-locations";
 
 export const metadata: Metadata = {
   title: "Profile Preview | Never Say Goodbye",
@@ -16,12 +17,15 @@ type ProfileDetails = {
   descriptorOne: string | null;
   descriptorTwo: string | null;
   descriptorThree: string | null;
+  birthplace: string | null;
   location: string | null;
   personalMotto: string | null;
   profilePhoto: string | null;
   discoverability: "private" | "searchable" | "public";
   publicProfilePhoto: boolean;
   publicProfileBio: boolean;
+  publicBirthplace: boolean;
+  publicLocation: boolean;
   publicSharedMoments: boolean;
   publicConnectedLives: boolean;
   publicLegacyTree: boolean;
@@ -68,12 +72,15 @@ export default async function MyProfilePreviewPage() {
              COALESCE(NULLIF(to_jsonb(u) ->> 'descriptor_one', ''), '') AS "descriptorOne",
              COALESCE(NULLIF(to_jsonb(u) ->> 'descriptor_two', ''), '') AS "descriptorTwo",
              COALESCE(NULLIF(to_jsonb(u) ->> 'descriptor_three', ''), '') AS "descriptorThree",
+             COALESCE(u.birthplace, '') AS birthplace,
              COALESCE(to_jsonb(u) ->> 'location', '') AS location,
              COALESCE(to_jsonb(u) ->> 'personal_motto', '') AS "personalMotto",
              NULLIF(to_jsonb(u) ->> 'profile_photo_data', '') AS "profilePhoto",
              COALESCE(to_jsonb(u) ->> 'discoverability', 'searchable') AS discoverability,
              COALESCE((to_jsonb(u) ->> 'public_profile_photo')::boolean, TRUE) AS "publicProfilePhoto",
              COALESCE((to_jsonb(u) ->> 'public_profile_bio')::boolean, TRUE) AS "publicProfileBio",
+             u.public_birthplace AS "publicBirthplace",
+             u.public_location AS "publicLocation",
              COALESCE((to_jsonb(u) ->> 'public_shared_moments')::boolean, TRUE) AS "publicSharedMoments",
              COALESCE((to_jsonb(u) ->> 'public_connected_lives')::boolean, TRUE) AS "publicConnectedLives",
              COALESCE((to_jsonb(u) ->> 'public_legacy_tree')::boolean, TRUE) AS "publicLegacyTree",
@@ -125,12 +132,15 @@ export default async function MyProfilePreviewPage() {
     descriptorOne: "",
     descriptorTwo: "",
     descriptorThree: "",
+    birthplace: "",
     location: "",
     personalMotto: "",
     profilePhoto: null,
     discoverability: "searchable",
     publicProfilePhoto: true,
     publicProfileBio: true,
+    publicBirthplace: false,
+    publicLocation: true,
     publicSharedMoments: true,
     publicConnectedLives: true,
     publicLegacyTree: true,
@@ -252,13 +262,14 @@ export default async function MyProfilePreviewPage() {
                   ))}
                 </p>
               )}
+              <ProfileLocations
+                birthplace={profile.publicBirthplace ? profile.birthplace : null}
+                location={profile.publicLocation ? profile.location : null}
+              />
               {profile.personalMotto && (
                 <p className="mt-4 font-serif text-lg italic text-[#f0c98e]">
                   “{profile.personalMotto}”
                 </p>
-              )}
-              {profile.location && (
-                <p className="mt-3 text-sm text-slate-400">{profile.location}</p>
               )}
               {profile.publicProfileBio && profile.bio && (
                 <p className="mx-auto mt-6 max-w-2xl whitespace-pre-wrap leading-7 text-slate-300">

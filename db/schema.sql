@@ -18,6 +18,8 @@ CREATE TABLE IF NOT EXISTS users (
   featured BOOLEAN NOT NULL DEFAULT FALSE,
   public_profile_photo BOOLEAN NOT NULL DEFAULT TRUE,
   public_profile_bio BOOLEAN NOT NULL DEFAULT TRUE,
+  public_birthplace BOOLEAN NOT NULL DEFAULT FALSE,
+  public_location BOOLEAN NOT NULL DEFAULT TRUE,
   public_shared_moments BOOLEAN NOT NULL DEFAULT TRUE,
   public_connected_lives BOOLEAN NOT NULL DEFAULT TRUE,
   public_legacy_tree BOOLEAN NOT NULL DEFAULT TRUE,
@@ -257,4 +259,8 @@ ON CONFLICT (version) DO NOTHING;
 
 INSERT INTO schema_migrations (version)
 VALUES ('011_profile_birthplace')
+ON CONFLICT (version) DO NOTHING;
+
+INSERT INTO schema_migrations (version)
+VALUES ('012_profile_location_visibility')
 ON CONFLICT (version) DO NOTHING;

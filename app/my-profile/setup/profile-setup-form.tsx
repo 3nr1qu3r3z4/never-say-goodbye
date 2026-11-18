@@ -111,7 +111,7 @@ export default function ProfileSetupForm({ profile }: { profile: ProfileSetup })
           Birthplace <span className="text-slate-500">(Optional)</span>
           <input name="birthplace" defaultValue={profile.birthplace} maxLength={120} placeholder="City, State" className={fieldClassName} />
           <span className="mt-1 block text-xs font-normal leading-5 text-slate-500">
-            Birthplace is not displayed on public profiles.
+            Control public visibility in Legacy Controls™.
           </span>
         </label>
         <label className="block text-sm font-medium text-slate-200">

@@ -18,6 +18,8 @@ type LegacyControlSettings = {
   featured: boolean;
   publicProfilePhoto: boolean;
   publicProfileBio: boolean;
+  publicBirthplace: boolean;
+  publicLocation: boolean;
   publicSharedMoments: boolean;
   publicConnectedLives: boolean;
   publicLegacyTree: boolean;
@@ -89,6 +91,8 @@ export default async function LegacyControlsPage({
       COALESCE((to_jsonb(u) ->> 'featured')::boolean, FALSE) AS featured,
       COALESCE((to_jsonb(u) ->> 'public_profile_photo')::boolean, TRUE) AS "publicProfilePhoto",
       COALESCE((to_jsonb(u) ->> 'public_profile_bio')::boolean, TRUE) AS "publicProfileBio",
+      u.public_birthplace AS "publicBirthplace",
+      u.public_location AS "publicLocation",
       COALESCE((to_jsonb(u) ->> 'public_shared_moments')::boolean, TRUE) AS "publicSharedMoments",
       COALESCE((to_jsonb(u) ->> 'public_connected_lives')::boolean, TRUE) AS "publicConnectedLives",
       COALESCE((to_jsonb(u) ->> 'public_legacy_tree')::boolean, TRUE) AS "publicLegacyTree",
@@ -247,6 +251,18 @@ export default async function LegacyControlsPage({
                 name="publicProfileBio"
                 title="Bio"
                 defaultChecked={settings?.publicProfileBio ?? true}
+              />
+              <ToggleSetting
+                id="public-birthplace"
+                name="publicBirthplace"
+                title="Show Birthplace"
+                defaultChecked={settings?.publicBirthplace ?? false}
+              />
+              <ToggleSetting
+                id="public-location"
+                name="publicLocation"
+                title="Show Current Location"
+                defaultChecked={settings?.publicLocation ?? true}
               />
               <ToggleSetting
                 id="public-shared-moments"

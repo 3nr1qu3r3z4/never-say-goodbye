@@ -17,6 +17,7 @@ type ProfileDetails = {
   descriptorOne: string | null;
   descriptorTwo: string | null;
   descriptorThree: string | null;
+  birthplace: string | null;
   location: string | null;
   personalMotto: string | null;
   profilePhoto: string | null;
@@ -35,6 +36,7 @@ export default async function MyProfilePage() {
            COALESCE(NULLIF(to_jsonb(u) ->> 'descriptor_one', ''), '') AS "descriptorOne",
            COALESCE(NULLIF(to_jsonb(u) ->> 'descriptor_two', ''), '') AS "descriptorTwo",
            COALESCE(NULLIF(to_jsonb(u) ->> 'descriptor_three', ''), '') AS "descriptorThree",
+           COALESCE(u.birthplace, '') AS birthplace,
            COALESCE(to_jsonb(u) ->> 'location', '') AS location,
            COALESCE(to_jsonb(u) ->> 'personal_motto', '') AS "personalMotto",
            NULLIF(to_jsonb(u) ->> 'profile_photo_data', '') AS "profilePhoto"
@@ -48,6 +50,7 @@ export default async function MyProfilePage() {
     descriptorOne: "",
     descriptorTwo: "",
     descriptorThree: "",
+    birthplace: "",
     location: "",
     personalMotto: "",
     profilePhoto: null,
@@ -92,6 +95,7 @@ export default async function MyProfilePage() {
             descriptorOne={profile.descriptorOne ?? ""}
             descriptorTwo={profile.descriptorTwo ?? ""}
             descriptorThree={profile.descriptorThree ?? ""}
+            birthplace={profile.birthplace ?? ""}
             location={profile.location ?? ""}
             personalMotto={profile.personalMotto ?? ""}
             profilePhoto={profile.profilePhoto}

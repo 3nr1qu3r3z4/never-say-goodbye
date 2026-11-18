@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getSql } from "@/lib/db";
 import ConnectionRequestButton from "./connection-request-button";
+import ProfileLocations from "@/app/profile-locations";
 import type { ConnectionStatus } from "@/app/actions/connected-lives";
 
 export const instant = false;
@@ -17,6 +18,7 @@ type Profile = {
   id: string;
   displayName: string;
   bio: string;
+  birthplace: string;
   location: string;
   descriptorOne: string;
   descriptorTwo: string;
@@ -48,7 +50,8 @@ export default async function MomentMakerProfilePage({
       SELECT u.id,
              COALESCE(NULLIF(BTRIM(u.display_name), ''), 'Moment Maker') AS "displayName",
              COALESCE(to_jsonb(u) ->> 'bio', '') AS bio,
-             COALESCE(to_jsonb(u) ->> 'location', '') AS location,
+             CASE WHEN u.public_birthplace THEN COALESCE(u.birthplace, '') ELSE '' END AS birthplace,
+             CASE WHEN u.public_location THEN COALESCE(u.location, '') ELSE '' END AS location,
              COALESCE(to_jsonb(u) ->> 'descriptor_one', '') AS "descriptorOne",
              COALESCE(to_jsonb(u) ->> 'descriptor_two', '') AS "descriptorTwo",
              COALESCE(to_jsonb(u) ->> 'descriptor_three', '') AS "descriptorThree",
@@ -167,9 +170,7 @@ export default async function MomentMakerProfilePage({
               ))}
             </p>
           )}
-          {profile.location && (
-            <p className="mt-3 text-sm text-slate-400">{profile.location}</p>
-          )}
+          <ProfileLocations birthplace={profile.birthplace} location={profile.location} />
           {profile.publicProfileBio && profile.bio && (
             <p className="mx-auto mt-6 max-w-2xl whitespace-pre-wrap leading-7 text-slate-300">
               {profile.bio}

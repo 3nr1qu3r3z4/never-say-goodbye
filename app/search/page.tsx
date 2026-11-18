@@ -53,7 +53,7 @@ export default async function SearchPage({
             THEN COALESCE(to_jsonb(u) ->> 'bio', '')
             ELSE ''
           END AS bio,
-          COALESCE(to_jsonb(u) ->> 'location', '') AS location,
+          CASE WHEN u.public_location THEN COALESCE(u.location, '') ELSE '' END AS location,
           COALESCE(to_jsonb(u) ->> 'descriptor_one', '') AS "descriptorOne",
           COALESCE(to_jsonb(u) ->> 'descriptor_two', '') AS "descriptorTwo",
           COALESCE(to_jsonb(u) ->> 'descriptor_three', '') AS "descriptorThree",
