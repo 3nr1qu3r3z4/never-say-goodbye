@@ -2,13 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { getSql } from "@/lib/db";
-import {
-  relationshipTypes,
-  type RelationshipType,
-} from "@/lib/connected-lives";
+import { relationshipForViewer } from "@/lib/connected-lives";
+import type { DirectoryConnection, PersonTag } from "@/lib/connected-lives-directory";
 import { markLivesNotificationsRead } from "@/app/actions/connected-lives";
 import ConnectionResponse from "./connection-response";
-import RelationshipEditor from "./relationship-editor";
+import ConnectedLivesDirectory from "./directory";
 
 export const metadata: Metadata = {
   title: "Connected Lives™ | Never Say Goodbye",
@@ -22,8 +20,23 @@ type Connection = {
   requesterId: string;
   recipientId: string | null;
   displayName: string;
-  relationshipType: RelationshipType | null;
+  relationshipType: string | null;
+  relationshipSubjectId: string | null;
+  personId: string | null;
+  acceptedAt: string | null;
+  profilePhoto: string | null;
+  profileVisible: boolean;
+  birthYear: number | null;
+  personTags: PersonTag[];
+  ownTags: PersonTag[];
   createdAt: string;
+};
+
+type FutureMaker = {
+  id: string;
+  name: string;
+  relationship: string;
+  status: string;
 };
 
 type LivesNotification = {
@@ -37,7 +50,7 @@ type LivesNotification = {
 export default async function ConnectedLivesPage() {
   const user = await requireUser();
   const sql = getSql();
-  const [connectionRows, notificationRows] = await Promise.all([
+  const [connectionRows, notificationRows, futureRows] = await Promise.all([
     sql`
       SELECT cl.id, cl.status,
              cl.owner_user_id AS "requesterId",
@@ -48,10 +61,29 @@ export default async function ConnectedLivesPage() {
                ELSE COALESCE(NULLIF(BTRIM(requester.display_name), ''), cl.display_name)
              END AS "displayName",
              cl.relationship_type AS "relationshipType",
+             cl.relationship_subject_user_id AS "relationshipSubjectId",
+             person.id AS "personId",
+             to_char(cl.accepted_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS "acceptedAt",
+             (person.discoverability IN ('searchable', 'public')) IS TRUE AS "profileVisible",
+             CASE WHEN person.public_profile_photo AND person.discoverability IN ('searchable', 'public')
+               THEN NULLIF(person.profile_photo_data, '') ELSE NULL END AS "profilePhoto",
+             CASE WHEN person.share_birthday AND EXISTS (
+               SELECT 1 FROM legacy_tree_members viewer_tree
+               JOIN legacy_tree_members person_tree ON person_tree.tree_id = viewer_tree.tree_id
+               WHERE viewer_tree.user_id = ${user.id} AND person_tree.user_id = person.id
+             ) THEN COALESCE(person.birth_year, EXTRACT(YEAR FROM person.birth_date)::int) ELSE NULL END AS "birthYear",
+             COALESCE((SELECT json_agg(json_build_object('id', tag.id, 'label', tag.label) ORDER BY tag.label)
+               FROM connected_lives_person_tags tag
+               WHERE tag.connection_id = cl.id AND tag.subject_user_id = person.id), '[]'::json) AS "personTags",
+             COALESCE((SELECT json_agg(json_build_object('id', tag.id, 'label', tag.label) ORDER BY tag.label)
+               FROM connected_lives_person_tags tag
+               WHERE tag.connection_id = cl.id AND tag.subject_user_id = ${user.id}), '[]'::json) AS "ownTags",
              cl.created_at AS "createdAt"
       FROM connected_lives AS cl
       LEFT JOIN users AS requester ON requester.id = cl.owner_user_id
       LEFT JOIN users AS recipient ON recipient.id = cl.connected_user_id
+      LEFT JOIN users AS person ON person.id = CASE WHEN cl.owner_user_id = ${user.id}
+        THEN cl.connected_user_id ELSE cl.owner_user_id END
       WHERE cl.owner_user_id = ${user.id}
          OR cl.connected_user_id = ${user.id}
       ORDER BY cl.updated_at DESC, cl.created_at DESC
@@ -62,6 +94,12 @@ export default async function ConnectedLivesPage() {
       WHERE recipient_user_id = ${user.id}
       ORDER BY created_at DESC
       LIMIT 20
+    `,
+    sql`
+      SELECT id, name, relationship, status
+      FROM future_moment_makers
+      WHERE owner_user_id = ${user.id} AND status <> 'archived'
+      ORDER BY name, id
     `,
   ]);
   const rows = connectionRows as Connection[];
@@ -79,7 +117,19 @@ export default async function ConnectedLivesPage() {
   );
   const connected = rows.filter(
     (connection) => connection.status === "accepted",
-  );
+  ).map((connection): DirectoryConnection => ({
+    id: connection.id,
+    personId: connection.personId,
+    displayName: connection.displayName,
+    relationshipType: relationshipForViewer(connection.relationshipType, connection.relationshipSubjectId, user.id),
+    acceptedAt: connection.acceptedAt,
+    profilePhoto: connection.profilePhoto,
+    profileVisible: connection.profileVisible,
+    birthYear: connection.birthYear,
+    personTags: connection.personTags,
+    ownTags: connection.ownTags,
+  }));
+  const futureMakers = futureRows as FutureMaker[];
   const declined = rows.filter(
     (connection) => connection.status === "declined",
   );
@@ -96,8 +146,7 @@ export default async function ConnectedLivesPage() {
           Connected Lives™
         </h1>
         <p className="mt-4 max-w-2xl leading-7 text-slate-400">
-          Review relationship requests and other activity from the people and
-          families connected to your life.
+          Explore the people and families connected to your life.
         </p>
         {notifications.some((notification) => !notification.readAt) && (
           <form action={markLivesNotificationsRead} className="mt-5">
@@ -109,6 +158,21 @@ export default async function ConnectedLivesPage() {
             </button>
           </form>
         )}
+
+        <ConnectedLivesDirectory connections={connected} viewerId={user.id} />
+
+        <section className="mt-10" aria-labelledby="future-heading">
+          <h2 id="future-heading" className="font-serif text-2xl text-white sm:text-3xl">Future Moment Makers™</h2>
+          <p className="mt-3 text-sm text-slate-400">People whose stories are still unfolding, separate from your accepted connections.</p>
+          {futureMakers.length ? <ul className="mt-5 grid gap-4 sm:grid-cols-2">
+            {futureMakers.map((maker) => <li key={maker.id} className={cardClassName}>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#D8A35B]">Future Moment Maker™</p>
+              <h3 className="mt-2 break-words font-serif text-xl text-white">{maker.name}</h3>
+              <p className="mt-2 text-sm text-slate-300">{maker.relationship} · {maker.status === "awaiting-claim" ? "Awaiting Claim" : maker.status === "claimed" ? "Claimed" : maker.status}</p>
+              <Link href={`/future-moment-maker/${encodeURIComponent(maker.id)}`} className="mt-4 inline-flex min-h-11 items-center rounded-full border border-[#D8A35B]/50 px-5 text-sm font-semibold text-[#f0c98e] hover:bg-[#D8A35B]/10">View Record</Link>
+            </li>)}
+          </ul> : <p className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm text-slate-400">Future Moment Makers™ you create will appear here.</p>}
+        </section>
 
         <section className="mt-10" aria-labelledby="requests-heading">
           <h2
@@ -137,55 +201,6 @@ export default async function ConnectedLivesPage() {
           ) : (
             <p className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-slate-400">
               You do not have any requests to review.
-            </p>
-          )}
-        </section>
-
-        <section className="mt-10" aria-labelledby="connections-heading">
-          <h2
-            id="connections-heading"
-            className="font-serif text-2xl text-white sm:text-3xl"
-          >
-            Your Connections
-          </h2>
-          {connected.length ? (
-            <div className="mt-5 space-y-8">
-              {[
-                ...relationshipTypes,
-                { value: null, group: "Unclassified" },
-              ].map((type) => {
-                const connections = connected.filter(
-                  (connection) => connection.relationshipType === type.value,
-                );
-                if (!connections.length) return null;
-                return (
-                  <section key={type.value ?? "unclassified"}>
-                    <h3 className="font-serif text-xl text-white">
-                      {type.group}
-                    </h3>
-                    <ul className="mt-4 grid gap-4 sm:grid-cols-2">
-                      {connections.map((connection) => (
-                        <li key={connection.id} className={cardClassName}>
-                          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#D8A35B]">
-                            ❤️ Connected
-                          </p>
-                          <h4 className="mt-2 font-serif text-xl text-white">
-                            {connection.displayName}
-                          </h4>
-                          <RelationshipEditor
-                            connectionId={connection.id}
-                            relationshipType={connection.relationshipType}
-                          />
-                        </li>
-                      ))}
-                    </ul>
-                  </section>
-                );
-              })}
-            </div>
-          ) : (
-            <p className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-slate-400">
-              Your accepted Connected Lives™ will appear here.
             </p>
           )}
         </section>

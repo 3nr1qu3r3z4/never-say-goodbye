@@ -72,6 +72,8 @@ export async function sendConnectedLivesRequest(
           display_name = ${profile.displayName},
           relationship = 'Connected Life',
           relationship_type = NULL,
+          relationship_subject_user_id = NULL,
+          accepted_at = NULL,
           status = 'pending',
           updated_at = ${now}
       WHERE id = (SELECT id FROM existing WHERE status = 'declined')
@@ -178,6 +180,8 @@ export async function respondToConnectedLivesRequest(
       UPDATE connected_lives
       SET status = ${response === "accept" ? "accepted" : "declined"},
           relationship_type = ${response === "accept" ? selectedRelationship : null},
+          relationship_subject_user_id = CASE WHEN ${response === "accept"} THEN owner_user_id ELSE NULL END,
+          accepted_at = CASE WHEN ${response === "accept"} THEN ${now}::timestamptz ELSE NULL END,
           updated_at = ${now}
       WHERE id = ${requestId}
         AND connected_user_id = ${user.id}
@@ -255,6 +259,8 @@ export async function updateConnectedLivesRelationship(
   const [connection] = (await sql`
     UPDATE connected_lives
     SET relationship_type = ${relationshipType},
+        relationship_subject_user_id = CASE WHEN owner_user_id = ${user.id}
+          THEN connected_user_id ELSE owner_user_id END,
         updated_at = ${new Date().toISOString()}
     WHERE id = ${connectionId}
       AND status = 'accepted'
@@ -268,6 +274,67 @@ export async function updateConnectedLivesRelationship(
 
   refreshConnectionViews();
   return { message: "Relationship updated." };
+}
+
+export async function addConnectedLifeTag(
+  _previousState: ConnectionActionResult,
+  formData: FormData,
+): Promise<ConnectionActionResult> {
+  const user = await requireUser();
+  const connectionId = formData.get("connectionId");
+  const subjectId = formData.get("subjectId");
+  const rawLabel = formData.get("label");
+  const label = typeof rawLabel === "string" ? rawLabel.trim() : "";
+  if (typeof connectionId !== "string" || connectionId.length < 1 || connectionId.length > 200 ||
+      typeof subjectId !== "string" || subjectId.length < 1 || subjectId.length > 200 ||
+      !label || label.length > 60) {
+    return { error: "Enter a tag of up to 60 characters." };
+  }
+  const sql = getSql();
+  const [result] = (await sql`
+    WITH eligible AS (
+      SELECT id FROM connected_lives
+      WHERE id = ${connectionId} AND status = 'accepted'
+        AND (owner_user_id = ${user.id} OR connected_user_id = ${user.id})
+        AND (owner_user_id = ${subjectId} OR connected_user_id = ${subjectId})
+    ), added AS (
+      INSERT INTO connected_lives_person_tags (id, connection_id, subject_user_id, label)
+      SELECT ${randomUUID()}, id, ${subjectId}, ${label} FROM eligible
+      ON CONFLICT DO NOTHING RETURNING id
+    )
+    SELECT EXISTS (SELECT 1 FROM eligible) AS eligible,
+           EXISTS (SELECT 1 FROM added) AS added
+  `) as { eligible: boolean; added: boolean }[];
+  if (!result?.eligible) return { error: "This connection or person is no longer available." };
+  if (!result.added) return { error: "This person already has that tag on this connection." };
+  refreshConnectionViews();
+  return { message: "Shared tag added." };
+}
+
+export async function removeConnectedLifeTag(
+  _previousState: ConnectionActionResult,
+  formData: FormData,
+): Promise<ConnectionActionResult> {
+  const user = await requireUser();
+  const tagId = formData.get("tagId");
+  if (typeof tagId !== "string" || tagId.length < 1 || tagId.length > 200) {
+    return { error: "Choose a valid tag." };
+  }
+  const sql = getSql();
+  const rows = await sql`
+    DELETE FROM connected_lives_person_tags AS tag
+    WHERE tag.id = ${tagId}
+      AND EXISTS (
+        SELECT 1 FROM connected_lives AS cl
+        WHERE cl.id = tag.connection_id AND cl.status = 'accepted'
+          AND (cl.owner_user_id = ${user.id} OR cl.connected_user_id = ${user.id})
+          AND (cl.owner_user_id = tag.subject_user_id OR cl.connected_user_id = tag.subject_user_id)
+      )
+    RETURNING tag.id
+  `;
+  if (!rows.length) return { error: "This tag or connection is no longer available." };
+  refreshConnectionViews();
+  return { message: "Shared tag removed." };
 }
 
 export async function markLivesNotificationsRead() {

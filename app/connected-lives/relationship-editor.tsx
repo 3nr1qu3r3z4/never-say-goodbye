@@ -5,7 +5,6 @@ import {
   updateConnectedLivesRelationship,
   type ConnectionActionResult,
 } from "@/app/actions/connected-lives";
-import type { RelationshipType } from "@/lib/connected-lives";
 import RelationshipOptions from "./relationship-options";
 
 export default function RelationshipEditor({
@@ -13,7 +12,7 @@ export default function RelationshipEditor({
   relationshipType,
 }: {
   connectionId: string;
-  relationshipType: RelationshipType | null;
+  relationshipType: string | null;
 }) {
   const [state, formAction, isPending] = useActionState<
     ConnectionActionResult,

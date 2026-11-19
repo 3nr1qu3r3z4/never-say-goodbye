@@ -1,9 +1,9 @@
-import { relationshipTypes, type RelationshipType } from "@/lib/connected-lives";
+import { relationshipTypes } from "@/lib/connected-lives";
 
 export default function RelationshipOptions({
   selected,
 }: {
-  selected?: RelationshipType | null;
+  selected?: string | null;
 }) {
   return (
     <fieldset>

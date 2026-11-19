@@ -39,7 +39,9 @@ create a local data directory or write account data to the app filesystem.
      then
      `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/013_weekly_moment_makers.sql`
      then
-     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/014_family_calendar.sql`.
+     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/014_family_calendar.sql`
+     then
+     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/015_connected_lives_directory.sql`.
    - In Bash, export `DATABASE_URL` and run
      `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/001_initial_schema.sql`
      then
@@ -67,7 +69,9 @@ create a local data directory or write account data to the app filesystem.
      then
      `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/013_weekly_moment_makers.sql`
      then
-     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/014_family_calendar.sql`.
+     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/014_family_calendar.sql`
+     then
+     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/015_connected_lives_directory.sql`.
    - In the Neon Console, open the SQL Editor for the intended database. Run
      [`db/migrations/001_initial_schema.sql`](./db/migrations/001_initial_schema.sql)
      first, then run
@@ -84,6 +88,7 @@ create a local data directory or write account data to the app filesystem.
      then [`db/migrations/012_profile_location_visibility.sql`](./db/migrations/012_profile_location_visibility.sql)
      then [`db/migrations/013_weekly_moment_makers.sql`](./db/migrations/013_weekly_moment_makers.sql)
      then [`db/migrations/014_family_calendar.sql`](./db/migrations/014_family_calendar.sql)
+     then [`db/migrations/015_connected_lives_directory.sql`](./db/migrations/015_connected_lives_directory.sql)
      in order.
 3. Set `DATABASE_URL` to the same pooled connection string in local
    `.env.local` and in Vercel Project Settings → Environment Variables for each
@@ -91,9 +96,9 @@ create a local data directory or write account data to the app filesystem.
    database where you ran the migration.
 4. Redeploy after setting or changing Vercel environment variables.
 
-All fourteen migrations are idempotent and record their application in
+All fifteen migrations are idempotent and record their application in
 `schema_migrations`. [`db/schema.sql`](./db/schema.sql) is the standalone
-bootstrap copy of the current schema; use all fourteen versioned migrations above for
+bootstrap copy of the current schema; use all fifteen versioned migrations above for
 an existing database. There is no automatic migration runner in the
 application, so SQL must be applied to Neon before database-backed features
 can use new schema changes. The initial migration creates
@@ -117,7 +122,8 @@ WHERE table_schema = 'public'
     'account_recovery_attempts', 'weekly_moment_maker_settings',
     'weekly_moment_maker_weeks', 'weekly_moment_maker_selections',
     'family_relationship_milestones', 'family_calendar_events',
-    'family_calendar_import_settings', 'family_calendar_reminders'
+    'family_calendar_import_settings', 'family_calendar_reminders',
+    'connected_lives_person_tags'
   )
 ORDER BY table_name;
 
@@ -129,7 +135,8 @@ WHERE version IN (
   '007_family_placeholders', '008_lives_notifications',
   '009_connected_lives_relationship_type', '010_account_recovery',
   '011_profile_birthplace', '012_profile_location_visibility',
-  '013_weekly_moment_makers', '014_family_calendar'
+  '013_weekly_moment_makers', '014_family_calendar',
+  '015_connected_lives_directory'
 )
 ORDER BY version;
 
@@ -157,8 +164,8 @@ WHERE table_schema = 'public'
   AND column_name = 'relationship_type';
 ```
 
-The table query should return all nineteen listed tables; the migration query should
-return all fourteen migration versions when each has been applied, and the user column
+The table query should return all twenty listed tables; the migration query should
+return all fifteen migration versions when each has been applied, and the user column
 query should return all profile and visibility columns. The profile migrations
 add the photo, bio, location, motto, and descriptor fields used by `/my-profile`;
 migration 006 adds the persisted Legacy Controls™ visibility and contribution
@@ -177,6 +184,19 @@ consent and removed membership take effect immediately. Year-only dates are not
 imported, expected births are one-time events, and February 29 yearly events
 appear only in leap years. Reminder settings are saved for future integration;
 no reminder notifications are sent.
+
+Migration 015 must be applied before deploying the Connected Lives™ directory.
+Existing relationship types and connection dates are not backfilled. New
+acceptances record an acceptance timestamp; older connections without one show
+that the date is unavailable. Parent and Child labels are reciprocal for the
+two participants. Tags describe a specific participant and are shared with,
+and editable by, both participants in that accepted connection. Birthday years
+are shown only when the person shares their birthday and both people belong to
+the same Legacy Tree™. Future Moment Maker records are visible only to their
+owner; their associated tree is shown only while the owner belongs to it.
+Run `node --test tests/connected-lives-directory.test.mjs` for directory tests.
+The disposable-database integration test additionally requires a separately
+installed PGlite package; set `CONNECTED_LIVES_TEST_PGLITE` to its package path.
 
 Run the calendar unit and rendering tests with
 `node --test tests/family-calendar.test.mjs`. The database integration tests

@@ -229,8 +229,10 @@ CREATE TABLE IF NOT EXISTS connected_lives (
   display_name TEXT NOT NULL,
   relationship TEXT NOT NULL,
   relationship_type TEXT CHECK (
-    relationship_type IN ('family', 'close_friend', 'mentor', 'other')
+    relationship_type IN ('family', 'close_friend', 'mentor', 'other', 'parent', 'child', 'sibling', 'spouse_partner')
   ),
+  accepted_at TIMESTAMPTZ,
+  relationship_subject_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
   anniversary_date DATE,
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'declined')),
   created_at TEXT NOT NULL,
@@ -239,6 +241,16 @@ CREATE TABLE IF NOT EXISTS connected_lives (
 );
 CREATE INDEX IF NOT EXISTS connected_lives_owner_idx ON connected_lives(owner_user_id, status);
 CREATE INDEX IF NOT EXISTS connected_lives_connected_idx ON connected_lives(connected_user_id, status);
+
+CREATE TABLE IF NOT EXISTS connected_lives_person_tags (
+  id TEXT PRIMARY KEY,
+  connection_id TEXT NOT NULL REFERENCES connected_lives(id) ON DELETE CASCADE,
+  subject_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  label TEXT NOT NULL CHECK (char_length(btrim(label)) BETWEEN 1 AND 60),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE UNIQUE INDEX IF NOT EXISTS connected_lives_person_tags_unique_idx
+  ON connected_lives_person_tags (connection_id, subject_user_id, lower(btrim(label)));
 
 CREATE TABLE IF NOT EXISTS notifications (
   id TEXT PRIMARY KEY,
@@ -403,4 +415,8 @@ ON CONFLICT (version) DO NOTHING;
 
 INSERT INTO schema_migrations (version)
 VALUES ('014_family_calendar')
+ON CONFLICT (version) DO NOTHING;
+
+INSERT INTO schema_migrations (version)
+VALUES ('015_connected_lives_directory')
 ON CONFLICT (version) DO NOTHING;
