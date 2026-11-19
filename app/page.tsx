@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
+import WeeklyMomentMakers from "./weekly-moment-makers";
 
 const howItWorks = [
   {
@@ -191,23 +192,30 @@ export default function Page() {
                 </div>
                 <div>
                   <dt className="text-xs uppercase tracking-[0.18em] text-slate-500">
-                    Called Home
+                    Lives In
                   </dt>
                   <dd className="mt-2 text-sm text-slate-200">
                     Nashville, Tennessee
                   </dd>
                 </div>
               </dl>
-              <button
-                type="button"
-                className="mt-8 w-full rounded-full border border-[#D8A35B]/50 px-6 py-4 text-sm font-medium text-[#f0c98e] transition hover:bg-[#D8A35B]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
+              <Link
+                href="/profile-preview#first-message"
+                className="mt-8 inline-flex w-full justify-center rounded-full border border-[#D8A35B]/50 px-6 py-4 text-sm font-medium text-[#f0c98e] transition hover:bg-[#D8A35B]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
               >
-                ❤️ Watch My First Message
-              </button>
+                ❤️ Read John&apos;s First Message
+              </Link>
+              <p className="mt-3 text-center text-xs leading-5 text-slate-400">
+                Explore John&apos;s example profile and written message.
+              </p>
             </div>
           </article>
         </div>
       </section>
+
+      <Suspense fallback={<p className="mx-auto max-w-6xl px-6 py-10 text-sm text-slate-400">Loading this week&apos;s Moment Makers™…</p>}>
+        <WeeklyMomentMakers />
+      </Suspense>
 
       <section className="mx-auto max-w-7xl px-6 py-20 text-center sm:px-8 sm:py-28">
         <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">

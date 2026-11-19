@@ -63,7 +63,7 @@ export default function ProtectedMoment({ title }: { title: string }) {
 
       {unlocked && (
         <section
-          aria-labelledby="unlocked-moment-heading"
+          aria-labelledby={`unlocked-moment-heading-${momentId}`}
           className="mt-6 rounded-2xl border border-[#D8A35B]/30 bg-white/[0.04] p-6 shadow-xl shadow-black/20 sm:p-8"
         >
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#D8A35B]">
@@ -76,8 +76,8 @@ export default function ProtectedMoment({ title }: { title: string }) {
             {title}
           </h3>
           <p className="mt-3 leading-7 text-slate-300">
-            This moment was created as a private message and was unlocked using
-            an approved access code.
+            This sample message illustrates a private moment. The demonstration
+            code does not protect real content.
           </p>
         </section>
       )}
@@ -105,9 +105,9 @@ export default function ProtectedMoment({ title }: { title: string }) {
               Private Moment
             </h2>
             <p className="mt-4 text-sm leading-6 text-slate-300">
-              This moment has been protected by the Moment Maker.
+              This is a demonstration of a protected moment.
               <br />
-              Please enter an access code to continue.
+              Enter the sample code JOHN2026 to continue.
             </p>
 
             <form onSubmit={handleUnlock}>

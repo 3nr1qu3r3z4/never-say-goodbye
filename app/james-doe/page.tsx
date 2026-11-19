@@ -52,7 +52,7 @@ const lovedOnes = [
   },
   {
     icon: "👧",
-    name: "Emma Doe",
+    name: "Emma Rose Doe",
     relationship: "Sister",
     href: "/emma-doe",
   },
@@ -108,7 +108,7 @@ export default function JamesDoePage() {
             </div>
             <div className="p-5 sm:p-7">
               <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-[#D8A35B]">
-                Called Home
+                Lives In
               </p>
               <p className="mt-2 font-serif text-base text-white sm:text-lg">
                 Austin, Texas
@@ -148,12 +148,6 @@ export default function JamesDoePage() {
             </dl>
           </div>
 
-          <button
-            type="button"
-            className="mt-8 w-full max-w-2xl rounded-full bg-[#D8A35B] px-8 py-4 text-sm font-semibold tracking-wide text-[#0F172A] shadow-lg shadow-[#D8A35B]/10 transition hover:bg-[#e6b66f] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
-          >
-            ❤️ A Message From Dad
-          </button>
         </div>
       </section>
 
@@ -177,25 +171,10 @@ export default function JamesDoePage() {
                   aria-label={`Video placeholder for ${moment.title}`}
                   className={`relative flex aspect-[16/10] items-center justify-center overflow-hidden bg-gradient-to-br ${moment.imageStyle}`}
                 >
-                  <span
-                    aria-hidden="true"
-                    className="absolute inset-0 bg-gradient-to-t from-[#0F172A]/70 to-transparent"
-                  />
-                  <span
-                    aria-hidden="true"
-                    className="relative flex h-12 w-12 items-center justify-center rounded-full border border-white/50 bg-[#0F172A]/40 pl-0.5 text-lg text-white backdrop-blur-sm"
-                  >
-                    ▶
-                  </span>
-                  <span
-                    aria-hidden="true"
-                    className="absolute right-4 top-3 font-serif text-2xl text-white/60"
-                  >
-                    {moment.symbol}
-                  </span>
-                  <span className="absolute bottom-3 left-4 text-[0.6rem] uppercase tracking-[0.2em] text-white/65">
-                    Video placeholder
-                  </span>
+                  <span aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-[#0F172A]/70 to-transparent" />
+                  <span aria-hidden="true" className="relative flex h-12 w-12 items-center justify-center rounded-full border border-white/50 bg-[#0F172A]/40 pl-0.5 text-lg text-white backdrop-blur-sm">▶</span>
+                  <span aria-hidden="true" className="absolute right-4 top-3 font-serif text-2xl text-white/60">{moment.symbol}</span>
+                  <span className="absolute bottom-3 left-4 text-[0.6rem] uppercase tracking-[0.2em] text-white/65">Video placeholder</span>
                 </div>
                 <h3 className="px-5 py-4 font-serif text-lg text-white">
                   {moment.title}
@@ -277,10 +256,10 @@ export default function JamesDoePage() {
                 <div>
                   <h3 className="font-serif text-lg text-white">
                     <Link
-                      href={person.href}
-                      className="transition hover:text-[#f0c98e] focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D8A35B]"
-                    >
-                      {person.name}
+                        href={person.href}
+                        className="transition hover:text-[#f0c98e] focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D8A35B]"
+                      >
+                        {person.name}
                     </Link>
                   </h3>
                   <p className="mt-1 text-sm text-slate-400">

@@ -35,7 +35,9 @@ create a local data directory or write account data to the app filesystem.
      then
      `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/011_profile_birthplace.sql`
      then
-     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/012_profile_location_visibility.sql`.
+     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/012_profile_location_visibility.sql`
+     then
+     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/013_weekly_moment_makers.sql`.
    - In Bash, export `DATABASE_URL` and run
      `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/001_initial_schema.sql`
      then
@@ -59,7 +61,9 @@ create a local data directory or write account data to the app filesystem.
      then
      `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/011_profile_birthplace.sql`
      then
-     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/012_profile_location_visibility.sql`.
+     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/012_profile_location_visibility.sql`
+     then
+     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/013_weekly_moment_makers.sql`.
    - In the Neon Console, open the SQL Editor for the intended database. Run
      [`db/migrations/001_initial_schema.sql`](./db/migrations/001_initial_schema.sql)
      first, then run
@@ -74,6 +78,7 @@ create a local data directory or write account data to the app filesystem.
      then [`db/migrations/010_account_recovery.sql`](./db/migrations/010_account_recovery.sql)
      then [`db/migrations/011_profile_birthplace.sql`](./db/migrations/011_profile_birthplace.sql)
      then [`db/migrations/012_profile_location_visibility.sql`](./db/migrations/012_profile_location_visibility.sql)
+     then [`db/migrations/013_weekly_moment_makers.sql`](./db/migrations/013_weekly_moment_makers.sql)
      in order.
 3. Set `DATABASE_URL` to the same pooled connection string in local
    `.env.local` and in Vercel Project Settings → Environment Variables for each
@@ -81,9 +86,9 @@ create a local data directory or write account data to the app filesystem.
    database where you ran the migration.
 4. Redeploy after setting or changing Vercel environment variables.
 
-All twelve migrations are idempotent and record their application in
+All thirteen migrations are idempotent and record their application in
 `schema_migrations`. [`db/schema.sql`](./db/schema.sql) is the standalone
-bootstrap copy of the current schema; use all twelve versioned migrations above for
+bootstrap copy of the current schema; use all thirteen versioned migrations above for
 an existing database. There is no automatic migration runner in the
 application, so SQL must be applied to Neon before database-backed features
 can use new schema changes. The initial migration creates
@@ -104,7 +109,8 @@ WHERE table_schema = 'public'
     'users', 'sessions', 'legacy_trees', 'legacy_tree_members',
     'connected_lives', 'future_moment_makers', 'moments', 'drafts',
     'legacy_successors', 'legacy_frame_interests', 'password_reset_tokens',
-    'account_recovery_attempts'
+    'account_recovery_attempts', 'weekly_moment_maker_settings',
+    'weekly_moment_maker_weeks', 'weekly_moment_maker_selections'
   )
 ORDER BY table_name;
 
@@ -115,7 +121,8 @@ WHERE version IN (
   '004_profile_words', '005_profile_fields', '006_legacy_control_visibility',
   '007_family_placeholders', '008_lives_notifications',
   '009_connected_lives_relationship_type', '010_account_recovery',
-  '011_profile_birthplace', '012_profile_location_visibility'
+  '011_profile_birthplace', '012_profile_location_visibility',
+  '013_weekly_moment_makers'
 )
 ORDER BY version;
 
@@ -143,8 +150,8 @@ WHERE table_schema = 'public'
   AND column_name = 'relationship_type';
 ```
 
-The table query should return all twelve listed tables; the migration query should
-return all twelve migration versions when each has been applied, and the user column
+The table query should return all fifteen listed tables; the migration query should
+return all thirteen migration versions when each has been applied, and the user column
 query should return all profile and visibility columns. The profile migrations
 add the photo, bio, location, motto, and descriptor fields used by `/my-profile`;
 migration 006 adds the persisted Legacy Controls™ visibility and contribution
@@ -166,6 +173,32 @@ Migration 012 adds public visibility controls for birthplace and current
 location. Birthplace is hidden by default; current location remains visible by
 default. Owners can still view and edit both fields. The location visibility
 setting also controls whether current location appears in search results.
+
+Migration 013 adds This Week's Moment Makers™ settings and selection history.
+The first homepage request each UTC week selects up to the configured count of
+opted-in, discoverable profiles, prioritizing those never featured and then
+those featured least recently. Profiles selected in the previous four weeks
+are excluded; the section may show fewer profiles. A member who opts out or
+becomes private is removed from display immediately. Photo and location
+visibility settings are respected.
+
+An authorized database operator can change the number for future weekly
+selections without a deployment:
+
+```sql
+UPDATE weekly_moment_maker_settings SET profile_count = 6 WHERE singleton = TRUE;
+```
+
+The allowed range is 0–100. Changes apply when the next week is first generated;
+existing weekly selections are not replaced or expanded midweek. This setting
+can be exposed through a secured admin interface later. Apply migration 013
+before deployment; otherwise the homepage reports that featured profiles are
+temporarily unavailable.
+
+For database-backed rotation checks, apply the migrations to an empty,
+disposable PostgreSQL database and run `tests/weekly-moment-makers.sql`.
+The test rejects a database containing users or prior weekly selections and
+rolls back its changes.
 
 Family Placeholders use migration 007. Tree members can add a name and
 relationship, optional years and notes, and link their own written moments when

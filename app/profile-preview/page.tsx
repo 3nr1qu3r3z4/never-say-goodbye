@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import FirstMessage from "./first-message";
 import ProtectedMoment from "./protected-moment";
 
 export const metadata: Metadata = {
@@ -12,30 +13,34 @@ export const metadata: Metadata = {
 const sharedMoments = [
   {
     title: "The Day I Met You",
-    imageStyle: "from-[#5c4737] via-[#977553] to-[#263449]",
-    symbol: "✦",
+    story: "Mary and I met at a neighborhood gathering. Whether at home or at the fair, she always made everyone around her feel welcome.",
+    image: "/images/james-day-i-met-you.png",
+    alt: "A joyful moment together at a state fair",
   },
   {
     title: "Lessons I've Learned",
-    imageStyle: "from-[#293b4a] via-[#60736d] to-[#c2a678]",
-    symbol: "✧",
+    story: "Listen before you offer advice. The people you love usually need your time more than the perfect answer.",
+    image: "/images/james-lessons-learned.png",
+    alt: "A mechanic looking at an open car hood",
   },
   {
     title: "Meeting Mom",
-    imageStyle: "from-[#573c3b] via-[#ad806d] to-[#293744]",
-    symbol: "♡",
+    story: "I brought flowers to our first dinner together and spent the evening laughing with her family around the table.",
+    image: "/images/james-meeting-mom.png",
+    alt: "A family sharing a conversation in their living room",
   },
   {
-    title: "Family Traditions",
-    imageStyle: "from-[#4a3e34] via-[#92805f] to-[#33423b]",
-    symbol: "✦",
+    title: "Family Traditions I Carry On",
+    story: "Sunday suppers were never fancy, but everyone had a place at the table and a story to share.",
+    image: null,
+    alt: "",
   },
 ];
 
 const personalMoments = [
-  "Letter To My Granddaughter",
-  "Open On Wedding Day",
-  "Open June 14, 2035",
+  "Open On Your Wedding Day",
+  "When You Become A Parent",
+  "On My First Grandchild's Birthday",
 ];
 
 const lovedOnes = [
@@ -63,11 +68,58 @@ const lovedOnes = [
     relationship: "Lifelong Friend",
     href: "/bobby-hayes",
   },
+  { icon: "❤️", name: "Sarah Doe", relationship: "Daughter-in-law", href: "#sarah-doe", id: "sarah-doe" },
+  { icon: "👧", name: "Emma Doe", relationship: "Granddaughter", href: "#emma-doe-granddaughter", id: "emma-doe-granddaughter" },
+  { icon: "👦", name: "Lucas Doe", relationship: "Grandson", href: "#lucas-doe-grandson", id: "lucas-doe-grandson" },
+];
+
+const treeGenerations = [
+  [
+    { icon: "🕊", name: "Eleanor Doe", relationship: "John's grandmother" },
+  ],
+  [
+    { icon: "🕊", name: "Robert William Doe", relationship: "James's grandfather" },
+    { icon: "🕊", name: "Margaret Doe", relationship: "James's grandmother" },
+  ],
+  [
+    { icon: "👤", name: "John Michael Doe", relationship: "John" },
+    { icon: "❤️", name: "Mary Elizabeth Doe", relationship: "Wife" },
+  ],
+  [
+    { icon: "❤️", name: "James Michael Doe", relationship: "Son" },
+    { icon: "❤️", name: "Sarah Doe", relationship: "Daughter-in-law" },
+    { icon: "👧", name: "Emma Rose Doe", relationship: "Daughter" },
+  ],
+  [
+    { icon: "👧", name: "Emma Doe", relationship: "Granddaughter" },
+    { icon: "👦", name: "Lucas Doe", relationship: "Grandson" },
+  ],
+];
+
+const mostVisited = [
+  { icon: "❤️", name: "Sarah Doe", href: "#sarah-doe" },
+  { icon: "👧", name: "Emma Doe", href: "#emma-doe-granddaughter" },
+  { icon: "❤️", name: "James Michael Doe", href: "/james-doe" },
+  { icon: "❤️", name: "Mary Elizabeth Doe", href: "/mary-doe" },
+];
+
+const familyEvents = [
+  { icon: "🎂", title: "Emma Doe Birthday", date: "November 18" },
+  { icon: "❤️", title: "James & Sarah Anniversary", date: "June 14" },
+  { icon: "🎓", title: "Lucas Doe Graduation", date: "May 25" },
 ];
 
 export default function ProfilePreviewPage() {
   return (
     <main className="min-h-screen overflow-hidden bg-[#0F172A] text-slate-100">
+      <header className="border-b border-[#D8A35B]/20 bg-[#D8A35B]/[0.05] px-6 py-5 text-center sm:px-8">
+        <p className="text-sm font-semibold text-[#f0c98e]">
+          Featured Example Profile
+        </p>
+        <p className="mt-1 text-sm leading-6 text-slate-300">
+          Explore what a completed Never Say Goodbye profile can become.
+        </p>
+      </header>
       <section className="px-4 pt-4 sm:px-8 sm:pt-8">
         <figure
           aria-label="Portrait of a mature man for the John Michael Doe legacy profile"
@@ -115,12 +167,31 @@ export default function ProfilePreviewPage() {
             </div>
             <div className="p-5 sm:p-7">
               <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-[#D8A35B]">
-                Called Home
+                Lives In
               </p>
               <p className="mt-2 font-serif text-base text-white sm:text-lg">
                 Nashville, Tennessee
               </p>
             </div>
+          </div>
+
+          <div className="mx-auto mt-8 max-w-2xl text-left">
+            <h2 className="font-serif text-xl text-white sm:text-2xl">
+              A Little About John
+            </h2>
+            <p className="mt-4 leading-7 text-slate-300">
+              John grew up in San Diego and made a home in Nashville with Mary.
+              A veteran and lifelong musician, he finds joy in family dinners,
+              old songs, and passing along the stories behind them. He hopes
+              James, Emma, and the generations after them will always know how
+              much the ordinary days mattered.
+            </p>
+            <p className="mt-5 text-xs font-semibold uppercase tracking-[0.2em] text-[#D8A35B]">
+              Personal Motto
+            </p>
+            <p className="mt-2 font-serif text-lg italic text-[#f0c98e]">
+              “Be present for the moments that matter.”
+            </p>
           </div>
 
           <div className="mx-auto mt-8 max-w-2xl text-left">
@@ -147,12 +218,7 @@ export default function ProfilePreviewPage() {
             </dl>
           </div>
 
-          <button
-            type="button"
-            className="mt-8 w-full max-w-2xl rounded-full bg-[#D8A35B] px-8 py-4 text-sm font-semibold tracking-wide text-[#0F172A] shadow-lg shadow-[#D8A35B]/10 transition hover:bg-[#e6b66f] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
-          >
-            ❤️ Watch My First Message
-          </button>
+          <FirstMessage />
           <Link
             href="/legacy-tree"
             className="mt-3 inline-flex w-full max-w-2xl justify-center rounded-full border border-[#D8A35B]/60 bg-transparent px-7 py-3.5 text-sm font-semibold tracking-wide text-[#f0c98e] transition hover:border-[#D8A35B] hover:bg-[#D8A35B]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
@@ -178,33 +244,17 @@ export default function ProfilePreviewPage() {
                 key={moment.title}
                 className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]"
               >
-                <div
-                  aria-label={`Video placeholder for ${moment.title}`}
-                  className={`relative flex aspect-[16/10] items-center justify-center overflow-hidden bg-gradient-to-br ${moment.imageStyle}`}
-                >
-                  <span
-                    aria-hidden="true"
-                    className="absolute inset-0 bg-gradient-to-t from-[#0F172A]/70 to-transparent"
-                  />
-                  <span
-                    aria-hidden="true"
-                    className="relative flex h-12 w-12 items-center justify-center rounded-full border border-white/50 bg-[#0F172A]/40 pl-0.5 text-lg text-white backdrop-blur-sm"
-                  >
-                    ▶
-                  </span>
-                  <span
-                    aria-hidden="true"
-                    className="absolute right-4 top-3 font-serif text-2xl text-white/60"
-                  >
-                    {moment.symbol}
-                  </span>
-                  <span className="absolute bottom-3 left-4 text-[0.6rem] uppercase tracking-[0.2em] text-white/65">
-                    Video placeholder
-                  </span>
+                <div className="relative flex aspect-[16/10] items-center justify-center overflow-hidden bg-gradient-to-br from-[#4a3e34] via-[#92805f] to-[#33423b]">
+                  {moment.image ? (
+                    <Image src={moment.image} alt={moment.alt} fill sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw" className="object-cover" />
+                  ) : (
+                    <span className="text-xs font-medium uppercase tracking-[0.18em] text-white/80">Photo coming soon</span>
+                  )}
                 </div>
-                <h3 className="px-5 py-4 font-serif text-lg text-white">
-                  {moment.title}
-                </h3>
+                <div className="p-5">
+                  <h3 className="font-serif text-lg text-white">{moment.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-slate-400">{moment.story}</p>
+                </div>
               </article>
             ))}
           </div>
@@ -217,8 +267,13 @@ export default function ProfilePreviewPage() {
             For the moments still to come
           </p>
           <h2 className="mt-3 font-serif text-3xl text-white sm:text-4xl">
-            Personal Moments
+            Cannot Open Until™ &amp; Privacy
           </h2>
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400">
+            These fictional examples illustrate private and scheduled moments.
+            Try the sample code JOHN2026 to see the demonstration. It unlocks
+            sample text only and is not a real access control.
+          </p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {personalMoments.map((moment) => (
@@ -236,6 +291,113 @@ export default function ProfilePreviewPage() {
         </div>
       </section>
 
+      <section aria-labelledby="family-tree-heading" className="px-6 py-16 sm:px-8 sm:py-20">
+        <div className="mx-auto max-w-6xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">
+            A place for every generation
+          </p>
+          <h2 id="family-tree-heading" className="mt-3 font-serif text-3xl text-white sm:text-4xl">
+            John&apos;s Legacy Tree™
+          </h2>
+          <p className="mt-4 max-w-3xl leading-7 text-slate-400">
+            The people who shaped John&apos;s story and the generations still to come.
+          </p>
+          <p className="mt-3 text-sm leading-6 text-slate-400">
+            Lines indicate generations, not specific parentage. Relationships are relative to John unless otherwise noted.
+          </p>
+          <ol className="mt-8">
+            {treeGenerations.map((generation, index) => (
+              <li key={generation[0].name}>
+                {index > 0 && <div aria-hidden="true" className="mx-auto h-6 w-px bg-[#D8A35B]/40" />}
+                <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+                  {generation.map((person) => (
+                    <li key={person.name} className="rounded-2xl border border-[#D8A35B]/20 bg-white/[0.03] p-4 text-center sm:p-5">
+                      <span aria-hidden="true" className="text-xl">{person.icon}</span>
+                      <p className="mt-2 font-serif text-base text-white sm:text-lg">{person.name}</p>
+                      <p className="mt-1 text-sm text-slate-400">{person.relationship}</p>
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      <section aria-labelledby="future-makers-heading" className="px-6 py-16 sm:px-8 sm:py-20">
+        <div className="mx-auto max-w-6xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">For generations to come</p>
+          <h2 id="future-makers-heading" className="mt-3 font-serif text-3xl text-white sm:text-4xl">Future Moment Makers™</h2>
+          <p className="mt-4 max-w-3xl leading-7 text-slate-400">These example moments are being preserved for people whose stories are still unfolding.</p>
+          <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {["Future Grandchild", "Future Grandchild", "Godchild"].map((name, index) => (
+              <li key={`${name}-${index}`} className="rounded-2xl border border-[#D8A35B]/25 bg-[#D8A35B]/[0.04] p-5 sm:p-6">
+                <span aria-hidden="true" className="text-xl">✨</span>
+                <p className="mt-3 font-serif text-lg text-white">{name}</p>
+                <p className="mt-1 text-sm text-slate-400">Future Moment Maker™</p>
+              </li>
+            ))}
+            <li className="rounded-2xl border border-[#D8A35B]/25 bg-[#D8A35B]/[0.04] p-5 sm:p-6">
+              <span aria-hidden="true" className="text-xl">✨</span>
+              <p className="mt-3 font-serif text-lg text-white">Debbie Doe</p>
+              <p className="mt-1 text-sm text-slate-400">James has reserved a place for his daughter.</p>
+              <Link href="/future-moment-maker" className="mt-3 inline-block text-sm text-[#f0c98e] underline decoration-[#D8A35B]/40 underline-offset-4 hover:text-white">Explore Debbie&apos;s example</Link>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <section aria-labelledby="placeholders-heading" className="border-y border-white/10 bg-slate-950/30 px-6 py-16 sm:px-8 sm:py-20">
+        <div className="mx-auto max-w-6xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">Remembering family</p>
+          <h2 id="placeholders-heading" className="mt-3 font-serif text-3xl text-white sm:text-4xl">Family Placeholders</h2>
+          <p className="mt-4 max-w-3xl leading-7 text-slate-400">Family members can appear in the tree even if they never had an account.</p>
+          <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {[...treeGenerations[0], ...treeGenerations[1]].map((person) => (
+              <li key={person.name} className="rounded-2xl border border-[#D8A35B]/25 bg-[#D8A35B]/[0.04] p-5 sm:p-6">
+                <span aria-hidden="true" className="text-xl">🕊</span>
+                <p className="mt-3 font-serif text-lg text-white">{person.name}</p>
+                <p className="mt-1 text-sm text-slate-400">{person.relationship}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      <section aria-labelledby="calendar-heading" className="px-6 py-16 sm:px-8 sm:py-20">
+        <div className="mx-auto max-w-6xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">Family Calendar™ Preview</p>
+          <h2 id="calendar-heading" className="mt-3 font-serif text-3xl text-white sm:text-4xl">Upcoming Family Events</h2>
+          <p className="mt-4 text-sm leading-6 text-slate-400">Example dates for this showcase, not a live calendar.</p>
+          <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {familyEvents.map((event) => (
+              <li key={event.title} className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6">
+                <span aria-hidden="true" className="text-xl">{event.icon}</span>
+                <p className="mt-3 font-serif text-lg text-white">{event.title}</p>
+                <p className="mt-1 text-sm text-slate-400">{event.date}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      <section aria-labelledby="most-visited-heading" className="px-6 py-16 sm:px-8 sm:py-20">
+        <div className="mx-auto max-w-6xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">Close at hand</p>
+          <h2 id="most-visited-heading" className="mt-3 font-serif text-3xl text-white sm:text-4xl">Most Visited Moment Makers™</h2>
+          <p className="mt-4 max-w-3xl leading-7 text-slate-400">A showcase of a possible future shortcut to the people John visits most.</p>
+          <ul className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {mostVisited.map((person) => (
+              <li key={person.name}>
+                <Link href={person.href} className="flex min-h-16 items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm font-medium text-slate-200 transition hover:border-[#D8A35B]/40 hover:text-[#f0c98e] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]">
+                  <span aria-hidden="true">{person.icon}</span>{person.name}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
       <section className="border-y border-white/10 bg-slate-950/30 px-6 py-16 sm:px-8 sm:py-20">
         <div className="mx-auto max-w-6xl">
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">
@@ -248,7 +410,8 @@ export default function ProfilePreviewPage() {
             {lovedOnes.map((person) => (
               <article
                 key={person.name}
-                className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6"
+                id={"id" in person ? person.id : undefined}
+                className="scroll-mt-6 flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6"
               >
                 <span
                   aria-hidden="true"
@@ -258,12 +421,12 @@ export default function ProfilePreviewPage() {
                 </span>
                 <div>
                   <h3 className="font-serif text-lg text-white">
-                    <Link
+                    {"id" in person ? person.name : <Link
                       href={person.href}
                       className="transition hover:text-[#f0c98e] focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D8A35B]"
                     >
                       {person.name}
-                    </Link>
+                    </Link>}
                   </h3>
                   <p className="mt-1 text-sm text-slate-400">
                     {person.relationship}
@@ -318,8 +481,9 @@ export default function ProfilePreviewPage() {
               Keep Memories Close
             </h2>
             <p className="mt-5 leading-7 text-slate-300">
-              Display your favorite moments, photos, videos, and voice messages
-              from the people who matter most.
+              Transform cherished photos, videos, and voice recordings into a
+              beautifully prepared Legacy Frame™. Display moments from the people
+              who matter most.
               <br />
               Always connected.
               <br />
