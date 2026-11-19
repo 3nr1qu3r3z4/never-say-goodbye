@@ -200,13 +200,13 @@ export default function Page() {
                 </div>
               </dl>
               <Link
-                href="/profile-preview#first-message"
+                href="/profile-preview"
                 className="mt-8 inline-flex w-full justify-center rounded-full border border-[#D8A35B]/50 px-6 py-4 text-sm font-medium text-[#f0c98e] transition hover:bg-[#D8A35B]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
               >
-                ❤️ Read John&apos;s First Message
+                See Sample Profile
               </Link>
               <p className="mt-3 text-center text-xs leading-5 text-slate-400">
-                Explore John&apos;s example profile and written message.
+                Explore John&apos;s example profile.
               </p>
             </div>
           </article>

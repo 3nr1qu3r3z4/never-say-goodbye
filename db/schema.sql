@@ -38,6 +38,13 @@ CREATE TABLE IF NOT EXISTS users (
   birthplace TEXT,
   location TEXT,
   personal_motto TEXT,
+  birth_date DATE,
+  birth_year INTEGER CHECK (birth_year BETWEEN 1000 AND 9999),
+  memorial_date DATE,
+  share_birthday BOOLEAN NOT NULL DEFAULT FALSE,
+  share_anniversary BOOLEAN NOT NULL DEFAULT FALSE,
+  share_memorial_date BOOLEAN NOT NULL DEFAULT FALSE,
+  share_relationship_milestones BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
@@ -186,6 +193,8 @@ CREATE TABLE IF NOT EXISTS family_placeholders (
   relationship TEXT NOT NULL,
   birth_year INTEGER,
   death_year INTEGER,
+  birth_date DATE,
+  memorial_date DATE,
   notes TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
@@ -222,6 +231,7 @@ CREATE TABLE IF NOT EXISTS connected_lives (
   relationship_type TEXT CHECK (
     relationship_type IN ('family', 'close_friend', 'mentor', 'other')
   ),
+  anniversary_date DATE,
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'declined')),
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
@@ -264,10 +274,46 @@ CREATE TABLE IF NOT EXISTS future_moment_makers (
   name TEXT NOT NULL,
   relationship TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'awaiting-claim' CHECK (status IN ('awaiting-claim', 'claimed', 'archived')),
+  expected_birth_date DATE,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS future_moment_makers_owner_idx ON future_moment_makers(owner_user_id, status);
+
+CREATE TABLE IF NOT EXISTS family_relationship_milestones (
+  id TEXT PRIMARY KEY,
+  connection_id TEXT NOT NULL REFERENCES connected_lives(id) ON DELETE CASCADE,
+  title TEXT NOT NULL CHECK (char_length(btrim(title)) BETWEEN 1 AND 120),
+  event_date DATE NOT NULL,
+  repeats_yearly BOOLEAN NOT NULL DEFAULT FALSE
+);
+CREATE INDEX IF NOT EXISTS family_relationship_milestones_connection_idx
+  ON family_relationship_milestones (connection_id);
+
+CREATE TABLE IF NOT EXISTS family_calendar_events (
+  id TEXT PRIMARY KEY,
+  tree_id TEXT NOT NULL REFERENCES legacy_trees(id) ON DELETE CASCADE,
+  creator_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title TEXT NOT NULL CHECK (char_length(btrim(title)) BETWEEN 1 AND 120),
+  event_date DATE NOT NULL,
+  repeats_yearly BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS family_calendar_events_tree_date_idx
+  ON family_calendar_events (tree_id, event_date);
+
+CREATE TABLE IF NOT EXISTS family_calendar_import_settings (
+  tree_id TEXT PRIMARY KEY REFERENCES legacy_trees(id) ON DELETE CASCADE,
+  enabled BOOLEAN NOT NULL DEFAULT TRUE
+);
+
+CREATE TABLE IF NOT EXISTS family_calendar_reminders (
+  user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  day_of BOOLEAN NOT NULL DEFAULT FALSE,
+  one_day_before BOOLEAN NOT NULL DEFAULT FALSE,
+  one_week_before BOOLEAN NOT NULL DEFAULT FALSE,
+  one_month_before BOOLEAN NOT NULL DEFAULT FALSE
+);
 
 CREATE TABLE IF NOT EXISTS moments (
   id TEXT PRIMARY KEY,
@@ -349,4 +395,12 @@ ON CONFLICT (version) DO NOTHING;
 
 INSERT INTO schema_migrations (version)
 VALUES ('012_profile_location_visibility')
+ON CONFLICT (version) DO NOTHING;
+
+INSERT INTO schema_migrations (version)
+VALUES ('013_weekly_moment_makers')
+ON CONFLICT (version) DO NOTHING;
+
+INSERT INTO schema_migrations (version)
+VALUES ('014_family_calendar')
 ON CONFLICT (version) DO NOTHING;

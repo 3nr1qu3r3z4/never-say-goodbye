@@ -40,6 +40,12 @@ export default async function DashboardPage() {
       href: "/legacy-tree",
     },
     {
+      icon: "📅",
+      title: "Family Calendar™",
+      description: "Remember family dates and milestones together.",
+      href: "/family-calendar",
+    },
+    {
       icon: "📝",
       title: "Drafts",
       count: data.counts.drafts,
