@@ -64,7 +64,83 @@ test("directory searches and combines relationship and tag filters; sorts unknow
   assert.deepEqual(ids("", "all", "all", "za"), ["1", "4", "3", "2"]);
 });
 
-test("dashboard future-maker cards link to their own records, not the showcase", async () => {
+function loadDashboard(data) {
+  return loadModule("app/dashboard/page.tsx", {
+    react: React,
+    "react/jsx-runtime": jsxRuntime,
+    "next/link": { default: ({ href, children }) => React.createElement("a", { href }, children) },
+    "@/lib/auth": { requireUser: async () => ({ id: "owner", firstName: "Owner" }) },
+    "@/lib/account-data": { getDashboardData: async () => data },
+    "@/lib/frequent-visits": { frequentVisitsEnabled: () => false },
+    "./signup-welcome": { default: () => null },
+    "./frequent-visits": { default: () => null },
+  }).default;
+}
+
+test("dashboard notification card retains request and update counts with one accent heart", async () => {
+  const data = {
+    counts: {
+      sharedMoments: 0, personalMoments: 0, connectedLives: 0,
+      newLivesRequests: 0, unreadLivesNotifications: 0, futureMomentMakers: 0, drafts: 0,
+    },
+    futureMomentMakers: [],
+    recentActivity: [],
+  };
+  const dashboard = loadDashboard(data);
+  for (const [requests, updates, expected] of [
+    [0, 0, "0 New Requests"],
+    [1, 2, "1 New Request"],
+    [2, 0, "2 New Requests"],
+    [0, 1, "1 New Update"],
+    [0, 2, "2 New Updates"],
+  ]) {
+    data.counts.newLivesRequests = requests;
+    data.counts.unreadLivesNotifications = updates;
+    const html = renderToStaticMarkup(await dashboard());
+    const card = html.match(/<section aria-labelledby="connected-lives-heading"[\s\S]*?<\/section>/)?.[0];
+    assert.ok(card);
+    assert.match(card, /<h2 id="connected-lives-heading"[^>]*>Someone Is Thinking of You<\/h2>/);
+    assert.equal((card.match(/❤️/g) ?? []).length, 1);
+    assert.match(card, new RegExp(`<a href="/connected-lives"[^>]*><span>${expected}</span>`));
+  }
+});
+
+test("dashboard groups moment, people, and profile destinations without losing draft count", async () => {
+  const dashboard = loadDashboard({
+    counts: {
+      sharedMoments: 0, personalMoments: 0, connectedLives: 0,
+      newLivesRequests: 0, unreadLivesNotifications: 0, futureMomentMakers: 0, drafts: 3,
+    },
+    futureMomentMakers: [],
+    recentActivity: [],
+  });
+  const html = renderToStaticMarkup(await dashboard());
+  const section = html.match(/<section id="moment-making-menu"[\s\S]*?<\/section>/)?.[0];
+  assert.ok(section);
+  const groups = [...section.matchAll(/<details\b[^>]*>[\s\S]*?<\/details>/g)].map(([group]) => group);
+  assert.equal(groups.length, 3);
+  assert.match(groups[0], /<summary\b[^>]*>[\s\S]*?Create Moment[\s\S]*?<\/summary>/);
+  assert.match(groups[0], /href="\/create-moment"[^>]*>New Moment<\/a>/);
+  assert.match(groups[0], /href="\/drafts"[^>]*>Drafts \(3\)<\/a>/);
+  assert.match(groups[0], /href="\/create-moment\/shared"[^>]*>Shared Moment<\/a>/);
+  assert.match(groups[0], /href="\/create-moment\/personal"[^>]*>Personal \/ Protected Moment<\/a>/);
+  assert.match(groups[0], /href="\/create-moment\/cannot-open-until"[^>]*>Cannot Open Until™ \(scheduled opening\)<\/a>/);
+  assert.doesNotMatch(groups[0], /future-moment-maker|connected-lives#future-heading|legacy-tree/);
+  assert.match(groups[1], /<summary\b[^>]*>[\s\S]*?Connected Lives™[\s\S]*?<\/summary>/);
+  assert.match(groups[1], /href="\/connected-lives"[^>]*>Connected Lives Directory<\/a>/);
+  assert.match(groups[1], /href="\/create-moment\/future-moment-maker"[^>]*>Create Future Moment Maker™<\/a>/);
+  assert.match(groups[1], /href="\/connected-lives#future-heading"[^>]*>View Future Moment Makers™<\/a>/);
+  assert.match(groups[1], /href="\/legacy-tree"[^>]*>Family Placeholders \(Legacy Tree™\)<\/a>/);
+  assert.match(groups[2], /<summary\b[^>]*>[\s\S]*?My Profile[\s\S]*?<\/summary>/);
+  assert.match(groups[2], /href="\/my-profile"[^>]*>View Profile<\/a>/);
+  assert.match(groups[2], /href="\/legacy-controls"[^>]*>Legacy Controls™<\/a>/);
+  for (const href of ["/create-moment", "/drafts", "/create-moment/shared", "/create-moment/personal", "/create-moment/cannot-open-until", "/create-moment/future-moment-maker", "/my-profile", "/legacy-controls", "/connected-lives", "/family-calendar"]) {
+    assert.equal([...section.matchAll(new RegExp(`href="${href}"`, "g"))].length, 1, href);
+  }
+  assert.equal((section.match(/href="\/legacy-tree"/g) ?? []).length, 2);
+});
+
+test("dashboard omits the future-maker section while retaining its count and menu links", async () => {
   const data = {
     counts: {
       sharedMoments: 0, personalMoments: 0, connectedLives: 0,
@@ -76,26 +152,48 @@ test("dashboard future-maker cards link to their own records, not the showcase",
     ],
     recentActivity: [],
   };
-  const dashboard = loadModule("app/dashboard/page.tsx", {
-    react: React,
+  const dashboard = loadDashboard(data);
+  for (const futureMakers of [data.futureMomentMakers, []]) {
+    data.futureMomentMakers = futureMakers;
+    data.counts.futureMomentMakers = futureMakers.length;
+    const html = renderToStaticMarkup(await dashboard());
+    assert.doesNotMatch(html, /future-makers-heading|A place for a story still to come/);
+    assert.match(html, new RegExp(`<dd[^>]*>${futureMakers.length}</dd><dt[^>]*>Future Moment Makers™</dt>`));
+    assert.match(html, /href="\/create-moment\/future-moment-maker"[^>]*>Create Future Moment Maker™<\/a>/);
+    assert.match(html, /href="\/connected-lives#future-heading"[^>]*>View Future Moment Makers™<\/a>/);
+  }
+});
+
+test("connected lives lists owned future-maker records with distinct routes", async () => {
+  const futureMakers = [
+    { id: "first", name: "First Person", relationship: "Grandchild", status: "awaiting-claim" },
+    { id: "second/record", name: "Second Person", relationship: "Godchild", status: "claimed" },
+  ];
+  const sql = async (strings, ...values) => {
+    const query = strings.join("?");
+    if (query.includes("FROM future_moment_makers")) {
+      assert.match(query, /owner_user_id = \? AND status <> 'archived'/);
+      assert.equal(values[0], "owner");
+      return futureMakers;
+    }
+    return [];
+  };
+  const page = loadModule("app/connected-lives/page.tsx", {
     "react/jsx-runtime": jsxRuntime,
     "next/link": { default: ({ href, children }) => React.createElement("a", { href }, children) },
-    "@/lib/auth": { requireUser: async () => ({ id: "owner", firstName: "Owner" }) },
-    "@/lib/account-data": { getDashboardData: async () => data },
-    "@/lib/frequent-visits": { frequentVisitsEnabled: () => false },
-    "./signup-welcome": { default: () => null },
-    "./frequent-visits": { default: () => null },
+    "@/lib/auth": { requireUser: async () => ({ id: "owner" }) },
+    "@/lib/db": { getSql: () => sql },
+    "@/lib/connected-lives": relationships,
+    "@/app/actions/connected-lives": { markLivesNotificationsRead: () => {} },
+    "./connection-response": { default: () => null },
+    "./directory": { default: () => null },
   }).default;
-  const html = renderToStaticMarkup(await dashboard());
-  const section = html.match(/<section aria-labelledby="future-makers-heading"[\s\S]*?<\/section>/)?.[0];
+  const html = renderToStaticMarkup(await page());
+  const section = html.match(/<section[^>]*aria-labelledby="future-heading"[\s\S]*?<\/section>/)?.[0];
   assert.ok(section);
   assert.match(section, /First Person[\s\S]*?href="\/future-moment-maker\/first"/);
   assert.match(section, /Second Person[\s\S]*?href="\/future-moment-maker\/second%2Frecord"/);
   assert.doesNotMatch(section, /href="\/future-moment-maker"/);
-
-  data.futureMomentMakers = [];
-  const emptyHtml = renderToStaticMarkup(await dashboard());
-  assert.match(emptyHtml, /href="\/create-moment\/future-moment-maker"[^>]*>Create a Future Moment Maker™<\/a>/);
 });
 
 test("migration, shared tags, privacy and future-record authorization in disposable PostgreSQL", {
