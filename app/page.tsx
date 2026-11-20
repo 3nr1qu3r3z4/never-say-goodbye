@@ -301,24 +301,40 @@ export default function Page() {
         id="features"
         className="mx-auto max-w-7xl px-6 py-20 text-center sm:px-8 sm:py-28"
       >
-        <div className="mx-auto grid max-w-3xl gap-4 sm:grid-cols-2">
+        <div className="mx-auto grid max-w-5xl gap-4 sm:grid-cols-2">
           {[
-            { name: "Connected Lives™", href: "/connected-lives" },
-            { name: "Legacy Tree™", href: "/legacy-tree" },
+            {
+              name: "Connected Lives™",
+              href: "/connected-lives",
+              description: "Build meaningful connections with family, friends, mentors, and the people who matter most.",
+            },
+            {
+              name: "Legacy Tree™",
+              href: "/legacy-tree",
+              description: "Preserve family relationships across generations and keep your story connected.",
+            },
             {
               name: "Future Moment Makers™",
               href: "/future-moment-maker",
+              description: "Create moments today for children, grandchildren, and family members whose stories are still unfolding.",
             },
-            { name: "Cannot Open Until™", href: "/cannot-open-until" },
+            {
+              name: "Cannot Open Until™",
+              href: "/create-moment/cannot-open-until",
+              description: "Deliver memories, letters, photos, videos, and messages on a future date or life milestone.",
+            },
           ].map((feature) => (
             <Link
               key={feature.name}
               href={feature.href}
-              className="cursor-pointer rounded-2xl border border-white/10 bg-white/[0.03] px-6 py-9 transition duration-200 hover:-translate-y-1 hover:border-[#D8A35B]/40 hover:bg-white/[0.06] hover:shadow-lg hover:shadow-[#D8A35B]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
+              className="cursor-pointer rounded-2xl border border-white/10 bg-white/[0.03] px-6 py-10 transition duration-200 hover:-translate-y-1 hover:border-[#D8A35B]/40 hover:bg-white/[0.06] hover:shadow-lg hover:shadow-[#D8A35B]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B] sm:px-10"
             >
               <h3 className="font-serif text-2xl text-white">
                 {feature.name}
               </h3>
+              <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-slate-400">
+                {feature.description}
+              </p>
             </Link>
           ))}
         </div>

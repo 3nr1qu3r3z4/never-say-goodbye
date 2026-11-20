@@ -115,6 +115,37 @@ test("the homepage showcase link opens John's profile without the message fragme
   assert.doesNotMatch(html, /profile-preview#first-message/);
 });
 
+test("homepage feature cards explain each feature and retain their links", () => {
+  const html = renderPage(["app", "page.tsx"]);
+  const section = html.match(/<section id="features"[\s\S]*?<\/section>/)?.[0];
+  assert.ok(section);
+  const cards = [...section.matchAll(/<a href="([^"]+)"[^>]*><h3[^>]*>([^<]+)<\/h3><p[^>]*>([^<]+)<\/p><\/a>/g)];
+  assert.deepEqual(cards.map(([, href, title, description]) => [href, title, description]), [
+    ["/connected-lives", "Connected Lives™", "Build meaningful connections with family, friends, mentors, and the people who matter most."],
+    ["/legacy-tree", "Legacy Tree™", "Preserve family relationships across generations and keep your story connected."],
+    ["/future-moment-maker", "Future Moment Makers™", "Create moments today for children, grandchildren, and family members whose stories are still unfolding."],
+    ["/create-moment/cannot-open-until", "Cannot Open Until™", "Deliver memories, letters, photos, videos, and messages on a future date or life milestone."],
+  ]);
+});
+
+test("Cannot Open Until creation route requires authentication and opens the correct editor", async () => {
+  const editor = () => null;
+  const route = ["app", "create-moment", "cannot-open-until", "page.tsx"];
+  const authenticatedPage = loadPage(route, null, {
+    "@/lib/auth": { requireUser: async () => ({ id: "viewer" }) },
+    "../moment-editor": { default: editor },
+  });
+  const element = await authenticatedPage();
+  assert.equal(element.type, editor);
+  assert.equal(element.props.kind, "cannot-open-until");
+
+  const guestPage = loadPage(route, null, {
+    "@/lib/auth": { requireUser: async () => { throw new Error("redirect to login"); } },
+    "../moment-editor": { default: editor },
+  });
+  await assert.rejects(guestPage(), /redirect to login/);
+});
+
 test("homepage and showcase footers link the site name to the homepage", () => {
   for (const relativePath of [["app", "page.tsx"], ["app", "profile-preview", "page.tsx"]]) {
     const html = renderPage(relativePath);
