@@ -71,6 +71,22 @@ test("signed-in primary navigation retains My Legacy and Sign Out", async () => 
   assert.match(html, /<summary[^>]*>Menu<\/summary>/);
 });
 
+test("signed-in navigation matches the brand size on desktop and mobile", async () => {
+  const navigation = loadPage(["app", "site-navigation.tsx"], { id: "viewer" });
+  const container = navigation().props.children;
+  const brandClasses = container.props.children[0].props.className.split(" ");
+  const html = await renderSuspendedActions(container);
+  const controls = [...html.matchAll(/<(?:a|button)\b[^>]*class="([^"]+)"[^>]*>(?:My Legacy|Sign Out)<\/(?:a|button)>/g)];
+  assert.equal(controls.length, 4);
+  for (const [, classes] of controls) {
+    for (const size of ["text-base", "sm:text-lg"]) {
+      assert.ok(brandClasses.includes(size));
+      assert.ok(classes.split(" ").includes(size));
+    }
+    assert.ok(!classes.split(" ").includes("text-sm"));
+  }
+});
+
 test("guest primary navigation retains desktop and mobile account links", async () => {
   const navigation = loadPage(["app", "site-navigation.tsx"]);
   const html = await renderSuspendedActions(navigation().props.children);
