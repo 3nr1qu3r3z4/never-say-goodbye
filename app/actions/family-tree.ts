@@ -9,6 +9,7 @@ import { getSql } from "@/lib/db";
 export type AddFamilyMemberState = {
   error?: string;
   success?: string;
+  treeId?: string;
 };
 
 const memberTypes = ["existing", "future", "placeholder"] as const;
@@ -98,13 +99,19 @@ export async function addFamilyMember(
       return { error: "That Moment Maker™ is unavailable to add." };
     }
 
-    await sql`
+    const added = await sql`
       INSERT INTO legacy_tree_members (tree_id, user_id, role, relationship, joined_at)
       VALUES (${tree.id}, ${target.id}, 'member', ${normalizedRelationship}, ${now})
       ON CONFLICT (tree_id, user_id) DO NOTHING
+      RETURNING user_id
     `;
     revalidatePath("/legacy-tree");
-    return { success: "Moment Maker™ added to your Legacy Tree™." };
+    return {
+      success: added.length
+        ? "Moment Maker™ added to your Legacy Tree™."
+        : "Moment Maker™ is already in this Legacy Tree™.",
+      treeId: tree.id,
+    };
   }
 
   const name = formData.get("name");
@@ -122,7 +129,7 @@ export async function addFamilyMember(
       )
     `;
     revalidatePath("/legacy-tree");
-    return { success: "Future Moment Maker™ added to your Legacy Tree™." };
+    return { success: "Future Moment Maker™ added to your Legacy Tree™.", treeId: tree.id };
   }
 
   const birthYearValue = formData.get("birthYear");
@@ -155,7 +162,7 @@ export async function addFamilyMember(
   `;
   revalidatePath("/legacy-tree");
   revalidatePath("/create-moment");
-  return { success: "Family Placeholder added to your Legacy Tree™." };
+  return { success: "Family Placeholder added to your Legacy Tree™.", treeId: tree.id };
 }
 
 function parseOptionalYear(value: FormDataEntryValue | null): number | null | undefined {

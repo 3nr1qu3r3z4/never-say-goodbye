@@ -31,7 +31,7 @@ function form(values) {
   return data;
 }
 
-function createActions(treeExists = true) {
+function createActions(treeExists = true, existingAlreadyAdded = false) {
   const calls = [];
   const actions = loadModule("app/actions/family-tree.ts", {
     "node:crypto": { randomUUID: () => "placeholder-id" },
@@ -42,7 +42,10 @@ function createActions(treeExists = true) {
       getSql: () => async (strings, ...values) => {
         const text = strings.join("?");
         calls.push({ text, values });
-        return text.includes("SELECT lt.id") && treeExists ? [{ id: "tree" }] : [];
+        if (text.includes("SELECT lt.id")) return treeExists ? [{ id: "tree" }] : [];
+        if (text.includes("SELECT id") && text.includes("FROM users")) return [{ id: "relative" }];
+        if (text.includes("RETURNING user_id")) return existingAlreadyAdded ? [] : [{ user_id: "relative" }];
+        return [];
       },
     },
   });
@@ -58,6 +61,7 @@ test("tree members can add a placeholder with optional fields omitted", async ()
     relationship: "  Grandmother  ",
   }));
   assert.match(result.success, /Family Placeholder added/);
+  assert.equal(result.treeId, "tree");
   assert.match(calls[0].text, /ltm\.user_id = \?/);
   assert.match(calls[1].text, /INSERT INTO family_placeholders/);
   assert.deepEqual(calls[1].values.slice(0, 9), [
@@ -65,6 +69,26 @@ test("tree members can add a placeholder with optional fields omitted", async ()
     null, null, null, calls[1].values[8],
   ]);
   assert.equal(calls.length, 2);
+});
+
+test("successful additions identify the selected tree and duplicate members are reported accurately", async () => {
+  const { actions } = createActions();
+  for (const values of [
+    { memberType: "existing", existingUserId: "relative" },
+    { memberType: "future", name: "Future Relative" },
+  ]) {
+    const result = await actions.addFamilyMember({}, form({
+      treeId: "tree", relationship: "Family", ...values,
+    }));
+    assert.match(result.success, /added/);
+    assert.equal(result.treeId, "tree");
+  }
+  const duplicate = createActions(true, true);
+  const result = await duplicate.actions.addFamilyMember({}, form({
+    treeId: "tree", memberType: "existing", existingUserId: "relative", relationship: "Family",
+  }));
+  assert.match(result.success, /already in this Legacy Tree/);
+  assert.equal(result.treeId, "tree");
 });
 
 test("placeholder creation rejects outsiders and invalid years", async () => {

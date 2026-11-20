@@ -190,6 +190,14 @@ export default function FamilyMemberForm({
       >
         {state.error ?? state.success ?? ""}
       </p>
+      {state.success && state.treeId && (
+        <a
+          href={`#legacy-tree-item-${encodeURIComponent(state.treeId)}`}
+          className="inline-flex min-h-11 items-center text-sm font-semibold text-[#f0c98e] underline decoration-[#D8A35B]/40 underline-offset-4 hover:text-white"
+        >
+          View My Tree
+        </a>
+      )}
     </form>
   );
 }

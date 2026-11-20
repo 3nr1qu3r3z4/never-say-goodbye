@@ -38,9 +38,9 @@ type LinkedMoment = {
 };
 
 const cardClassName =
-  "rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6";
+  "min-w-0 break-words rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6";
 const buttonClassName =
-  "inline-flex min-h-12 items-center justify-center rounded-full border border-[#D8A35B]/60 px-6 py-3 text-sm font-semibold text-[#f0c98e] transition hover:border-[#D8A35B] hover:bg-[#D8A35B]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]";
+  "inline-flex min-h-12 min-w-0 max-w-full items-center justify-center break-words rounded-full border border-[#D8A35B]/60 px-6 py-3 text-center text-sm font-semibold text-[#f0c98e] transition hover:border-[#D8A35B] hover:bg-[#D8A35B]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]";
 
 function EmptyLegacyTree({ signedIn }: { signedIn: boolean }) {
   return (
@@ -155,84 +155,111 @@ async function FamilyMembersForUser({ userId }: { userId: string }) {
 
   return (
     <div className="mx-auto max-w-6xl space-y-12 px-4 pb-20 sm:px-8">
-      {treeRows.map((tree) => {
-        const treeMembers = memberRows.filter((member) => member.treeId === tree.id);
-        const treeFutureMakers = futureRows.filter((member) => member.treeId === tree.id);
-        const treePlaceholders = placeholderRows.filter((member) => member.treeId === tree.id);
-        return (
-          <section key={tree.id} aria-label={tree.name}>
-            <h2 className="font-serif text-2xl text-white sm:text-3xl">{tree.name}</h2>
-            <h3 className="mt-5 text-sm font-semibold uppercase tracking-[0.16em] text-slate-400">
-              People in Your Tree
-            </h3>
-            <ul className="mt-4 grid gap-3 sm:grid-cols-2">
-              {treeMembers.map((member) => (
-                <li key={`member-${member.treeId}-${member.id}`} className={cardClassName}>
-                  <span className="inline-flex rounded-full border border-white/15 px-3 py-1 text-xs font-semibold text-slate-300">
-                    Moment Maker™
-                  </span>
-                  <p className="mt-3 font-serif text-lg text-white">{member.displayName}</p>
-                  <p className="mt-1 text-sm text-slate-400">
-                    {member.id === userId ? "You" : member.relationship || "Family Member"}
-                  </p>
-                </li>
-              ))}
-              {treeFutureMakers.map((member) => (
-                <li key={`future-${member.id}`} className={cardClassName}>
-                  <span className="inline-flex rounded-full border border-[#D8A35B]/30 px-3 py-1 text-xs font-semibold text-[#f0c98e]">
-                    Future Moment Maker™
-                  </span>
-                  <p className="mt-3 font-serif text-lg text-white">{member.name}</p>
-                  <p className="mt-1 text-sm text-slate-400">{member.relationship}</p>
-                  <p className="mt-2 text-xs text-[#f0c98e]">
-                    {member.status === "claimed" ? "Claimed" : "Awaiting Claim"}
-                  </p>
-                </li>
-              ))}
-              {treePlaceholders.map((member) => (
-                <li key={`placeholder-${member.id}`} className={cardClassName}>
-                  <span className="inline-flex rounded-full border border-[#D8A35B]/30 px-3 py-1 text-xs font-semibold text-[#f0c98e]">
-                    Family Placeholder
-                  </span>
-                  <p className="mt-3 font-serif text-lg text-white">{member.name}</p>
-                  <p className="mt-1 text-sm text-slate-300">
-                    {member.relationship}
-                    {member.birthYear || member.deathYear
-                      ? ` · ${member.birthYear ?? "?"}–${member.deathYear ?? "?"}` : ""}
-                  </p>
-                  {member.notes && (
-                    <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-400">{member.notes}</p>
-                  )}
-                  {(momentsByPlaceholder.get(member.id)?.length ?? 0) > 0 && (
-                    <div className="mt-4 border-t border-white/10 pt-4">
-                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Your linked moments</p>
-                      <ul className="mt-2 space-y-3">
-                        {momentsByPlaceholder.get(member.id)?.map((moment) => (
-                          <li key={moment.id}>
-                            <p className="font-serif text-sm text-white">{moment.title}</p>
-                            {moment.story && <p className="mt-1 line-clamp-3 whitespace-pre-wrap text-sm leading-5 text-slate-400">{moment.story}</p>}
-                            {moment.writtenMessage && <p className="mt-1 line-clamp-3 whitespace-pre-wrap text-sm leading-5 text-slate-400">{moment.writtenMessage}</p>}
-                            {moment.restricted && <p className="mt-1 text-xs text-slate-400">Protected or scheduled content is not shown here.</p>}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  <p className="mt-3 text-xs leading-5 text-slate-500">
-                    Link a written moment to this person when publishing. Only your own linked moments appear here.
-                  </p>
-                  <Link href="/create-moment" className="mt-2 inline-block text-xs font-medium text-[#f0c98e] underline decoration-[#D8A35B]/40 underline-offset-4 hover:text-white">
-                    Create a moment
-                  </Link>
+      <nav aria-label="Legacy Tree navigation" className="flex flex-wrap gap-3">
+        <a href="#tree-map" className={buttonClassName}>View My Tree</a>
+        <a href="#family-members" className={buttonClassName}>Add Family Member</a>
+      </nav>
+      <div id="tree-map" className="scroll-mt-6 space-y-12">
+        {treeRows.length > 1 && (
+          <nav aria-label="Choose a tree to view">
+            <p className="text-sm font-semibold text-slate-300">Choose a tree to view</p>
+            <ul className="mt-3 flex flex-wrap gap-3">
+              {treeRows.map((tree) => (
+                <li key={tree.id} className="min-w-0 max-w-full">
+                  <a href={`#legacy-tree-item-${encodeURIComponent(tree.id)}`} className={buttonClassName}>{tree.name}</a>
                 </li>
               ))}
             </ul>
-            {treeMembers.every((member) => member.id === userId) && !treeFutureMakers.length && !treePlaceholders.length && (
-              <p className="mt-4 text-sm text-slate-400">Add family members to begin building this tree.</p>
-            )}
-          </section>
-        );
-      })}
+          </nav>
+        )}
+        {treeRows.map((tree) => {
+          const treeMembers = memberRows.filter((member) => member.treeId === tree.id);
+          const treeFutureMakers = futureRows.filter((member) => member.treeId === tree.id);
+          const treePlaceholders = placeholderRows.filter((member) => member.treeId === tree.id);
+          return (
+            <section key={tree.id} id={`legacy-tree-item-${tree.id}`} aria-label={tree.name} className="scroll-mt-6">
+              <div className="mx-auto max-w-lg rounded-2xl border border-[#D8A35B]/50 bg-[#D8A35B]/[0.08] px-5 py-5 text-center">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#f0c98e]">Legacy Tree™</p>
+                <h2 className="mt-2 break-words font-serif text-2xl text-white sm:text-3xl">{tree.name}</h2>
+              </div>
+              <div aria-hidden="true" className="mx-auto h-8 w-px bg-[#D8A35B]/50" />
+              <div className="rounded-3xl border border-[#D8A35B]/25 bg-slate-950/20 p-4 sm:p-6">
+                <h3 className="text-center text-sm font-semibold uppercase tracking-[0.16em] text-slate-300">
+                  People in this tree
+                </h3>
+                <p className="mx-auto mt-3 max-w-2xl text-center text-sm leading-6 text-slate-400">
+                  This map shows tree membership, not family relationships. Relationship labels are recorded as entered and may reflect another person&apos;s perspective.
+                </p>
+                <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+                  {treeMembers.map((member) => (
+                    <li key={`member-${member.treeId}-${member.id}`} className={cardClassName}>
+                      <span className="inline-flex rounded-full border border-white/15 px-3 py-1 text-xs font-semibold text-slate-300">
+                        Moment Maker™
+                      </span>
+                      <p className="mt-3 font-serif text-lg text-white">{member.displayName}</p>
+                      <p className="mt-1 text-sm text-slate-400">
+                        {member.id === userId ? "You" : member.relationship || "Family Member"}
+                      </p>
+                    </li>
+                  ))}
+                  {treeFutureMakers.map((member) => (
+                    <li key={`future-${member.id}`} className={cardClassName}>
+                      <span className="inline-flex rounded-full border border-[#D8A35B]/30 px-3 py-1 text-xs font-semibold text-[#f0c98e]">
+                        Future Moment Maker™
+                      </span>
+                      <p className="mt-3 font-serif text-lg text-white">{member.name}</p>
+                      <p className="mt-1 text-sm text-slate-400">{member.relationship}</p>
+                      <p className="mt-2 text-xs text-[#f0c98e]">
+                        {member.status === "claimed" ? "Claimed" : "Awaiting Claim"}
+                      </p>
+                    </li>
+                  ))}
+                  {treePlaceholders.map((member) => (
+                    <li key={`placeholder-${member.id}`} className={cardClassName}>
+                      <span className="inline-flex rounded-full border border-[#D8A35B]/30 px-3 py-1 text-xs font-semibold text-[#f0c98e]">
+                        Family Placeholder
+                      </span>
+                      <p className="mt-3 font-serif text-lg text-white">{member.name}</p>
+                      <p className="mt-1 text-sm text-slate-300">
+                        {member.relationship}
+                        {member.birthYear || member.deathYear
+                          ? ` · ${member.birthYear ?? "?"}–${member.deathYear ?? "?"}` : ""}
+                      </p>
+                      {member.notes && (
+                        <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-400">{member.notes}</p>
+                      )}
+                      {(momentsByPlaceholder.get(member.id)?.length ?? 0) > 0 && (
+                        <div className="mt-4 border-t border-white/10 pt-4">
+                          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Your linked moments</p>
+                          <ul className="mt-2 space-y-3">
+                            {momentsByPlaceholder.get(member.id)?.map((moment) => (
+                              <li key={moment.id}>
+                                <p className="font-serif text-sm text-white">{moment.title}</p>
+                                {moment.story && <p className="mt-1 line-clamp-3 whitespace-pre-wrap text-sm leading-5 text-slate-400">{moment.story}</p>}
+                                {moment.writtenMessage && <p className="mt-1 line-clamp-3 whitespace-pre-wrap text-sm leading-5 text-slate-400">{moment.writtenMessage}</p>}
+                                {moment.restricted && <p className="mt-1 text-xs text-slate-400">Protected or scheduled content is not shown here.</p>}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      <p className="mt-3 text-xs leading-5 text-slate-500">
+                        Link a written moment to this person when publishing. Only your own linked moments appear here.
+                      </p>
+                      <Link href="/create-moment" className="mt-2 inline-block text-xs font-medium text-[#f0c98e] underline decoration-[#D8A35B]/40 underline-offset-4 hover:text-white">
+                        Create a moment
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+                {treeMembers.every((member) => member.id === userId) && !treeFutureMakers.length && !treePlaceholders.length && (
+                  <p className="mt-4 text-sm text-slate-400">Add family members to begin building this tree.</p>
+                )}
+              </div>
+            </section>
+          );
+        })}
+      </div>
 
       <section id="family-members" aria-labelledby="family-members-heading">
         <h2 id="family-members-heading" className="font-serif text-2xl text-white sm:text-3xl">Add Family Member</h2>

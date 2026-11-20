@@ -315,8 +315,10 @@ notifications. Photo and other media storage for placeholders is not part of
 this feature.
 
 The Legacy Tree page shows trees the signed-in user belongs to, with members,
-Future Moment Makers, and placeholders grouped by tree. It does not infer a
-parent-child hierarchy. New signups normally receive a tree automatically;
+Future Moment Makers, and placeholders grouped in a membership map for each
+tree. The map does not infer family relationships or a parent-child hierarchy;
+relationship labels are shown as entered. A successful addition links back to
+the selected tree. New signups normally receive a tree automatically;
 users without a membership can create one from the page. Signed-out visitors
 are prompted to sign up or sign in.
 
