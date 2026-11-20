@@ -7,10 +7,15 @@ export function isHeicImage(file: File): boolean {
   );
 }
 
-export async function isHeicFile(file: File): Promise<boolean> {
+export async function isHeicFile(
+  file: File,
+  onStage?: (stage: string) => void,
+): Promise<boolean> {
   if (isHeicImage(file)) return true;
 
+  onStage?.("file header read started");
   const header = new Uint8Array(await file.slice(0, 32).arrayBuffer());
+  onStage?.("file header read completed");
   if (
     header.length < 12 ||
     String.fromCharCode(...header.slice(4, 8)) !== "ftyp"
@@ -41,7 +46,7 @@ export async function toSupportedImage(
   onStage?: (stage: string) => void,
 ): Promise<File> {
   onStage?.("format detection started");
-  if (!(await isHeicFile(file))) {
+  if (!(await isHeicFile(file, onStage))) {
     onStage?.("conversion not needed");
     return file;
   }

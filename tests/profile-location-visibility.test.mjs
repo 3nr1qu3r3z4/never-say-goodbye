@@ -47,6 +47,8 @@ const basicDependencies = {
   "next/link": { default: ({ children }) => React.createElement("a", null, children) },
   "next/image": { default: () => null },
   "@/app/profile-locations": { default: ProfileLocations },
+  "@/lib/frequent-visits": { frequentVisitsEnabled: () => false },
+  "./visit-tracker": { default: () => null },
 };
 
 test("profile preview displays each location only when its visibility is enabled", async () => {

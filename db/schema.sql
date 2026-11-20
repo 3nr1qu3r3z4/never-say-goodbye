@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS users (
   display_name TEXT NOT NULL,
   display_style TEXT NOT NULL CHECK (display_style IN ('full-name', 'first-last', 'custom')),
   membership TEXT NOT NULL CHECK (membership IN ('free', 'tier-2', 'tier-3')),
+  account_status TEXT NOT NULL DEFAULT 'active' CHECK (account_status IN ('active', 'inactive', 'memorialized', 'frozen')),
   discoverability TEXT NOT NULL DEFAULT 'searchable' CHECK (discoverability IN ('private', 'searchable', 'public')),
   featured BOOLEAN NOT NULL DEFAULT FALSE,
   public_profile_photo BOOLEAN NOT NULL DEFAULT TRUE,
@@ -50,6 +51,46 @@ CREATE TABLE IF NOT EXISTS users (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS users_email_unique_idx ON users (LOWER(email));
 CREATE UNIQUE INDEX IF NOT EXISTS users_username_unique_idx ON users (LOWER(username));
+
+CREATE TABLE IF NOT EXISTS profile_visits (
+  viewer_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  profile_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  visit_date DATE NOT NULL DEFAULT ((CURRENT_TIMESTAMP AT TIME ZONE 'UTC')::date),
+  PRIMARY KEY (viewer_user_id, profile_user_id, visit_date),
+  CHECK (viewer_user_id <> profile_user_id)
+);
+CREATE INDEX IF NOT EXISTS profile_visits_date_idx ON profile_visits (visit_date);
+
+CREATE TABLE IF NOT EXISTS account_status_history (
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+  previous_status TEXT NOT NULL CHECK (previous_status IN ('active', 'inactive', 'memorialized', 'frozen')),
+  new_status TEXT NOT NULL CHECK (new_status IN ('active', 'inactive', 'memorialized', 'frozen')),
+  actor_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+  changed_by_database_role TEXT NOT NULL DEFAULT CURRENT_USER,
+  changed_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CHECK (previous_status <> new_status)
+);
+CREATE INDEX IF NOT EXISTS account_status_history_user_idx
+  ON account_status_history (user_id, changed_at, id);
+
+CREATE OR REPLACE FUNCTION record_account_status_change()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  INSERT INTO account_status_history (user_id, previous_status, new_status)
+  VALUES (NEW.id, OLD.account_status, NEW.account_status);
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS users_account_status_history ON users;
+CREATE TRIGGER users_account_status_history
+  AFTER UPDATE OF account_status ON users
+  FOR EACH ROW
+  WHEN (OLD.account_status IS DISTINCT FROM NEW.account_status)
+  EXECUTE FUNCTION record_account_status_change();
 
 CREATE TABLE IF NOT EXISTS weekly_moment_maker_settings (
   singleton BOOLEAN PRIMARY KEY DEFAULT TRUE CHECK (singleton),
@@ -419,4 +460,12 @@ ON CONFLICT (version) DO NOTHING;
 
 INSERT INTO schema_migrations (version)
 VALUES ('015_connected_lives_directory')
+ON CONFLICT (version) DO NOTHING;
+
+INSERT INTO schema_migrations (version)
+VALUES ('016_account_status')
+ON CONFLICT (version) DO NOTHING;
+
+INSERT INTO schema_migrations (version)
+VALUES ('017_profile_visits')
 ON CONFLICT (version) DO NOTHING;

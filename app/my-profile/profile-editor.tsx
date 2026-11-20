@@ -389,7 +389,7 @@ export default function ProfileEditor({
       stage = nextStage;
       console.info("[profile-photo]", { attempt, stage, ...details });
     };
-    logStage("image selected", { sizeBytes: file.size, type: file.type });
+    logStage("file selected", { sizeBytes: file.size, type: file.type });
     setError(null);
     setPhotoPreparationError(null);
     setMessage(null);
@@ -405,12 +405,13 @@ export default function ProfileEditor({
       if (
         !acceptedTypes.includes(mimeType) &&
         !supportedExtension &&
-        !(await withPhotoTimeout(isHeicFile(file)))
+        !(await withPhotoTimeout(isHeicFile(file, logStage)))
       ) {
         throw new Error("Choose a JPG, JPEG, PNG, WEBP, HEIC, or HEIF image.");
       }
       if (attempt !== photoAttempt.current) return;
       logStage("input validation completed");
+      logStage("image processing started");
       const supportedFile = await withPhotoTimeout(
         toSupportedImage(file, (conversionStage) => logStage(conversionStage)),
       );
@@ -448,6 +449,8 @@ export default function ProfileEditor({
         return;
       }
       logStage("image decode completed", nextDimensions);
+      logStage("file opened");
+      logStage("image processing completed");
       if (sourceUrlRef.current) URL.revokeObjectURL(sourceUrlRef.current);
       sourceUrlRef.current = nextSource;
       setDimensions(nextDimensions);
@@ -541,6 +544,7 @@ export default function ProfileEditor({
     startPhotoSaving(async () => {
       try {
         logStage("crop save started");
+        logStage("crop processing started");
         const crop = await createCroppedPhoto(
           image,
           imageDimensions,
@@ -549,19 +553,26 @@ export default function ProfileEditor({
           cropZoom,
           logStage,
         );
-        logStage("server save started");
+        logStage("crop processing completed");
+        logStage("upload started");
         const result = await saveProfilePhoto(crop);
         if (result.error) {
-          console.error("[profile-photo] server save rejected", { attempt });
+          console.error("[profile-photo] upload failed", {
+            attempt,
+            stage,
+            reason: "server rejected photo",
+          });
           setError(result.error);
           return;
         }
-        logStage("server save completed");
+        logStage("upload succeeded");
         setPreview(crop);
         showMessage(result.success ?? "Your profile photo has been saved.");
         releaseSource();
       } catch (cause) {
-        console.error("[profile-photo] save failed", {
+        console.error(stage === "upload started"
+          ? "[profile-photo] upload failed"
+          : "[profile-photo] save failed", {
           attempt,
           stage,
           errorType: cause instanceof Error ? cause.name : "unknown",

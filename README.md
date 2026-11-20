@@ -41,7 +41,11 @@ create a local data directory or write account data to the app filesystem.
      then
      `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/014_family_calendar.sql`
      then
-     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/015_connected_lives_directory.sql`.
+     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/015_connected_lives_directory.sql`
+     then
+     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/016_account_status.sql`
+     then
+     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/017_profile_visits.sql`.
    - In Bash, export `DATABASE_URL` and run
      `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/001_initial_schema.sql`
      then
@@ -71,7 +75,11 @@ create a local data directory or write account data to the app filesystem.
      then
      `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/014_family_calendar.sql`
      then
-     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/015_connected_lives_directory.sql`.
+     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/015_connected_lives_directory.sql`
+     then
+     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/016_account_status.sql`
+     then
+     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/017_profile_visits.sql`.
    - In the Neon Console, open the SQL Editor for the intended database. Run
      [`db/migrations/001_initial_schema.sql`](./db/migrations/001_initial_schema.sql)
      first, then run
@@ -89,6 +97,8 @@ create a local data directory or write account data to the app filesystem.
      then [`db/migrations/013_weekly_moment_makers.sql`](./db/migrations/013_weekly_moment_makers.sql)
      then [`db/migrations/014_family_calendar.sql`](./db/migrations/014_family_calendar.sql)
      then [`db/migrations/015_connected_lives_directory.sql`](./db/migrations/015_connected_lives_directory.sql)
+     then [`db/migrations/016_account_status.sql`](./db/migrations/016_account_status.sql)
+     then [`db/migrations/017_profile_visits.sql`](./db/migrations/017_profile_visits.sql)
      in order.
 3. Set `DATABASE_URL` to the same pooled connection string in local
    `.env.local` and in Vercel Project Settings → Environment Variables for each
@@ -96,9 +106,9 @@ create a local data directory or write account data to the app filesystem.
    database where you ran the migration.
 4. Redeploy after setting or changing Vercel environment variables.
 
-All fifteen migrations are idempotent and record their application in
+All seventeen migrations are idempotent and record their application in
 `schema_migrations`. [`db/schema.sql`](./db/schema.sql) is the standalone
-bootstrap copy of the current schema; use all fifteen versioned migrations above for
+bootstrap copy of the current schema; use all seventeen versioned migrations above for
 an existing database. There is no automatic migration runner in the
 application, so SQL must be applied to Neon before database-backed features
 can use new schema changes. The initial migration creates
@@ -123,7 +133,7 @@ WHERE table_schema = 'public'
     'weekly_moment_maker_weeks', 'weekly_moment_maker_selections',
     'family_relationship_milestones', 'family_calendar_events',
     'family_calendar_import_settings', 'family_calendar_reminders',
-    'connected_lives_person_tags'
+    'connected_lives_person_tags', 'account_status_history', 'profile_visits'
   )
 ORDER BY table_name;
 
@@ -136,7 +146,7 @@ WHERE version IN (
   '009_connected_lives_relationship_type', '010_account_recovery',
   '011_profile_birthplace', '012_profile_location_visibility',
   '013_weekly_moment_makers', '014_family_calendar',
-  '015_connected_lives_directory'
+  '015_connected_lives_directory', '016_account_status', '017_profile_visits'
 )
 ORDER BY version;
 
@@ -145,7 +155,7 @@ FROM information_schema.columns
 WHERE table_schema = 'public'
   AND table_name = 'users'
   AND column_name IN (
-    'username', 'profile_photo_data', 'bio', 'birthplace', 'location', 'personal_motto',
+    'username', 'account_status', 'profile_photo_data', 'bio', 'birthplace', 'location', 'personal_motto',
     'descriptor_one', 'descriptor_two', 'descriptor_three',
     'public_profile_photo', 'public_profile_bio', 'public_birthplace',
     'public_location', 'public_shared_moments',
@@ -164,14 +174,61 @@ WHERE table_schema = 'public'
   AND column_name = 'relationship_type';
 ```
 
-The table query should return all twenty listed tables; the migration query should
-return all fifteen migration versions when each has been applied, and the user column
+The table query should return all twenty-two listed tables; the migration query should
+return all seventeen migration versions when each has been applied, and the user column
 query should return all profile and visibility columns. The profile migrations
 add the photo, bio, location, motto, and descriptor fields used by `/my-profile`;
 migration 006 adds the persisted Legacy Controls™ visibility and contribution
 settings. Signup creates
 the user and that user's Legacy Tree and membership in one transaction, then
 writes a session.
+
+Migration 016 adds account statuses (`active`, `inactive`, `memorialized`, and
+`frozen`) and records subsequent status changes in `account_status_history`.
+Existing and newly created users default to `active`; no initial history entries
+are backfilled. The trigger records the database role, not the authenticated
+person: `actor_user_id` remains null until a future authenticated transition
+workflow provides reliable attribution. Apply the migration before deploying
+the owner-only status display on My Profile.
+Migration 016 refuses to run for the first time if an account-status column or
+history table already exists without its migration record; inspect any such
+schema conflict before proceeding.
+
+Run `node --test tests/account-status.test.mjs` for the display test. The
+disposable-database integration test additionally requires a separately
+installed PGlite package; set `ACCOUNT_STATUS_TEST_PGLITE` to its package path.
+
+This phase does **not** enforce login restrictions, revoke sessions, change
+visibility, or provide status transitions. Do not set accounts to non-active
+statuses until the corresponding access controls are implemented and tested.
+Status history alone does not prevent deletion of users without history, and
+existing cascading foreign keys are unchanged.
+
+Later phases should enforce status on login, session validation, and password
+recovery; serialize transitions with session creation and revoke existing
+sessions and reset tokens atomically when access is disabled. A settings page
+can then show the current status and explain preservation, privacy, and recovery
+before offering confirmed transitions. Memorialization requests, approvals, and
+administrative recovery require separate authorized, audited workflows.
+Reactivation, memorialization approval, and frozen-profile visibility remain
+policy decisions; future transitions must attribute the authenticated actor and
+must not grant additional access to preserved content.
+
+Migration 017 adds private, per-viewer profile-visit days for Frequently Visited.
+Only signed-in visits to accessible profiles are recorded, at most once per UTC
+day; suggestions are separate accepted Connected Lives and do not create visits.
+The dashboard considers the current UTC day and previous 89 days. The daily
+Vercel cron in `vercel.json` deletes older rows; late or failed jobs can delay
+physical deletion and must be monitored and retried.
+
+Before enabling this feature, apply migration 017, configure a strong Vercel
+`CRON_SECRET`, deploy, and verify that the `/api/cron/profile-visits` job is
+enabled and succeeds. Then set `FREQUENT_VISITS_ENABLED=true` and redeploy.
+Tracking is disabled by default; enabling it without `CRON_SECRET` fails
+explicitly. Non-Vercel deployments must arrange an authenticated daily GET to
+that endpoint with `Authorization: Bearer <CRON_SECRET>`. Do not log the secret,
+visit records, or identifiers. The retention job continues to run when tracking
+is disabled, so existing records can expire.
 
 Migration 014 must be applied before deploying Family Calendar™. Tree members
 can create shared manual events and enable live imports; only owners and admins
@@ -218,6 +275,11 @@ Migration 012 adds public visibility controls for birthplace and current
 location. Birthplace is hidden by default; current location remains visible by
 default. Owners can still view and edit both fields. The location visibility
 setting also controls whether current location appears in search results.
+
+Temporary profile-photo diagnostics appear in the browser console with the
+`[profile-photo]` prefix; server save stages appear in server logs. They record
+stages and error types, not file names or image contents. A header-read failure
+occurs before upload; an image is reported opened only after decoding succeeds.
 
 Migration 013 adds This Week's Moment Makers™ settings and selection history.
 The first homepage request each UTC week selects up to the configured count of

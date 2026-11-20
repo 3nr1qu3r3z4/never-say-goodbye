@@ -11,7 +11,16 @@ export const metadata: Metadata = {
 
 export const instant = false;
 
+type AccountStatus = "active" | "inactive" | "memorialized" | "frozen";
+const accountStatusLabels: Record<AccountStatus, string> = {
+  active: "Active Moment Maker",
+  inactive: "Inactive",
+  memorialized: "Memorialized",
+  frozen: "Frozen",
+};
+
 type ProfileDetails = {
+  accountStatus: AccountStatus | null;
   displayName: string | null;
   bio: string | null;
   descriptorOne: string | null;
@@ -27,7 +36,8 @@ export default async function MyProfilePage() {
   const user = await requireUser();
   const sql = getSql();
   const rows = (await sql`
-    SELECT COALESCE(
+    SELECT u.account_status AS "accountStatus",
+           COALESCE(
              NULLIF(BTRIM(u.display_name), ''),
              NULLIF(BTRIM(u.first_name || ' ' || u.last_name), ''),
              'Moment Maker'
@@ -45,6 +55,7 @@ export default async function MyProfilePage() {
     LIMIT 1
   `) as ProfileDetails[];
   const profile = rows[0] ?? {
+    accountStatus: null,
     displayName: user.displayName || "Moment Maker",
     bio: "",
     descriptorOne: "",
@@ -87,6 +98,13 @@ export default async function MyProfilePage() {
             Edit Profile Setup
           </Link>
         </header>
+
+        <p className="mt-8 text-center text-sm text-slate-400">
+          Account status:{" "}
+          <span className="font-semibold text-slate-200">
+            {profile.accountStatus ? accountStatusLabels[profile.accountStatus] : "Unavailable"}
+          </span>
+        </p>
 
         <section className="mt-9 rounded-3xl border border-white/10 bg-white/[0.03] p-5 shadow-2xl shadow-black/20 sm:mt-11 sm:p-9">
           <ProfileEditor

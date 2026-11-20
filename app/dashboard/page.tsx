@@ -3,7 +3,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getDashboardData } from "@/lib/account-data";
 import { requireUser } from "@/lib/auth";
+import { frequentVisitsEnabled, getFrequentVisitSections } from "@/lib/frequent-visits";
 import SignupWelcome from "./signup-welcome";
+import FrequentVisits from "./frequent-visits";
 
 export const metadata: Metadata = {
   title: "My Legacy | Never Say Goodbye",
@@ -14,6 +16,9 @@ export const instant = false;
 export default async function DashboardPage() {
   const user = await requireUser();
   const data = await getDashboardData(user);
+  const frequentVisits = frequentVisitsEnabled()
+    ? await getFrequentVisitSections(user.id)
+    : null;
   const actions = [
     {
       icon: "➕",
@@ -149,6 +154,7 @@ export default async function DashboardPage() {
       </Suspense>
 
       <div className="mx-auto max-w-6xl space-y-12 px-6 py-10 sm:space-y-16 sm:px-8 sm:py-14">
+        {frequentVisits && <FrequentVisits {...frequentVisits} />}
         <section
           id="moment-making-menu"
           aria-labelledby="quick-actions-heading"

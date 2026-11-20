@@ -6,7 +6,9 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSql } from "@/lib/db";
 import ConnectionRequestButton from "./connection-request-button";
 import ProfileLocations from "@/app/profile-locations";
+import { frequentVisitsEnabled } from "@/lib/frequent-visits";
 import type { ConnectionStatus } from "@/app/actions/connected-lives";
+import VisitTracker from "./visit-tracker";
 
 export const instant = false;
 
@@ -126,6 +128,9 @@ export default async function MomentMakerProfilePage({
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#0F172A] text-slate-100">
+      {currentUser && currentUser.id !== profile.id && frequentVisitsEnabled() && (
+        <VisitTracker profileId={profile.id} />
+      )}
       <section className="px-4 pt-4 sm:px-8 sm:pt-8">
         <figure
           aria-label={`Moment Maker profile for ${profile.displayName}`}
