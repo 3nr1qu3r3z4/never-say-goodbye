@@ -66,8 +66,17 @@ test("homepage hero preserves guest actions and removes the signed-in duplicate"
 test("signed-in primary navigation retains My Legacy and Sign Out", async () => {
   const navigation = loadPage(["app", "site-navigation.tsx"], { id: "viewer" });
   const html = await renderSuspendedActions(navigation().props.children);
-  assert.match(html, /href="\/dashboard"[^>]*>My Legacy<\/a>/);
-  assert.match(html, />Sign Out<\/button>/);
+  assert.equal((html.match(/href="\/dashboard"[^>]*>My Legacy<\/a>/g) ?? []).length, 2);
+  assert.equal((html.match(/type="submit"[^>]*>Sign Out<\/button>/g) ?? []).length, 2);
+  assert.match(html, /<summary[^>]*>Menu<\/summary>/);
+});
+
+test("guest primary navigation retains desktop and mobile account links", async () => {
+  const navigation = loadPage(["app", "site-navigation.tsx"]);
+  const html = await renderSuspendedActions(navigation().props.children);
+  assert.equal((html.match(/href="\/signup"[^>]*>Create Your Legacy<\/a>/g) ?? []).length, 2);
+  assert.equal((html.match(/href="\/login"[^>]*>Sign In<\/a>/g) ?? []).length, 2);
+  assert.match(html, /<summary[^>]*>Menu<\/summary>/);
 });
 
 test("the homepage showcase link opens John's profile without the message fragment", () => {

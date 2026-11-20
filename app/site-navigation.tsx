@@ -3,8 +3,12 @@ import { Suspense } from "react";
 import { logoutAction } from "@/app/actions/auth";
 import { getCurrentUser } from "@/lib/auth";
 
+const interactionClassName =
+  "transition-colors hover:text-[#f0c98e] focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D8A35B]";
 const linkClassName =
-  "inline-flex min-h-11 items-center justify-center rounded-full border border-[#D8A35B]/60 px-5 py-2.5 text-sm font-semibold text-[#f0c98e] transition hover:border-[#D8A35B] hover:bg-[#D8A35B]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]";
+  `inline-flex min-h-11 cursor-pointer items-center px-3 text-sm font-medium text-slate-200 ${interactionClassName}`;
+const menuItemClassName =
+  `flex min-h-11 w-full cursor-pointer items-center rounded-lg px-4 text-left text-sm font-medium text-slate-200 hover:bg-white/5 ${interactionClassName}`;
 
 async function NavigationActions() {
   const user = await getCurrentUser();
@@ -42,14 +46,14 @@ async function NavigationActions() {
             <>
               <Link
                 href="/dashboard"
-                className="flex min-h-11 items-center rounded-xl px-4 text-sm font-semibold text-[#f0c98e] transition hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-[#D8A35B]"
+                className={menuItemClassName}
               >
                 My Legacy
               </Link>
               <form action={logoutAction}>
                 <button
                   type="submit"
-                  className="flex min-h-11 w-full items-center rounded-xl px-4 text-left text-sm font-semibold text-[#f0c98e] transition hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-[#D8A35B]"
+                  className={menuItemClassName}
                 >
                   Sign Out
                 </button>
@@ -59,13 +63,13 @@ async function NavigationActions() {
             <>
               <Link
                 href="/signup"
-                className="flex min-h-11 items-center rounded-xl px-4 text-sm font-semibold text-[#f0c98e] transition hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-[#D8A35B]"
+                className={menuItemClassName}
               >
                 Create Your Legacy
               </Link>
               <Link
                 href="/login"
-                className="flex min-h-11 items-center rounded-xl px-4 text-sm font-semibold text-[#f0c98e] transition hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-[#D8A35B]"
+                className={menuItemClassName}
               >
                 Sign In
               </Link>
@@ -86,7 +90,7 @@ export default function SiteNavigation() {
       <div className="mx-auto flex max-w-7xl items-center justify-between">
         <Link
           href="/"
-          className="font-serif text-base text-white transition hover:text-[#f0c98e] sm:text-lg"
+          className={`inline-flex min-h-11 items-center font-serif text-base text-white sm:text-lg ${interactionClassName}`}
         >
           Never Say Goodbye
         </Link>
