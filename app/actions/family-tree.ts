@@ -2,6 +2,7 @@
 
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getSql } from "@/lib/db";
 
@@ -11,6 +12,38 @@ export type AddFamilyMemberState = {
 };
 
 const memberTypes = ["existing", "future", "placeholder"] as const;
+
+export async function createLegacyTree(): Promise<void> {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+
+  const sql = getSql();
+  const treeId = randomUUID();
+  const now = new Date().toISOString();
+  const treeName = user.displayName ? `${user.displayName}'s Legacy Tree™` : "My Legacy Tree™";
+  await sql.transaction([
+    sql`SELECT pg_advisory_xact_lock(hashtext('legacy-tree-create'), hashtext(${user.id}))`,
+    sql`
+      INSERT INTO legacy_trees (id, owner_user_id, name, created_at, updated_at)
+      SELECT ${treeId}, ${user.id}, ${treeName}, ${now}, ${now}
+      WHERE NOT EXISTS (SELECT 1 FROM legacy_tree_members WHERE user_id = ${user.id})
+        AND NOT EXISTS (SELECT 1 FROM legacy_trees WHERE owner_user_id = ${user.id})
+    `,
+    sql`
+      INSERT INTO legacy_tree_members (tree_id, user_id, role, joined_at)
+      SELECT tree.id, ${user.id}, 'owner', ${now}
+      FROM legacy_trees AS tree
+      WHERE tree.owner_user_id = ${user.id}
+        AND NOT EXISTS (SELECT 1 FROM legacy_tree_members WHERE user_id = ${user.id})
+      ORDER BY tree.created_at, tree.id
+      LIMIT 1
+      ON CONFLICT (tree_id, user_id) DO NOTHING
+    `,
+  ]);
+  revalidatePath("/legacy-tree");
+  revalidatePath("/family-calendar");
+  revalidatePath("/create-moment");
+}
 
 export async function addFamilyMember(
   _previousState: AddFamilyMemberState,

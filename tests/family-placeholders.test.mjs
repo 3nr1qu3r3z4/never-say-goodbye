@@ -36,6 +36,7 @@ function createActions(treeExists = true) {
   const actions = loadModule("app/actions/family-tree.ts", {
     "node:crypto": { randomUUID: () => "placeholder-id" },
     "next/cache": { revalidatePath: () => {} },
+    "next/navigation": { redirect: () => { throw new Error("redirect"); } },
     "@/lib/auth": { getCurrentUser: async () => ({ id: "author" }) },
     "@/lib/db": {
       getSql: () => async (strings, ...values) => {
@@ -147,13 +148,12 @@ test("linked story query stays author-only and withholds protected content", asy
   const components = loadModule("app/legacy-tree/family-members.tsx", {
     "react/jsx-runtime": { jsx, jsxs: jsx },
     "next/link": { default: () => null },
+    "@/app/actions/family-tree": { createLegacyTree: async () => {} },
     "@/lib/auth": { getCurrentUser: async () => ({ id: "author" }) },
     "@/lib/db": { getSql: () => sql },
     "./family-member-form": { default: () => null },
   });
-  const section = await components.default();
-  const children = section.props.children;
-  const userSection = children.find((child) => typeof child?.type === "function");
+  const userSection = await components.default();
   await userSection.type(userSection.props);
   const linked = queries.find((query) => query.text.includes("FROM moments"));
   assert.ok(linked.values.includes("author"));

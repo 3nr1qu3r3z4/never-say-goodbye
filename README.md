@@ -314,6 +314,12 @@ scheduled content is not displayed there. Placeholders have no accounts or
 notifications. Photo and other media storage for placeholders is not part of
 this feature.
 
+The Legacy Tree page shows trees the signed-in user belongs to, with members,
+Future Moment Makers, and placeholders grouped by tree. It does not infer a
+parent-child hierarchy. New signups normally receive a tree automatically;
+users without a membership can create one from the page. Signed-out visitors
+are prompted to sign up or sign in.
+
 To enable account recovery, set these server-side environment variables in
 each deployment environment:
 
