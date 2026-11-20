@@ -115,6 +115,26 @@ test("the homepage showcase link opens John's profile without the message fragme
   assert.doesNotMatch(html, /profile-preview#first-message/);
 });
 
+test("How It Works keeps its existing cards and adds Stop Making Notes", () => {
+  const html = renderPage(["app", "page.tsx"]);
+  const section = html.match(/<section\b[^>]*>[\s\S]*?<\/section>/g)
+    ?.find((item) => item.includes("How It Works"));
+  assert.ok(section);
+  const cards = [...section.matchAll(/<article\b[^>]*>[\s\S]*?<\/article>/g)].map(([card]) => card);
+  assert.equal(cards.length, 6);
+  for (const [index, title] of [
+    "Record Your Story", "Leave Messages", "Protect Private Memories", "Deliver Comfort",
+  ].entries()) {
+    assert.ok(cards[index].includes(title));
+  }
+  assert.match(cards[4], /❤️ Connected, Even When You&#x27;re Not/);
+  assert.match(cards[4], /<p[^>]*>Schedules, school, time zones, and responsibilities make conversations difficult\.<\/p><p[^>]*>Life gets busy\.<\/p><p[^>]*>Family shouldn&#x27;t have to wait\.<\/p>/);
+  assert.match(cards[5], />06<\/span>/);
+  assert.match(cards[5], /🎂 Stop Making Notes/);
+  assert.match(cards[5], /Birthdays, anniversaries, and milestones are important, but shouldn&#x27;t be another thing to remember\./);
+  assert.match(cards[5], /Never Say Goodbye helps you remember the moments that matter\./);
+});
+
 test("homepage feature cards explain each feature and retain their links", () => {
   const html = renderPage(["app", "page.tsx"]);
   const section = html.match(/<section id="features"[\s\S]*?<\/section>/)?.[0];

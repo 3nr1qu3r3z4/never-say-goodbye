@@ -29,6 +29,22 @@ const howItWorks = [
     description:
       "Let a familiar voice and a heartfelt message bring closeness to meaningful days.",
   },
+  {
+    number: "05",
+    title: "❤️ Connected, Even When You're Not",
+    description:
+      "Schedules, school, time zones, and responsibilities make conversations difficult.",
+    additionalDescription: "Life gets busy.",
+    closingDescription: "Family shouldn't have to wait.",
+  },
+  {
+    number: "06",
+    title: "🎂 Stop Making Notes",
+    description:
+      "Birthdays, anniversaries, and milestones are important, but shouldn't be another thing to remember.",
+    additionalDescription:
+      "Never Say Goodbye helps you remember the moments that matter.",
+  },
 ];
 
 const sealedMessages = [
@@ -133,7 +149,7 @@ export default function Page() {
           {howItWorks.map((item) => (
             <article
               key={item.number}
-              className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 sm:p-7"
+              className={`rounded-2xl border border-white/10 bg-white/[0.03] p-6 sm:p-7 ${item.number === "05" || item.number === "06" ? "sm:col-span-2" : ""}`}
             >
               <span className="font-serif text-sm tracking-[0.2em] text-[#D8A35B]">
                 {item.number}
@@ -144,6 +160,16 @@ export default function Page() {
               <p className="mt-3 text-sm leading-7 text-slate-400">
                 {item.description}
               </p>
+              {item.additionalDescription && (
+                <p className="mt-3 text-sm leading-7 text-slate-400">
+                  {item.additionalDescription}
+                </p>
+              )}
+              {item.closingDescription && (
+                <p className="mt-3 text-sm leading-7 text-slate-400">
+                  {item.closingDescription}
+                </p>
+              )}
             </article>
           ))}
         </div>
