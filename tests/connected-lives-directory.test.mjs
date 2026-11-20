@@ -77,7 +77,7 @@ function loadDashboard(data) {
   }).default;
 }
 
-test("dashboard notification card retains request and update counts with one accent heart", async () => {
+test("dashboard notification card guides users with no new requests while retaining updates", async () => {
   const data = {
     counts: {
       sharedMoments: 0, personalMoments: 0, connectedLives: 0,
@@ -88,7 +88,7 @@ test("dashboard notification card retains request and update counts with one acc
   };
   const dashboard = loadDashboard(data);
   for (const [requests, updates, expected] of [
-    [0, 0, "0 New Requests"],
+    [0, 0, "View Connected Lives"],
     [1, 2, "1 New Request"],
     [2, 0, "2 New Requests"],
     [0, 1, "1 New Update"],
@@ -99,9 +99,17 @@ test("dashboard notification card retains request and update counts with one acc
     const html = renderToStaticMarkup(await dashboard());
     const card = html.match(/<section aria-labelledby="connected-lives-heading"[\s\S]*?<\/section>/)?.[0];
     assert.ok(card);
-    assert.match(card, /<h2 id="connected-lives-heading"[^>]*>Someone Is Thinking of You<\/h2>/);
     assert.equal((card.match(/❤️/g) ?? []).length, 1);
     assert.match(card, new RegExp(`<a href="/connected-lives"[^>]*><span>${expected}</span>`));
+    if (requests === 0) {
+      assert.match(card, /<h2 id="connected-lives-heading"[^>]*>Stay Connected<\/h2>/);
+      assert.match(card, /Search for family and friends already preserving their stories on Never Say Goodbye\./);
+      assert.match(card, /<a href="\/search"[^>]*><span>Find People<\/span>/);
+      assert.doesNotMatch(card, /0 New Requests/);
+    } else {
+      assert.match(card, /<h2 id="connected-lives-heading"[^>]*>Someone Is Thinking of You<\/h2>/);
+      assert.doesNotMatch(card, /Search for family and friends|href="\/search"/);
+    }
   }
 });
 

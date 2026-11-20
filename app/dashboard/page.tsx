@@ -26,6 +26,8 @@ const actionCardClassName =
   "group rounded-2xl border border-white/10 bg-white/[0.03] transition duration-200 hover:-translate-y-1 hover:border-[#D8A35B]/40 hover:bg-white/[0.06] hover:shadow-lg hover:shadow-[#D8A35B]/10";
 const actionFocusClassName =
   "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]";
+const notificationActionClassName =
+  "flex min-h-14 w-full items-center justify-center gap-3 rounded-xl border border-[#D8A35B]/70 bg-[#D8A35B]/10 px-5 py-3 text-center font-semibold text-[#f0c98e] shadow-lg shadow-[#D8A35B]/10 transition hover:-translate-y-0.5 hover:border-[#D8A35B] hover:bg-[#D8A35B]/15 hover:shadow-[#D8A35B]/20 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]";
 
 export default async function DashboardPage() {
   const user = await requireUser();
@@ -122,7 +124,9 @@ export default async function DashboardPage() {
                 id="connected-lives-heading"
                 className="font-serif text-xl text-white sm:text-2xl"
               >
-                Someone Is Thinking of You
+                {data.counts.newLivesRequests > 0
+                  ? "Someone Is Thinking of You"
+                  : "Stay Connected"}
               </h2>
               <span
                 aria-hidden="true"
@@ -131,27 +135,49 @@ export default async function DashboardPage() {
                 ❤️
               </span>
             </div>
-            <Link
-              href="/connected-lives"
-              className="mt-5 flex min-h-14 w-full items-center justify-center gap-3 rounded-xl border border-[#D8A35B]/70 bg-[#D8A35B]/10 px-5 py-3 font-semibold text-[#f0c98e] shadow-lg shadow-[#D8A35B]/10 transition hover:-translate-y-0.5 hover:border-[#D8A35B] hover:bg-[#D8A35B]/15 hover:shadow-[#D8A35B]/20 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
-            >
-              <span>
-                {data.counts.newLivesRequests > 0
-                  ? `${data.counts.newLivesRequests} ${
-                      data.counts.newLivesRequests === 1
-                        ? "New Request"
-                        : "New Requests"
-                    }`
-                  : data.counts.unreadLivesNotifications > 0
-                    ? `${data.counts.unreadLivesNotifications} ${
-                        data.counts.unreadLivesNotifications === 1
-                          ? "New Update"
-                          : "New Updates"
-                      }`
-                    : "0 New Requests"}
-              </span>
-              <span aria-hidden="true" className="text-lg">→</span>
-            </Link>
+            {data.counts.newLivesRequests > 0 ? (
+              <Link
+                href="/connected-lives"
+                className={`mt-5 ${notificationActionClassName}`}
+              >
+                <span>
+                  {`${data.counts.newLivesRequests} ${
+                    data.counts.newLivesRequests === 1
+                      ? "New Request"
+                      : "New Requests"
+                  }`}
+                </span>
+                <span aria-hidden="true" className="text-lg">→</span>
+              </Link>
+            ) : (
+              <>
+                <p className="mt-5 text-sm leading-6 text-slate-400">
+                  Search for family and friends already preserving their stories on Never Say Goodbye.
+                </p>
+                <Link
+                  href="/search"
+                  className={`mt-5 ${notificationActionClassName}`}
+                >
+                  <span>Find People</span>
+                  <span aria-hidden="true" className="text-lg">→</span>
+                </Link>
+                <Link
+                  href="/connected-lives"
+                  className={`mt-3 ${notificationActionClassName}`}
+                >
+                  <span>
+                    {data.counts.unreadLivesNotifications > 0
+                      ? `${data.counts.unreadLivesNotifications} ${
+                          data.counts.unreadLivesNotifications === 1
+                            ? "New Update"
+                            : "New Updates"
+                        }`
+                      : "View Connected Lives"}
+                  </span>
+                  <span aria-hidden="true" className="text-lg">→</span>
+                </Link>
+              </>
+            )}
           </section>
         </div>
       </header>
