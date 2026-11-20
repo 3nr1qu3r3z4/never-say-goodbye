@@ -87,7 +87,7 @@ test("membership maps and tree navigation remain scoped and distinguish relation
     [],
   ];
   const html = await renderFamily(familyComponent({ id: "owner" }, sql));
-  assert.match(html, /href="#tree-map"[^>]*>View My Tree/);
+  assert.doesNotMatch(html, /View My Tree/);
   assert.match(html, /href="#family-members"[^>]*>Add Family Member/);
   assert.match(html, /href="#legacy-tree-item-first"/);
   assert.match(html, /href="#legacy-tree-item-second%20tree"/);

@@ -156,7 +156,6 @@ async function FamilyMembersForUser({ userId }: { userId: string }) {
   return (
     <div className="mx-auto max-w-6xl space-y-12 px-4 pb-20 sm:px-8">
       <nav aria-label="Legacy Tree navigation" className="flex flex-wrap gap-3">
-        <a href="#tree-map" className={buttonClassName}>View My Tree</a>
         <a href="#family-members" className={buttonClassName}>Add Family Member</a>
       </nav>
       <div id="tree-map" className="scroll-mt-6 space-y-12">
