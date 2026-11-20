@@ -71,7 +71,7 @@ test("signed-in primary navigation retains My Legacy and Sign Out", async () => 
   assert.match(html, /<summary[^>]*>Menu<\/summary>/);
 });
 
-test("signed-in navigation matches the brand size on desktop and mobile", async () => {
+test("signed-in navigation matches the brand typography on desktop and mobile", async () => {
   const navigation = loadPage(["app", "site-navigation.tsx"], { id: "viewer" });
   const container = navigation().props.children;
   const brandClasses = container.props.children[0].props.className.split(" ");
@@ -79,11 +79,12 @@ test("signed-in navigation matches the brand size on desktop and mobile", async 
   const controls = [...html.matchAll(/<(?:a|button)\b[^>]*class="([^"]+)"[^>]*>(?:My Legacy|Sign Out)<\/(?:a|button)>/g)];
   assert.equal(controls.length, 4);
   for (const [, classes] of controls) {
-    for (const size of ["text-base", "sm:text-lg"]) {
-      assert.ok(brandClasses.includes(size));
-      assert.ok(classes.split(" ").includes(size));
+    for (const typographyClass of ["font-serif", "font-normal", "text-base", "sm:text-lg", "items-center"]) {
+      assert.ok(brandClasses.includes(typographyClass));
+      assert.ok(classes.split(" ").includes(typographyClass));
     }
     assert.ok(!classes.split(" ").includes("text-sm"));
+    assert.ok(!classes.split(" ").includes("font-medium"));
   }
 });
 
@@ -93,6 +94,12 @@ test("guest primary navigation retains desktop and mobile account links", async 
   assert.equal((html.match(/href="\/signup"[^>]*>Create Your Legacy<\/a>/g) ?? []).length, 2);
   assert.equal((html.match(/href="\/login"[^>]*>Sign In<\/a>/g) ?? []).length, 2);
   assert.match(html, /<summary[^>]*>Menu<\/summary>/);
+  const controls = [...html.matchAll(/<(?:a|summary)\b[^>]*class="([^"]+)"[^>]*>(?:Create Your Legacy|Sign In|Menu)<\/(?:a|summary)>/g)];
+  assert.equal(controls.length, 5);
+  for (const [, classes] of controls) {
+    assert.ok(classes.split(" ").includes("font-medium"));
+    assert.ok(classes.split(" ").includes("text-sm"));
+  }
 });
 
 test("the homepage showcase link opens John's profile without the message fragment", () => {
