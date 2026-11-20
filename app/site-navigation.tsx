@@ -29,10 +29,10 @@ async function NavigationActions() {
           </>
         ) : (
           <>
-            <Link href="/signup" className={`${linkClassName} font-medium text-sm`}>
+            <Link href="/signup" className={`${linkClassName} ${brandTypographyClassName}`}>
               Create Your Legacy
             </Link>
-            <Link href="/login" className={`${linkClassName} font-medium text-sm`}>
+            <Link href="/login" className={`${linkClassName} ${brandTypographyClassName}`}>
               Sign In
             </Link>
           </>
@@ -42,7 +42,7 @@ async function NavigationActions() {
         <summary className={`${linkClassName} cursor-pointer list-none font-medium text-sm`}>
           Menu
         </summary>
-        <div className="absolute right-0 top-full mt-2 min-w-44 rounded-2xl border border-white/10 bg-[#111c31] p-2 shadow-xl">
+        <div className="absolute right-0 top-full mt-2 w-max min-w-44 rounded-2xl border border-white/10 bg-[#111c31] p-2 shadow-xl">
           {user ? (
             <>
               <Link
@@ -64,13 +64,13 @@ async function NavigationActions() {
             <>
               <Link
                 href="/signup"
-                className={`${menuItemClassName} font-medium text-sm`}
+                className={`${menuItemClassName} ${brandTypographyClassName}`}
               >
                 Create Your Legacy
               </Link>
               <Link
                 href="/login"
-                className={`${menuItemClassName} font-medium text-sm`}
+                className={`${menuItemClassName} ${brandTypographyClassName}`}
               >
                 Sign In
               </Link>
