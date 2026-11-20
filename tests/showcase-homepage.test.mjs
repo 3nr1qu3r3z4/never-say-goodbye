@@ -9,7 +9,7 @@ import * as jsxRuntime from "react/jsx-runtime";
 import { renderToStaticMarkup } from "react-dom/server";
 import ts from "typescript";
 
-function loadPage(relativePath, user = null) {
+function loadPage(relativePath, user = null, overrides = {}, globals = {}) {
   const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
   const source = fs.readFileSync(path.join(root, ...relativePath), "utf8");
   const compiled = ts.transpileModule(source, {
@@ -26,9 +26,11 @@ function loadPage(relativePath, user = null) {
     "./weekly-moment-makers": { default: () => null },
     "./first-message": { default: () => null },
     "./protected-moment": { default: () => null },
+    ...overrides,
   };
   vm.runInNewContext(compiled, {
     exports,
+    ...globals,
     require: (name) => {
       if (!(name in dependencies)) throw new Error(`Unexpected import: ${name}`);
       return dependencies[name];
@@ -74,9 +76,71 @@ test("the homepage showcase link opens John's profile without the message fragme
   assert.doesNotMatch(html, /profile-preview#first-message/);
 });
 
+test("homepage and showcase footers link the site name to the homepage", () => {
+  for (const relativePath of [["app", "page.tsx"], ["app", "profile-preview", "page.tsx"]]) {
+    const html = renderPage(relativePath);
+    assert.match(html, /<footer\b[^>]*>[\s\S]*?<a href="\/"[^>]*>Never Say Goodbye<\/a>[\s\S]*?<\/footer>/);
+  }
+});
+
 test("the showcase tree link targets John's tree, not the viewer's tree", () => {
   const html = renderPage(["app", "profile-preview", "page.tsx"]);
   assert.match(html, /<a href="\/profile-preview#family-tree-heading"[^>]*>🌳 View Legacy Tree™<\/a>/);
   assert.match(html, /<h2 id="family-tree-heading"[^>]*>John&#x27;s Legacy Tree™<\/h2>/);
   assert.doesNotMatch(html, /href="\/legacy-tree(?:[?#][^"]*)?"/);
+});
+
+test("showcase labels fictional tree and visited profiles and distinguishes future grandchildren", () => {
+  const html = renderPage(["app", "profile-preview", "page.tsx"]);
+  assert.match(html, /Illustrative example: actual Legacy Trees show membership, not inferred generations/);
+  assert.match(html, />Frequently Visited<\/h2>/);
+  assert.match(html, /A fictional example of a shortcut/);
+  assert.doesNotMatch(html, /Most Visited/);
+  assert.match(html, />Future Grandchild 1<\/p>/);
+  assert.match(html, />Future Grandchild 2<\/p>/);
+});
+
+test("first message does not advertise a duration without a recording", () => {
+  const html = renderPage(["app", "profile-preview", "first-message.tsx"]);
+  assert.match(html, /This example does not have a recording yet/);
+  assert.doesNotMatch(html, /Duration:/);
+});
+
+test("Escape closes a protected moment and clears its entered code and error", () => {
+  const state = [true, "wrong", true, false];
+  let stateIndex = 0;
+  let listener;
+  let cleanup;
+  const window = {
+    addEventListener(type, handler) {
+      assert.equal(type, "keydown");
+      listener = handler;
+    },
+    removeEventListener(type, handler) {
+      assert.equal(type, "keydown");
+      assert.equal(handler, listener);
+      listener = undefined;
+    },
+  };
+  const hooks = {
+    useState() {
+      const index = stateIndex++;
+      return [state[index], (value) => { state[index] = value; }];
+    },
+    useCallback(callback) { return callback; },
+    useEffect(effect) { cleanup = effect(); },
+  };
+  const component = loadPage(
+    ["app", "profile-preview", "protected-moment.tsx"],
+    null,
+    { react: hooks },
+    { window },
+  );
+  component({ title: "Example" });
+  listener({ key: "Enter" });
+  assert.deepEqual(state, [true, "wrong", true, false]);
+  listener({ key: "Escape" });
+  assert.deepEqual(state, [false, "", false, false]);
+  cleanup();
+  assert.equal(listener, undefined);
 });

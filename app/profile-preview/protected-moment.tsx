@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 
 const accessCode = "JOHN2026";
 
@@ -27,11 +27,22 @@ export default function ProtectedMoment({ title }: { title: string }) {
     setCode("");
   }
 
-  function closeDialog() {
+  const closeDialog = useCallback(() => {
     setDialogOpen(false);
     setCode("");
     setHasError(false);
-  }
+  }, []);
+
+  useEffect(() => {
+    if (!dialogOpen) return;
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") closeDialog();
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [dialogOpen, closeDialog]);
 
   return (
     <>

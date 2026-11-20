@@ -121,7 +121,7 @@ export default async function MyProfilePage() {
         </section>
 
         <footer className="mt-10 text-center">
-          <p className="font-serif text-lg text-white">Never Say Goodbye</p>
+          <p className="font-serif text-lg text-white"><Link href="/" className="focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]">Never Say Goodbye</Link></p>
           <p className="mt-2 text-sm text-slate-500">
             Build it today. Leave it forever.
           </p>

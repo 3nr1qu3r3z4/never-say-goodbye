@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { getSql } from "@/lib/db";
 import ProfileLocations from "@/app/profile-locations";
@@ -411,7 +412,7 @@ export default async function MyProfilePreviewPage() {
       )}
 
       <footer className="border-t border-white/10 px-6 py-8 text-center">
-        <p className="font-serif text-lg text-white">Never Say Goodbye</p>
+        <p className="font-serif text-lg text-white"><Link href="/" className="focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]">Never Say Goodbye</Link></p>
         <p className="mt-4 text-xs tracking-wide text-slate-500">
           NeverSayGoodbye.life
         </p>

@@ -325,7 +325,7 @@ export default function Page() {
       </section>
 
       <footer className="border-t border-white/10 px-6 py-8 text-center sm:px-8">
-        <p className="font-serif text-lg text-white">Never Say Goodbye</p>
+        <p className="font-serif text-lg text-white"><Link href="/" className="focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]">Never Say Goodbye</Link></p>
         <p className="mt-2 text-sm text-slate-400">Connection Beyond Goodbye</p>
         <p className="mt-4 text-xs tracking-wide text-slate-500">
           NeverSayGoodbye.life

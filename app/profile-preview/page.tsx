@@ -96,7 +96,7 @@ const treeGenerations = [
   ],
 ];
 
-const mostVisited = [
+const frequentlyVisited = [
   { icon: "❤️", name: "Sarah Doe", href: "#sarah-doe" },
   { icon: "👧", name: "Emma Doe", href: "#emma-doe-granddaughter" },
   { icon: "❤️", name: "James Michael Doe", href: "/james-doe" },
@@ -303,6 +303,9 @@ export default function ProfilePreviewPage() {
             The people who shaped John&apos;s story and the generations still to come.
           </p>
           <p className="mt-3 text-sm leading-6 text-slate-400">
+            Illustrative example: actual Legacy Trees show membership, not inferred generations.
+          </p>
+          <p className="mt-3 text-sm leading-6 text-slate-400">
             Lines indicate generations, not specific parentage. Relationships are relative to John unless otherwise noted.
           </p>
           <ol className="mt-8">
@@ -330,8 +333,8 @@ export default function ProfilePreviewPage() {
           <h2 id="future-makers-heading" className="mt-3 font-serif text-3xl text-white sm:text-4xl">Future Moment Makers™</h2>
           <p className="mt-4 max-w-3xl leading-7 text-slate-400">These example moments are being preserved for people whose stories are still unfolding.</p>
           <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {["Future Grandchild", "Future Grandchild", "Godchild"].map((name, index) => (
-              <li key={`${name}-${index}`} className="rounded-2xl border border-[#D8A35B]/25 bg-[#D8A35B]/[0.04] p-5 sm:p-6">
+            {["Future Grandchild 1", "Future Grandchild 2", "Godchild"].map((name) => (
+              <li key={name} className="rounded-2xl border border-[#D8A35B]/25 bg-[#D8A35B]/[0.04] p-5 sm:p-6">
                 <span aria-hidden="true" className="text-xl">✨</span>
                 <p className="mt-3 font-serif text-lg text-white">{name}</p>
                 <p className="mt-1 text-sm text-slate-400">Future Moment Maker™</p>
@@ -384,10 +387,10 @@ export default function ProfilePreviewPage() {
       <section aria-labelledby="most-visited-heading" className="px-6 py-16 sm:px-8 sm:py-20">
         <div className="mx-auto max-w-6xl">
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">Close at hand</p>
-          <h2 id="most-visited-heading" className="mt-3 font-serif text-3xl text-white sm:text-4xl">Most Visited Moment Makers™</h2>
-          <p className="mt-4 max-w-3xl leading-7 text-slate-400">A showcase of a possible future shortcut to the people John visits most.</p>
+          <h2 id="most-visited-heading" className="mt-3 font-serif text-3xl text-white sm:text-4xl">Frequently Visited</h2>
+          <p className="mt-4 max-w-3xl leading-7 text-slate-400">A fictional example of a shortcut to profiles John visits frequently.</p>
           <ul className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {mostVisited.map((person) => (
+            {frequentlyVisited.map((person) => (
               <li key={person.name}>
                 <Link href={person.href} className="flex min-h-16 items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm font-medium text-slate-200 transition hover:border-[#D8A35B]/40 hover:text-[#f0c98e] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]">
                   <span aria-hidden="true">{person.icon}</span>{person.name}
@@ -499,7 +502,7 @@ export default function ProfilePreviewPage() {
       </section>
 
       <footer className="border-t border-white/10 px-6 py-8 text-center">
-        <p className="font-serif text-lg text-white">Never Say Goodbye</p>
+        <p className="font-serif text-lg text-white"><Link href="/" className="focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]">Never Say Goodbye</Link></p>
         <p className="mt-2 text-sm text-slate-400">Connection Beyond Goodbye</p>
         <p className="mt-4 text-xs tracking-wide text-slate-500">
           NeverSayGoodbye.life
