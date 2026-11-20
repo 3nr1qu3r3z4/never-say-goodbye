@@ -91,11 +91,12 @@ export default async function FamilyCalendarPage({
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">A place for family</p>
           <h1 className="mt-3 font-serif text-4xl text-white sm:text-5xl">Family Calendar™</h1>
           <p className="mt-4 max-w-2xl leading-7 text-slate-300">Remember the dates and milestones that bring your family together.</p>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400">For member birthdays and memorial dates: add dates → choose what to share → join the same Legacy Tree™ → enable calendar sync.</p>
         </header>
         <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
           <section aria-label="Family calendar" className="min-w-0 rounded-3xl border border-white/10 bg-white/[0.03] p-4 sm:p-6">
             {!selected ? (
-              <p className="text-slate-300">Join a Legacy Tree™ to start a family calendar. <Link href="/legacy-tree" className="text-[#f0c98e] underline">Explore Legacy Tree™</Link></p>
+              <p className="text-slate-300">Create or join a Legacy Tree™ to see its family calendar. <Link href="/legacy-tree" className="text-[#f0c98e] underline">Explore Legacy Tree™</Link></p>
             ) : (
               <>
                 <form action="/family-calendar" className="mb-5">
@@ -105,7 +106,7 @@ export default async function FamilyCalendarPage({
                       {trees.map((tree) => <option key={tree.id} value={tree.id}>{tree.name}</option>)}
                     </select>
                     <input type="hidden" name="view" value={view} /><input type="hidden" name="date" value={anchor} />
-                    <button className="min-h-11 rounded-xl border border-white/20 px-4 text-sm">View Tree</button>
+                    <button className="min-h-11 rounded-xl border border-white/20 px-4 text-sm">View Calendar</button>
                   </div>
                 </form>
                 <div className="flex flex-wrap items-center justify-between gap-4">
@@ -136,9 +137,9 @@ export default async function FamilyCalendarPage({
                     })}
                   </div>
                 )}
-                {!allEvents.length && <p className="mt-6 rounded-xl border border-[#D8A35B]/20 p-4 text-sm leading-6 text-slate-300">No family dates yet. Import available dates, add your own event, or use My Family Dates &amp; Sharing to add a date. Tree owners and admins can also manage placeholder and future maker dates.</p>}
+                {!allEvents.length && <p className="mt-6 rounded-xl border border-[#D8A35B]/20 p-4 text-sm leading-6 text-slate-300">Your Family Calendar is waiting for family dates. Birthdays and memorial dates from tree members and placeholders, anniversaries between eligible Connected Lives™, and expected births of Future Moment Makers™ in this tree can appear when their full dates and required sharing permissions are set. Enable Family Date Sync below or add a family event.</p>}
                 <ImportDates treeId={selected.id} />
-                <p className="mt-2 text-xs leading-5 text-slate-400">Imported dates stay in sync with current sharing and tree membership. Year-only dates are not imported.</p>
+                <p className="mt-2 text-xs leading-5 text-slate-400">Sync is ongoing, not a one-time copy. Eligible dates update with current sharing and tree membership and are visible to all members of this tree.</p>
               </>
             )}
           </section>

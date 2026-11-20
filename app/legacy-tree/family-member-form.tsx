@@ -77,6 +77,9 @@ export default function FamilyMemberForm({
 
       {memberType === "existing" ? (
         <>
+          <p className="text-sm leading-6 text-slate-400">
+            Adding a Moment Maker™ makes them a member of this tree. It does not create a Connected Lives™ connection or automatically share dates.
+          </p>
           <label className="block text-sm font-medium text-slate-200">
             Existing Moment Maker™
             <select

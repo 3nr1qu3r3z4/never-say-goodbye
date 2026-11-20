@@ -80,6 +80,49 @@ test("calendar renders month, week and agenda views with source labels", async (
   await assert.rejects(page({ searchParams: Promise.resolve({ tree: "other" }) }), /not found/);
 });
 
+test("empty calendar explains available dates and how to enable sync", async () => {
+  const page = loadModule("app/family-calendar/page.tsx", {
+    "react/jsx-runtime": jsxRuntime,
+    "next/link": { default: ({ href, children }) => React.createElement("a", { href }, children) },
+    "next/navigation": { notFound: () => { throw new Error("not found"); } },
+    "@/lib/auth": { requireUser: async () => ({ id: "owner" }) },
+    "@/lib/family-calendar": calendar,
+    "@/lib/family-calendar-data": {
+      getCalendarSettings: async () => ({ profile: {}, reminders: {}, trees: [{ id: "tree", name: "Family", role: "owner" }] }),
+      getCalendarEvents: async () => [],
+      getEditableCalendarSources: async () => [],
+    },
+    "./calendar-forms": Object.fromEntries(
+      ["ImportDates", "ManualEvent", "ProfileDates", "ReminderSettings", "SourceDates"].map((name) => [name, () => null]),
+    ),
+  }).default;
+  const html = renderToStaticMarkup(await page({ searchParams: Promise.resolve({ date: "2026-05-04" }) }));
+  assert.match(html, /Your Family Calendar is waiting for family dates/);
+  for (const text of ["Birthdays", "memorial dates", "anniversaries", "expected births", "Enable Family Date Sync"]) {
+    assert.ok(html.includes(text), `Expected guidance about ${text}`);
+  }
+  assert.match(html, /not a one-time copy/);
+});
+
+test("calendar forms explain sync, privacy, and full-date requirements", () => {
+  const forms = loadModule("app/family-calendar/calendar-forms.tsx", {
+    "react/jsx-runtime": jsxRuntime,
+    react: { ...React, useActionState: () => [{}, () => {}, false] },
+    "@/app/actions/family-calendar": Object.fromEntries(
+      ["addRelationshipMilestone", "createCalendarEvent", "enableCalendarImports", "saveCalendarProfile",
+        "saveCalendarReminders", "saveTreeSourceDate"].map((name) => [name, () => {}]),
+    ),
+  });
+  const sync = renderToStaticMarkup(React.createElement(forms.ImportDates, { treeId: "tree" }));
+  assert.match(sync, /Enable Family Date Sync/);
+  const sharing = renderToStaticMarkup(React.createElement(forms.ProfileDates, { profile: {} }));
+  assert.match(sharing, /private until you choose to share/);
+  assert.match(sharing, /birth year alone cannot appear on the calendar/);
+  const sources = renderToStaticMarkup(React.createElement(forms.SourceDates, { treeId: "tree", records: [] }));
+  assert.match(sources, /visible to all members of this tree/);
+  assert.match(sources, /accepted Connected Lives™ connection, both people in this tree, and both to share/);
+});
+
 test("family calendar authorization, consent and live imports in disposable PostgreSQL", {
   skip: process.env.FAMILY_CALENDAR_TEST_PGLITE ? false : "Set FAMILY_CALENDAR_TEST_PGLITE to an installed PGlite package path.",
 }, async () => {

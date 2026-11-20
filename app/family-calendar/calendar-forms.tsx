@@ -48,7 +48,7 @@ export function ProfileDates({ profile }: { profile: CalendarProfile }) {
   return (
     <details className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
       <summary className="cursor-pointer font-serif text-xl text-white">My Family Dates &amp; Sharing</summary>
-      <p className="my-4 text-sm leading-6 text-slate-400">Full dates are private until you choose to share them with your tree members. Anniversaries and relationship milestones require both people to share.</p>
+      <p className="my-4 text-sm leading-6 text-slate-400">Your full birthday and memorial date are private until you choose to share them with your tree members. A birth year alone cannot appear on the calendar; a full date is required. Anniversaries and relationship milestones require both connected people to share and belong to the same tree.</p>
       <ActionForm action={saveCalendarProfile} label="Save My Dates">
         <label className="block text-sm text-slate-200">Full Birthday <input type="date" name="birthDate" defaultValue={profile.birthDate} className={fieldClass} /></label>
         <label className="block text-sm text-slate-200">Birth Year Only <input type="number" name="birthYear" min="1000" max="9999" defaultValue={profile.birthYear} className={fieldClass} /></label>
@@ -78,7 +78,7 @@ export function ReminderSettings({ reminders }: { reminders: Reminders }) {
 }
 
 export function ImportDates({ treeId }: { treeId: string }) {
-  return <ActionForm action={enableCalendarImports} label="🌳 Import Family Dates"><input type="hidden" name="treeId" value={treeId} /></ActionForm>;
+  return <ActionForm action={enableCalendarImports} label="🌳 Enable Family Date Sync"><input type="hidden" name="treeId" value={treeId} /></ActionForm>;
 }
 
 export function ManualEvent({ treeId }: { treeId: string }) {
@@ -100,7 +100,7 @@ export function SourceDates({ treeId, records }: { treeId: string; records: Sour
   return (
     <details id="family-dates" className="scroll-mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
       <summary className="cursor-pointer font-serif text-xl text-white">Manage Family Dates</summary>
-      <p className="my-4 text-sm leading-6 text-slate-400">Tree owners and admins can add dates to family placeholders and future makers. Both participants must opt in before a connection&apos;s shared date can be managed.</p>
+      <p className="my-4 text-sm leading-6 text-slate-400">Tree owners and admins can add full dates to family placeholders and Future Moment Makers™. A birth year alone cannot appear on the calendar. Synced dates are visible to all members of this tree. Anniversaries and relationship milestones require an accepted Connected Lives™ connection, both people in this tree, and both to share the relevant dates.</p>
       {!records.length && <p className="text-sm text-slate-400">No editable family records are available in this tree yet.</p>}
       <div className="space-y-5">
         {records.map((record) => (

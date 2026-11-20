@@ -120,12 +120,12 @@ test("a tree containing only the viewer invites them to add family", async () =>
 });
 
 test("add confirmation links to the tree returned by the server", () => {
-  const renderForm = (state) => {
+  const renderForm = (state, memberType = "placeholder") => {
     const component = loadModule("app/legacy-tree/family-member-form.tsx", {
       "react/jsx-runtime": jsxRuntime,
       react: {
         ...React,
-        useState: () => ["placeholder", () => {}],
+        useState: () => [memberType, () => {}],
         useActionState: () => [state, () => {}, false],
       },
       "@/app/actions/family-tree": { addFamilyMember: () => {} },
@@ -137,6 +137,7 @@ test("add confirmation links to the tree returned by the server", () => {
   };
   assert.match(renderForm({ success: "Added", treeId: "second tree" }), /href="#legacy-tree-item-second%20tree"[^>]*>View My Tree/);
   assert.doesNotMatch(renderForm({ error: "Cannot add" }), /View My Tree/);
+  assert.match(renderForm({}, "existing"), /does not create a Connected Lives™ connection or automatically share dates/);
 });
 
 test("tree creation and membership-scoped display in disposable PostgreSQL", {

@@ -146,7 +146,7 @@ export default async function ConnectedLivesPage() {
           Connected Lives™
         </h1>
         <p className="mt-4 max-w-2xl leading-7 text-slate-400">
-          Explore the people and families connected to your life.
+          Explore the people and families connected to your life. Connected Lives™ and Legacy Trees™ work together but are managed separately; connecting does not automatically add someone to your tree.
         </p>
         {notifications.some((notification) => !notification.readAt) && (
           <form action={markLivesNotificationsRead} className="mt-5">

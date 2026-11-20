@@ -42,15 +42,19 @@ async function HomepageAccountActions() {
   return (
     <>
       <div className="mt-6 flex w-full max-w-xl flex-col justify-center gap-4 sm:flex-row">
-        <Link
-          href={user ? "/dashboard" : "/signup"}
-          className="rounded-full bg-[#D8A35B] px-8 py-4 text-sm font-semibold tracking-wide text-[#0F172A] transition hover:bg-[#e6b66f] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
-        >
-          {user ? "My Legacy" : "Create Your Legacy"}
-        </Link>
+        {!user && (
+          <Link
+            href="/signup"
+            className="rounded-full bg-[#D8A35B] px-8 py-4 text-sm font-semibold tracking-wide text-[#0F172A] transition hover:bg-[#e6b66f] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
+          >
+            Create Your Legacy
+          </Link>
+        )}
         <Link
           href="/search"
-          className="rounded-full border border-[#D8A35B]/60 px-8 py-4 text-sm font-semibold tracking-wide text-[#f0c98e] transition hover:border-[#D8A35B] hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
+          className={user
+            ? "rounded-full bg-[#D8A35B] px-8 py-4 text-sm font-semibold tracking-wide text-[#0F172A] transition hover:bg-[#e6b66f] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
+            : "rounded-full border border-[#D8A35B]/60 px-8 py-4 text-sm font-semibold tracking-wide text-[#f0c98e] transition hover:border-[#D8A35B] hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"}
         >
           Find A Moment Maker
         </Link>
