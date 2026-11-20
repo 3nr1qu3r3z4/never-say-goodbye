@@ -57,6 +57,7 @@ export default async function DashboardPage() {
         { label: "Create Future Moment Maker™", href: "/create-moment/future-moment-maker" },
         { label: "View Future Moment Makers™", href: "/connected-lives#future-heading" },
         { label: "Family Placeholders (Legacy Tree™)", href: "/legacy-tree" },
+        { label: "Email Preferences", href: "/email-preferences" },
       ],
     },
     {

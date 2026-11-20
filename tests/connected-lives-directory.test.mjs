@@ -139,6 +139,7 @@ test("dashboard groups moment, people, and profile destinations without losing d
   assert.match(groups[1], /href="\/create-moment\/future-moment-maker"[^>]*>Create Future Moment Maker™<\/a>/);
   assert.match(groups[1], /href="\/connected-lives#future-heading"[^>]*>View Future Moment Makers™<\/a>/);
   assert.match(groups[1], /href="\/legacy-tree"[^>]*>Family Placeholders \(Legacy Tree™\)<\/a>/);
+  assert.match(groups[1], /href="\/email-preferences"[^>]*>Email Preferences<\/a>/);
   assert.match(groups[2], /<summary\b[^>]*>[\s\S]*?My Profile[\s\S]*?<\/summary>/);
   assert.match(groups[2], /href="\/my-profile"[^>]*>View Profile<\/a>/);
   assert.match(groups[2], /href="\/legacy-controls"[^>]*>Legacy Controls™<\/a>/);

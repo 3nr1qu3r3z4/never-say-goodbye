@@ -52,6 +52,17 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE UNIQUE INDEX IF NOT EXISTS users_email_unique_idx ON users (LOWER(email));
 CREATE UNIQUE INDEX IF NOT EXISTS users_username_unique_idx ON users (LOWER(username));
 
+CREATE TABLE IF NOT EXISTS email_preferences (
+  user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  new_connection_requests BOOLEAN NOT NULL DEFAULT TRUE,
+  connection_request_accepted BOOLEAN NOT NULL DEFAULT TRUE,
+  new_photo_shared BOOLEAN NOT NULL DEFAULT TRUE,
+  new_video_shared BOOLEAN NOT NULL DEFAULT TRUE,
+  new_audio_message_shared BOOLEAN NOT NULL DEFAULT TRUE,
+  shared_moments BOOLEAN NOT NULL DEFAULT TRUE,
+  legacy_successor_updates BOOLEAN NOT NULL DEFAULT TRUE
+);
+
 CREATE TABLE IF NOT EXISTS profile_visits (
   viewer_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   profile_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,

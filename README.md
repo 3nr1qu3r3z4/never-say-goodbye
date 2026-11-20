@@ -45,7 +45,9 @@ create a local data directory or write account data to the app filesystem.
      then
      `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/016_account_status.sql`
      then
-     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/017_profile_visits.sql`.
+     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/017_profile_visits.sql`
+     then
+     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/018_email_preferences.sql`.
    - In Bash, export `DATABASE_URL` and run
      `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/001_initial_schema.sql`
      then
@@ -79,7 +81,9 @@ create a local data directory or write account data to the app filesystem.
      then
      `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/016_account_status.sql`
      then
-     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/017_profile_visits.sql`.
+     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/017_profile_visits.sql`
+     then
+     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/018_email_preferences.sql`.
    - In the Neon Console, open the SQL Editor for the intended database. Run
      [`db/migrations/001_initial_schema.sql`](./db/migrations/001_initial_schema.sql)
      first, then run
@@ -99,6 +103,7 @@ create a local data directory or write account data to the app filesystem.
      then [`db/migrations/015_connected_lives_directory.sql`](./db/migrations/015_connected_lives_directory.sql)
      then [`db/migrations/016_account_status.sql`](./db/migrations/016_account_status.sql)
      then [`db/migrations/017_profile_visits.sql`](./db/migrations/017_profile_visits.sql)
+     then [`db/migrations/018_email_preferences.sql`](./db/migrations/018_email_preferences.sql)
      in order.
 3. Set `DATABASE_URL` to the same pooled connection string in local
    `.env.local` and in Vercel Project Settings → Environment Variables for each
@@ -106,9 +111,9 @@ create a local data directory or write account data to the app filesystem.
    database where you ran the migration.
 4. Redeploy after setting or changing Vercel environment variables.
 
-All seventeen migrations are idempotent and record their application in
+All eighteen migrations are idempotent and record their application in
 `schema_migrations`. [`db/schema.sql`](./db/schema.sql) is the standalone
-bootstrap copy of the current schema; use all seventeen versioned migrations above for
+bootstrap copy of the current schema; use all eighteen versioned migrations above for
 an existing database. There is no automatic migration runner in the
 application, so SQL must be applied to Neon before database-backed features
 can use new schema changes. The initial migration creates
@@ -133,7 +138,8 @@ WHERE table_schema = 'public'
     'weekly_moment_maker_weeks', 'weekly_moment_maker_selections',
     'family_relationship_milestones', 'family_calendar_events',
     'family_calendar_import_settings', 'family_calendar_reminders',
-    'connected_lives_person_tags', 'account_status_history', 'profile_visits'
+    'connected_lives_person_tags', 'account_status_history', 'profile_visits',
+    'email_preferences'
   )
 ORDER BY table_name;
 
@@ -146,7 +152,8 @@ WHERE version IN (
   '009_connected_lives_relationship_type', '010_account_recovery',
   '011_profile_birthplace', '012_profile_location_visibility',
   '013_weekly_moment_makers', '014_family_calendar',
-  '015_connected_lives_directory', '016_account_status', '017_profile_visits'
+  '015_connected_lives_directory', '016_account_status', '017_profile_visits',
+  '018_email_preferences'
 )
 ORDER BY version;
 
@@ -174,14 +181,19 @@ WHERE table_schema = 'public'
   AND column_name = 'relationship_type';
 ```
 
-The table query should return all twenty-two listed tables; the migration query should
-return all seventeen migration versions when each has been applied, and the user column
+The table query should return all twenty-three listed tables; the migration query should
+return all eighteen migration versions when each has been applied, and the user column
 query should return all profile and visibility columns. The profile migrations
 add the photo, bio, location, motto, and descriptor fields used by `/my-profile`;
 migration 006 adds the persisted Legacy Controls™ visibility and contribution
 settings. Signup creates
 the user and that user's Legacy Tree and membership in one transaction, then
 writes a session.
+
+Migration 018 adds per-user email notification preferences. Apply it before
+deploying the Email Preferences page. Until a user saves a selection, all
+categories are enabled by default. The page uses the account email address and
+does not send email or enable notification delivery.
 
 Migration 016 adds account statuses (`active`, `inactive`, `memorialized`, and
 `frozen`) and records subsequent status changes in `account_status_history`.
