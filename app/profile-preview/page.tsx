@@ -220,7 +220,7 @@ export default function ProfilePreviewPage() {
 
           <FirstMessage />
           <Link
-            href="/legacy-tree"
+            href="/profile-preview#family-tree-heading"
             className="mt-3 inline-flex w-full max-w-2xl justify-center rounded-full border border-[#D8A35B]/60 bg-transparent px-7 py-3.5 text-sm font-semibold tracking-wide text-[#f0c98e] transition hover:border-[#D8A35B] hover:bg-[#D8A35B]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
           >
             🌳 View Legacy Tree™

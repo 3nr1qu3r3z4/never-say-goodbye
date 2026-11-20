@@ -9,9 +9,9 @@ import * as jsxRuntime from "react/jsx-runtime";
 import { renderToStaticMarkup } from "react-dom/server";
 import ts from "typescript";
 
-test("the homepage showcase link opens John's profile without the message fragment", () => {
+function renderPage(relativePath) {
   const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-  const source = fs.readFileSync(path.join(root, "app", "page.tsx"), "utf8");
+  const source = fs.readFileSync(path.join(root, ...relativePath), "utf8");
   const compiled = ts.transpileModule(source, {
     compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX },
   }).outputText;
@@ -23,6 +23,8 @@ test("the homepage showcase link opens John's profile without the message fragme
     "next/image": { default: () => null },
     "@/lib/auth": { getCurrentUser: async () => null },
     "./weekly-moment-makers": { default: () => null },
+    "./first-message": { default: () => null },
+    "./protected-moment": { default: () => null },
   };
   vm.runInNewContext(compiled, {
     exports,
@@ -31,7 +33,18 @@ test("the homepage showcase link opens John's profile without the message fragme
       return dependencies[name];
     },
   });
-  const html = renderToStaticMarkup(React.createElement(exports.default));
+  return renderToStaticMarkup(React.createElement(exports.default));
+}
+
+test("the homepage showcase link opens John's profile without the message fragment", () => {
+  const html = renderPage(["app", "page.tsx"]);
   assert.match(html, /<a href="\/profile-preview"[^>]*>See Sample Profile<\/a>/);
   assert.doesNotMatch(html, /profile-preview#first-message/);
+});
+
+test("the showcase tree link targets John's tree, not the viewer's tree", () => {
+  const html = renderPage(["app", "profile-preview", "page.tsx"]);
+  assert.match(html, /<a href="\/profile-preview#family-tree-heading"[^>]*>🌳 View Legacy Tree™<\/a>/);
+  assert.match(html, /<h2 id="family-tree-heading"[^>]*>John&#x27;s Legacy Tree™<\/h2>/);
+  assert.doesNotMatch(html, /href="\/legacy-tree(?:[?#][^"]*)?"/);
 });
