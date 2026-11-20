@@ -302,7 +302,7 @@ export default async function DashboardPage() {
               </dl>
             </div>
             <Link
-              href="/future-moment-maker"
+              href={`/future-moment-maker/${encodeURIComponent(futureMaker.id)}`}
               className="mt-6 inline-flex rounded-full border border-[#D8A35B]/60 px-6 py-3 text-sm font-semibold text-[#f0c98e] transition hover:border-[#D8A35B] hover:bg-[#D8A35B]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
             >
               View Future Moment Maker™

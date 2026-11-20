@@ -64,6 +64,40 @@ test("directory searches and combines relationship and tag filters; sorts unknow
   assert.deepEqual(ids("", "all", "all", "za"), ["1", "4", "3", "2"]);
 });
 
+test("dashboard future-maker cards link to their own records, not the showcase", async () => {
+  const data = {
+    counts: {
+      sharedMoments: 0, personalMoments: 0, connectedLives: 0,
+      newLivesRequests: 0, unreadLivesNotifications: 0, futureMomentMakers: 2, drafts: 0,
+    },
+    futureMomentMakers: [
+      { id: "first", name: "First Person", relationship: "Grandchild", momentCount: 1 },
+      { id: "second/record", name: "Second Person", relationship: "Godchild", momentCount: 0 },
+    ],
+    recentActivity: [],
+  };
+  const dashboard = loadModule("app/dashboard/page.tsx", {
+    react: React,
+    "react/jsx-runtime": jsxRuntime,
+    "next/link": { default: ({ href, children }) => React.createElement("a", { href }, children) },
+    "@/lib/auth": { requireUser: async () => ({ id: "owner", firstName: "Owner" }) },
+    "@/lib/account-data": { getDashboardData: async () => data },
+    "@/lib/frequent-visits": { frequentVisitsEnabled: () => false },
+    "./signup-welcome": { default: () => null },
+    "./frequent-visits": { default: () => null },
+  }).default;
+  const html = renderToStaticMarkup(await dashboard());
+  const section = html.match(/<section aria-labelledby="future-makers-heading"[\s\S]*?<\/section>/)?.[0];
+  assert.ok(section);
+  assert.match(section, /First Person[\s\S]*?href="\/future-moment-maker\/first"/);
+  assert.match(section, /Second Person[\s\S]*?href="\/future-moment-maker\/second%2Frecord"/);
+  assert.doesNotMatch(section, /href="\/future-moment-maker"/);
+
+  data.futureMomentMakers = [];
+  const emptyHtml = renderToStaticMarkup(await dashboard());
+  assert.match(emptyHtml, /href="\/create-moment\/future-moment-maker"[^>]*>Create a Future Moment Maker™<\/a>/);
+});
+
 test("migration, shared tags, privacy and future-record authorization in disposable PostgreSQL", {
   skip: process.env.CONNECTED_LIVES_TEST_PGLITE ? false : "Set CONNECTED_LIVES_TEST_PGLITE to an installed PGlite package path.",
 }, async () => {

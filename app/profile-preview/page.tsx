@@ -32,8 +32,9 @@ const sharedMoments = [
   {
     title: "Family Traditions I Carry On",
     story: "Sunday suppers were never fancy, but everyone had a place at the table and a story to share.",
-    image: null,
-    alt: "",
+    // Photo by Kampus Production, licensed via https://www.pexels.com/photo/8507673/
+    image: "/images/family-traditions.jpg",
+    alt: "An illustrative photo of a multigenerational family sharing a meal at a table",
   },
 ];
 
@@ -331,20 +332,24 @@ export default function ProfilePreviewPage() {
         <div className="mx-auto max-w-6xl">
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">For generations to come</p>
           <h2 id="future-makers-heading" className="mt-3 font-serif text-3xl text-white sm:text-4xl">Future Moment Makers™</h2>
-          <p className="mt-4 max-w-3xl leading-7 text-slate-400">These example moments are being preserved for people whose stories are still unfolding.</p>
+          <p className="mt-4 max-w-3xl leading-7 text-slate-400">These fictional profiles illustrate reserved places for future loved ones. Only Debbie&apos;s example has a detail page.</p>
           <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {["Future Grandchild 1", "Future Grandchild 2", "Godchild"].map((name) => (
+            {[
+              { name: "A Future Grandchild", description: "A place to share family stories with a future grandchild." },
+              { name: "Another Future Grandchild", description: "A separate place for another grandchild's future memories." },
+              { name: "Future Godchild", description: "A place for a godchild's story before they have an account." },
+            ].map(({ name, description }) => (
               <li key={name} className="rounded-2xl border border-[#D8A35B]/25 bg-[#D8A35B]/[0.04] p-5 sm:p-6">
                 <span aria-hidden="true" className="text-xl">✨</span>
                 <p className="mt-3 font-serif text-lg text-white">{name}</p>
-                <p className="mt-1 text-sm text-slate-400">Future Moment Maker™</p>
+                <p className="mt-1 text-sm text-slate-400">{description}</p>
               </li>
             ))}
             <li className="rounded-2xl border border-[#D8A35B]/25 bg-[#D8A35B]/[0.04] p-5 sm:p-6">
               <span aria-hidden="true" className="text-xl">✨</span>
               <p className="mt-3 font-serif text-lg text-white">Debbie Doe</p>
               <p className="mt-1 text-sm text-slate-400">James has reserved a place for his daughter.</p>
-              <Link href="/future-moment-maker" className="mt-3 inline-block text-sm text-[#f0c98e] underline decoration-[#D8A35B]/40 underline-offset-4 hover:text-white">Explore Debbie&apos;s example</Link>
+              <Link href="/future-moment-maker" className="mt-3 inline-block text-sm text-[#f0c98e] underline decoration-[#D8A35B]/40 underline-offset-4 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]">Explore Debbie&apos;s example</Link>
             </li>
           </ul>
         </div>

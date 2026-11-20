@@ -90,14 +90,52 @@ test("the showcase tree link targets John's tree, not the viewer's tree", () => 
   assert.doesNotMatch(html, /href="\/legacy-tree(?:[?#][^"]*)?"/);
 });
 
-test("showcase labels fictional tree and visited profiles and distinguishes future grandchildren", () => {
+test("showcase labels fictional tree and visited profiles", () => {
   const html = renderPage(["app", "profile-preview", "page.tsx"]);
   assert.match(html, /Illustrative example: actual Legacy Trees show membership, not inferred generations/);
   assert.match(html, />Frequently Visited<\/h2>/);
   assert.match(html, /A fictional example of a shortcut/);
   assert.doesNotMatch(html, /Most Visited/);
-  assert.match(html, />Future Grandchild 1<\/p>/);
-  assert.match(html, />Future Grandchild 2<\/p>/);
+});
+
+test("showcase distinguishes future profiles and links only Debbie's example", () => {
+  const html = renderPage(["app", "profile-preview", "page.tsx"]);
+  const section = html.match(/<section aria-labelledby="future-makers-heading"[\s\S]*?<\/section>/)?.[0];
+  assert.ok(section);
+  assert.match(section, /These fictional profiles illustrate reserved places/);
+  assert.match(section, /Only Debbie&#x27;s example has a detail page/);
+  for (const name of ["A Future Grandchild", "Another Future Grandchild", "Future Godchild"]) {
+    assert.match(section, new RegExp(`>${name}</p>`));
+  }
+  assert.doesNotMatch(section, /Future Grandchild [12]/);
+  assert.match(section, /href="\/future-moment-maker"[^>]*>Explore Debbie&#x27;s example<\/a>/);
+  assert.equal((section.match(/<a\b/g) ?? []).length, 1);
+});
+
+test("Debbie's example is labeled fictional and links back to John's showcase", () => {
+  const html = renderPage(["app", "future-moment-maker", "page.tsx"]);
+  assert.match(html, /Fictional example profile/);
+  assert.match(html, /href="\/profile-preview#future-makers-heading"[^>]*>Return to John&#x27;s showcase<\/a>/);
+  assert.match(html, /add one to a Legacy Tree™ or create one while publishing a Future Moment Maker™ moment/);
+  assert.doesNotMatch(html, /When a Moment Maker creates a Cannot Open Until/);
+  assert.match(html, /href="\/james-doe"[^>]*>James Michael Doe<\/a>/);
+});
+
+test("family traditions displays a local, described image instead of a placeholder", () => {
+  const page = loadPage(
+    ["app", "profile-preview", "page.tsx"],
+    null,
+    { "next/image": { default: ({ src, alt }) => React.createElement("img", { src, alt }) } },
+  );
+  const html = renderToStaticMarkup(React.createElement(page));
+  const card = html.match(/<article\b[^>]*>[\s\S]*?<\/article>/g)
+    ?.find((article) => article.includes("Family Traditions I Carry On"));
+  assert.ok(card);
+  assert.match(card, /src="\/images\/family-traditions\.jpg"/);
+  assert.match(card, /alt="An illustrative photo of a multigenerational family sharing a meal at a table"/);
+  assert.doesNotMatch(card, /Photo coming soon/);
+  const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+  assert.ok(fs.statSync(path.join(root, "public", "images", "family-traditions.jpg")).size > 0);
 });
 
 test("first message does not advertise a duration without a recording", () => {

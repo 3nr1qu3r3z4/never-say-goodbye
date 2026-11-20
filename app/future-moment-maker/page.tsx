@@ -4,7 +4,7 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "Future Moment Maker™ | Never Say Goodbye",
   description:
-    "A reserved place for Debbie Doe, created through a Cannot Open Until™ message.",
+    "Explore Debbie Doe's fictional Future Moment Maker™ example.",
 };
 
 const profileDetails = [
@@ -25,12 +25,18 @@ export default function FutureMomentMakerPage() {
         <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">
           Never Say Goodbye
         </p>
+        <p className="mt-4 text-sm font-semibold text-[#f0c98e]">
+          Fictional example profile
+        </p>
         <h1 className="mt-4 font-serif text-4xl tracking-tight text-white sm:text-5xl md:text-6xl">
           Future Moment Maker™
         </h1>
         <p className="mx-auto mt-4 max-w-xl font-serif text-lg leading-relaxed text-slate-300 sm:text-xl">
           A place reserved for a moment still to come
         </p>
+        <Link href="/profile-preview#future-makers-heading" className="mt-5 inline-block text-sm text-[#f0c98e] underline decoration-[#D8A35B]/40 underline-offset-4 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]">
+          Return to John&apos;s showcase
+        </Link>
       </header>
 
       <section className="mx-auto max-w-5xl px-4 pb-16 sm:px-8 sm:pb-20">
@@ -96,10 +102,9 @@ export default function FutureMomentMakerPage() {
             A moment is waiting for you.
           </h2>
           <p className="mt-5 leading-7 text-slate-300 sm:text-lg sm:leading-8">
-            When a Moment Maker creates a Cannot Open Until™ message for someone
-            without an account, Never Say Goodbye creates a Future Moment
-            Maker™ profile to reserve their place until they are ready to claim
-            it.
+            A Future Moment Maker™ reserves a place for someone whose story is
+            still unfolding. You can add one to a Legacy Tree™ or create one
+            while publishing a Future Moment Maker™ moment.
           </p>
         </div>
       </section>
