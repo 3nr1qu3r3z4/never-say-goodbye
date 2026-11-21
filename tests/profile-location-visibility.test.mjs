@@ -47,9 +47,46 @@ const basicDependencies = {
   "next/link": { default: ({ children }) => React.createElement("a", null, children) },
   "next/image": { default: () => null },
   "@/app/profile-locations": { default: ProfileLocations },
+  "@/app/moments/moment-actions-menu": { default: () => null },
   "@/lib/frequent-visits": { frequentVisitsEnabled: () => false },
   "./visit-tracker": { default: () => null },
 };
+
+test("real Shared Moment cards pass author status to the actions menu", async () => {
+  const sql = async (strings) => {
+    const text = strings.join("");
+    if (text.includes("FROM users AS u")) {
+      return [{ ...profile, publicSharedMoments: true }];
+    }
+    if (text.includes("FROM moments")) {
+      return [{ id: "moment", title: "Shared story", kind: "shared", audience: "public" }];
+    }
+    return [];
+  };
+  const menu = ({ momentId, isAuthor }) => React.createElement(
+    "span", { "data-owner": String(isAuthor) }, momentId,
+  );
+  const dependencies = {
+    ...basicDependencies,
+    "@/app/moments/moment-actions-menu": { default: menu },
+    "@/lib/db": { getSql: () => sql },
+  };
+  for (const [currentUser, expected] of [[{ id: "person" }, "true"], [null, "false"]]) {
+    const page = loadModule("app/moment-maker/[id]/page.tsx", {
+      ...dependencies,
+      "next/navigation": { notFound: () => { throw new Error("not found"); } },
+      "@/lib/auth": { getCurrentUser: async () => currentUser },
+      "./connection-request-button": { default: () => null },
+    }).default;
+    const html = renderToStaticMarkup(await page({ params: Promise.resolve({ id: "person" }) }));
+    assert.match(html, new RegExp(`data-owner="${expected}">moment`));
+  }
+  const preview = loadModule("app/my-profile/preview/page.tsx", {
+    ...dependencies,
+    "@/lib/auth": { requireUser: async () => ({ id: "person" }) },
+  }).default;
+  assert.match(renderToStaticMarkup(await preview()), /data-owner="true">moment/);
+});
 
 test("profile preview displays each location only when its visibility is enabled", async () => {
   for (const [showBirth, showLocation] of [[false, false], [true, false], [false, true], [true, true]]) {

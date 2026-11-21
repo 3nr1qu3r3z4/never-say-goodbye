@@ -44,7 +44,7 @@ export default async function DashboardPage() {
       items: [
         { label: "New Moment", href: "/create-moment" },
         { label: `Drafts (${data.counts.drafts})`, href: "/drafts" },
-        { label: "Connections and Family Moments", href: "/moments" },
+        { label: "Shared Moments", href: "/moments" },
         { label: "Shared Moment", href: "/create-moment/shared" },
         { label: "Personal / Protected Moment", href: "/create-moment/personal" },
         { label: "Cannot Open Until™ (scheduled opening)", href: "/create-moment/cannot-open-until" },

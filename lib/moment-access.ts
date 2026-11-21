@@ -6,24 +6,40 @@ export type AccessibleMoment = {
   id: string;
   title: string;
   story: string;
+  tags: string;
   writtenMessage: string | null;
+  photoName: string | null;
+  videoName: string | null;
+  voiceName: string | null;
   authorName: string;
+  authorId: string;
+  isAuthor: boolean;
 };
 
-async function findAccessibleMoments(viewerId: string, momentId: string | null) {
+async function findAccessibleMoments(viewerId: string | null, momentId: string | null) {
   const sql = getSql();
   return (await sql`
-    SELECT m.id, m.title, m.story,
+    SELECT m.id, m.title, m.story, m.tags,
            m.details_json::jsonb ->> 'writtenMessage' AS "writtenMessage",
-           COALESCE(NULLIF(BTRIM(u.display_name), ''), 'Moment Maker') AS "authorName"
+           m.details_json::jsonb -> 'attachmentNames' ->> 'photo' AS "photoName",
+           m.details_json::jsonb -> 'attachmentNames' ->> 'video' AS "videoName",
+           m.details_json::jsonb -> 'attachmentNames' ->> 'voice' AS "voiceName",
+           COALESCE(NULLIF(BTRIM(u.display_name), ''), 'Moment Maker') AS "authorName",
+           m.user_id AS "authorId",
+           CASE WHEN m.user_id = ${viewerId} THEN TRUE ELSE FALSE END AS "isAuthor"
     FROM moments AS m
     JOIN users AS u ON u.id = m.user_id
     WHERE m.kind = 'shared'
-      AND m.audience IN ('connections', 'family')
       AND m.access_code_hash IS NULL
       AND (${momentId}::text IS NULL OR m.id = ${momentId})
       AND (
         m.user_id = ${viewerId}
+        OR (
+          ${momentId}::text IS NOT NULL
+          AND m.audience = 'public'
+          AND u.discoverability IN ('searchable', 'public')
+          AND COALESCE((to_jsonb(u) ->> 'public_shared_moments')::boolean, TRUE)
+        )
         OR (
           m.audience = 'connections'
           AND EXISTS (
@@ -55,7 +71,7 @@ export async function getAccessibleMoments(viewerId: string) {
   return findAccessibleMoments(viewerId, null);
 }
 
-export async function getAccessibleMoment(viewerId: string, momentId: string) {
+export async function getAccessibleMoment(viewerId: string | null, momentId: string) {
   const moments = await findAccessibleMoments(viewerId, momentId);
   return moments[0] ?? null;
 }

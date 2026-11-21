@@ -143,7 +143,7 @@ test("dashboard groups moment, people, and profile destinations without losing d
   assert.match(groups[0], /<summary\b[^>]*>[\s\S]*?Create Moment[\s\S]*?<\/summary>/);
   assert.match(groups[0], /href="\/create-moment"[^>]*>New Moment<\/a>/);
   assert.match(groups[0], /href="\/drafts"[^>]*>Drafts \(3\)<\/a>/);
-  assert.match(groups[0], /href="\/moments"[^>]*>Connections and Family Moments<\/a>/);
+  assert.match(groups[0], /href="\/moments"[^>]*>Shared Moments<\/a>/);
   assert.match(groups[0], /href="\/create-moment\/shared"[^>]*>Shared Moment<\/a>/);
   assert.match(groups[0], /href="\/create-moment\/personal"[^>]*>Personal \/ Protected Moment<\/a>/);
   assert.match(groups[0], /href="\/create-moment\/cannot-open-until"[^>]*>Cannot Open Until™ \(scheduled opening\)<\/a>/);

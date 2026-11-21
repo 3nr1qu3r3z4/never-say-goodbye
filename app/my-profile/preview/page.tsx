@@ -4,6 +4,7 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { getSql } from "@/lib/db";
 import ProfileLocations from "@/app/profile-locations";
+import MomentActionsMenu from "@/app/moments/moment-actions-menu";
 
 export const metadata: Metadata = {
   title: "Profile Preview | Never Say Goodbye",
@@ -96,6 +97,7 @@ export default async function MyProfilePreviewPage() {
       FROM moments
       WHERE user_id = ${user.id}
         AND kind IN ('shared', 'personal')
+        AND (kind <> 'shared' OR access_code_hash IS NULL)
       ORDER BY created_at DESC
     `,
     sql`
@@ -299,8 +301,9 @@ export default async function MyProfilePreviewPage() {
               {sharedMoments.map((moment) => (
                 <article
                   key={moment.id}
-                  className="flex min-h-40 flex-col justify-end rounded-2xl border border-white/10 bg-gradient-to-br from-[#293b4a] via-[#33465a] to-[#172437] p-5"
+                  className="relative flex min-h-40 flex-col justify-end rounded-2xl border border-white/10 bg-gradient-to-br from-[#293b4a] via-[#33465a] to-[#172437] p-5"
                 >
+                  <MomentActionsMenu momentId={moment.id} title={moment.title} isAuthor />
                   <span aria-hidden="true" className="mb-auto text-2xl text-[#f0c98e]">
                     ✦
                   </span>

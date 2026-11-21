@@ -9,6 +9,7 @@ import ProfileLocations from "@/app/profile-locations";
 import { frequentVisitsEnabled } from "@/lib/frequent-visits";
 import type { ConnectionStatus } from "@/app/actions/connected-lives";
 import VisitTracker from "./visit-tracker";
+import MomentActionsMenu from "@/app/moments/moment-actions-menu";
 
 export const instant = false;
 
@@ -79,6 +80,7 @@ export default async function MomentMakerProfilePage({
       WHERE user_id = ${profile.id}
         AND audience = 'public'
         AND kind IN ('shared', 'personal')
+        AND (kind <> 'shared' OR access_code_hash IS NULL)
       ORDER BY created_at DESC
     `,
     currentUser && currentUser.id !== profile.id
@@ -208,8 +210,9 @@ export default async function MomentMakerProfilePage({
               {sharedMoments.map((moment) => (
                 <li
                   key={moment.id}
-                  className="rounded-2xl border border-white/10 bg-white/[0.03] p-5"
+                  className="relative rounded-2xl border border-white/10 bg-white/[0.03] p-5 pr-16"
                 >
+                  <MomentActionsMenu momentId={moment.id} title={moment.title} isAuthor={isOwnProfile} />
                   <p className="font-serif text-lg text-white">{moment.title}</p>
                 </li>
               ))}

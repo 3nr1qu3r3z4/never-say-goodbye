@@ -36,15 +36,16 @@ test("moment page authorizes before rendering and hides denied or missing moment
     "react/jsx-runtime": jsxRuntime,
     "next/link": { default: ({ children, href }) => React.createElement("a", { href }, children) },
     "next/navigation": { notFound: () => { throw new Error("not found"); } },
-    "@/lib/auth": { requireUser: async () => {
-      if (!signedIn) throw new Error("sign in");
-      return { id: "viewer" };
-    } },
+    "@/lib/auth": { getCurrentUser: async () => signedIn ? { id: "viewer" } : null },
     "@/lib/moment-access": {
       getAccessibleMoment: async (...args) => {
         calls.push(args);
         return allowed
-          ? { title: "A story", authorName: "Author", story: "Memory", writtenMessage: "Message" }
+          ? {
+            title: "A story", authorName: "Author", authorId: "author",
+            story: "Memory", writtenMessage: "Message", tags: "family",
+            photoName: "photo.jpg", videoName: null, voiceName: null,
+          }
           : null;
       },
     },
@@ -57,9 +58,84 @@ test("moment page authorizes before rendering and hides denied or missing moment
   assert.match(html, /A story/);
   assert.match(html, /Memory/);
   assert.match(html, /Message/);
+  assert.match(html, /Tags: family/);
+  assert.match(html, /Photo: photo.jpg/);
+  assert.match(html, /files were not uploaded/);
   signedIn = false;
-  await assert.rejects(page({ params: Promise.resolve({ id: "moment" }) }), /sign in/);
-  assert.equal(calls.length, 2);
+  await page({ params: Promise.resolve({ id: "moment" }) });
+  assert.deepEqual(calls[2], [null, "moment"]);
+});
+
+test("moment menu confirms deletion and hides management actions from non-authors", async () => {
+  const states = [];
+  const menu = { open: true, contains: () => false };
+  let opened = 0;
+  let closed = 0;
+  let refreshed = 0;
+  let calls = 0;
+  let fail = true;
+  const refs = [
+    { current: menu },
+    { current: { focus() {} } },
+    { current: { showModal: () => { opened++; }, close: () => { closed++; } } },
+  ];
+  let refIndex = 0;
+  const jsx = (type, props) => ({ type, props });
+  const Menu = loadModule("app/moments/moment-actions-menu.tsx", {
+    "react/jsx-runtime": { jsx, jsxs: jsx, Fragment: "fragment" },
+    react: {
+      useEffect() {},
+      useId: () => "id",
+      useRef: () => refs[refIndex++],
+      useState: (initial) => {
+        const index = states.length;
+        states.push(initial);
+        return [initial, (value) => { states[index] = value; }];
+      },
+    },
+    "next/navigation": { useRouter: () => ({ refresh: () => { refreshed++; } }) },
+    "@/app/actions/moments": { deleteSharedMoment: async (id) => {
+      calls++;
+      assert.equal(id, "moment");
+      return fail ? { error: "Could not delete" } : { success: true };
+    } },
+  }).default;
+  function find(node, predicate) {
+    if (!node || typeof node !== "object") return undefined;
+    if (predicate(node)) return node;
+    for (const child of [node.props?.children].flat(Infinity)) {
+      const found = find(child, predicate);
+      if (found) return found;
+    }
+  }
+  const tree = Menu({ momentId: "moment", title: "Story", isAuthor: true });
+  const deleteButton = find(tree, (node) => node.type === "button" && node.props.children === "Delete Moment");
+  assert.ok(deleteButton);
+  assert.ok(find(tree, (node) => node.type === "button" && node.props.disabled && Array.isArray(node.props.children) && node.props.children[0] === "Edit Moment "));
+  deleteButton.props.onClick();
+  assert.equal(opened, 1);
+  assert.equal(menu.open, false);
+  assert.equal(calls, 0);
+  find(tree, (node) => node.type === "button" && node.props.children === "Cancel").props.onClick();
+  assert.equal(closed, 1);
+  assert.equal(calls, 0);
+  deleteButton.props.onClick();
+  const form = find(tree, (node) => node.type === "form");
+  await form.props.onSubmit({ preventDefault() {} });
+  assert.equal(states[1], "Could not delete");
+  assert.equal(refreshed, 0);
+  fail = false;
+  await form.props.onSubmit({ preventDefault() {} });
+  assert.equal(calls, 2);
+  assert.equal(closed, 2);
+  assert.equal(refreshed, 1);
+
+  refIndex = 0;
+  states.length = 0;
+  const visitorTree = Menu({ momentId: "moment", title: "Story", isAuthor: false });
+  assert.ok(find(visitorTree, (node) => node.type === "a" && node.props.children === "View Moment"));
+  assert.equal(find(visitorTree, (node) => node.type === "button" && node.props.children === "Delete Moment"), undefined);
+  assert.equal(find(visitorTree, (node) => node.type === "dialog"), undefined);
 });
 
 test("moment audiences are enforced against current relationships in PostgreSQL", {
@@ -125,12 +201,24 @@ test("moment audiences are enforced against current relationships in PostgreSQL"
     for (const viewer of ["accepted", "pending", "outsider"]) {
       assert.equal(await access.getAccessibleMoment(viewer, "family"), null, viewer);
     }
-    for (const id of ["protected", "scheduled", "future", "private", "public", "unexpected-code", "missing"]) {
+    for (const id of ["protected", "scheduled", "future", "unexpected-code", "missing"]) {
       assert.equal(await access.getAccessibleMoment("author", id), null, id);
       assert.equal(await access.getAccessibleMoment("accepted", id), null, id);
     }
+    assert.equal((await access.getAccessibleMoment("author", "private"))?.story, "Secret");
+    assert.equal(await access.getAccessibleMoment("accepted", "private"), null);
+    assert.equal((await access.getAccessibleMoment(null, "public"))?.story, "Public story");
+    assert.equal((await access.getAccessibleMoment("author", "public"))?.isAuthor, true);
     assert.deepEqual(Array.from(await access.getAccessibleMoments("relative"), (moment) => moment.id), ["family"]);
-    assert.deepEqual(Array.from(await access.getAccessibleMoments("author"), (moment) => moment.id).sort(), ["connections", "family"]);
+    assert.deepEqual(Array.from(await access.getAccessibleMoments("author"), (moment) => moment.id).sort(), ["connections", "family", "private", "public"]);
+    assert.deepEqual(Array.from(await access.getAccessibleMoments("outsider"), (moment) => moment.id), []);
+
+    await db.exec("UPDATE users SET public_shared_moments = FALSE WHERE id = 'author'");
+    assert.equal(await access.getAccessibleMoment(null, "public"), null);
+    assert.equal((await access.getAccessibleMoment("author", "public"))?.story, "Public story");
+    await db.exec("UPDATE users SET public_shared_moments = TRUE, discoverability = 'private' WHERE id = 'author'");
+    assert.equal(await access.getAccessibleMoment(null, "public"), null);
+    assert.equal((await access.getAccessibleMoment("author", "public"))?.story, "Public story");
 
     await db.exec(`
       UPDATE connected_lives SET status = 'declined' WHERE id = 'accepted';
@@ -139,6 +227,33 @@ test("moment audiences are enforced against current relationships in PostgreSQL"
     assert.equal(await access.getAccessibleMoment("accepted", "connections"), null);
     assert.equal(await access.getAccessibleMoment("relative", "family"), null);
     assert.equal((await access.getAccessibleMoments("relative")).length, 0);
+
+    let currentUser = null;
+    const revalidated = [];
+    const actions = loadModule("app/actions/moments.ts", {
+      "next/cache": { revalidatePath: (...args) => revalidated.push(args) },
+      "@/lib/auth": { getCurrentUser: async () => currentUser },
+      "@/lib/db": { getSql: () => sql },
+    });
+    assert.match((await actions.deleteSharedMoment("family")).error, /Sign in/);
+    currentUser = { id: "reverse" };
+    assert.match((await actions.deleteSharedMoment("connections")).error, /no longer available/);
+    currentUser = { id: "outsider" };
+    assert.match((await actions.deleteSharedMoment("family")).error, /no longer available/);
+    assert.ok(await access.getAccessibleMoment("author", "family"));
+    currentUser = { id: "author" };
+    assert.match((await actions.deleteSharedMoment("")).error, /could not be found/);
+    assert.match((await actions.deleteSharedMoment("protected")).error, /no longer available/);
+    assert.match((await actions.deleteSharedMoment("missing")).error, /no longer available/);
+    assert.equal(revalidated.length, 0);
+    assert.equal((await actions.deleteSharedMoment("family")).success, true);
+    assert.equal(await access.getAccessibleMoment("author", "family"), null);
+    assert.equal((await db.query("SELECT COUNT(*)::int AS count FROM moments WHERE id = 'family'")).rows[0].count, 0);
+    assert.equal((await actions.deleteSharedMoment("private")).success, true);
+    assert.equal((await actions.deleteSharedMoment("public")).success, true);
+    assert.equal((await db.query("SELECT COUNT(*)::int AS count FROM moments WHERE id = 'protected'")).rows[0].count, 1);
+    assert.ok(revalidated.some(([path]) => path === "/moments"));
+    assert.ok(revalidated.some(([path]) => path === "/my-profile/preview"));
   } finally {
     await db.close();
   }

@@ -3,14 +3,15 @@
 Never Say Goodbye is a Moment Maker platform for preserving stories, moments,
 and family connections.
 
-## Connections and Family moments
+## Shared Moments
 
-Signed-in members can view Shared Moments addressed to their accepted Connected
-Lives or to members of a Legacy Tree shared with the author at `/moments`.
-Authors can also view their own moments in these two audiences. Access is
-checked when a moment is requested; other audiences and moment types are not
-available through this viewing path. Protected and scheduled unlocks, Future
-Moment Maker recipients, and media uploads are not implemented here.
+Signed-in members can view their own Shared Moments and moments addressed to
+their accepted Connected Lives or members of a shared Legacy Tree at `/moments`.
+Public Shared Moments can be viewed when the author's profile and Shared
+Moments visibility settings permit it. Authors can delete their own Shared
+Moments from the actions menu; editing published moments is not yet available.
+Protected and scheduled unlocks, Future Moment Maker recipients, and moment
+media uploads are not implemented here.
 
 ## Run locally and deploy
 
