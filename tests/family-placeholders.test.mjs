@@ -141,7 +141,7 @@ test("publishing links only an accessible placeholder and preserves audience", a
     });
     const result = await actions.publishMoment("shared", "", {
       title: "A story", story: "A memory", tags: "", content: ["written"],
-      attachmentNames: {}, photoData: "", writtenMessage: "", audience: "family",
+      attachmentNames: {}, photoData: "", videoUploadId: "", writtenMessage: "", audience: "family",
       accessCodeRequired: false, accessCode: "", releaseKind: "date",
       releaseDate: "", occasion: "", customOccasionDate: "", recipientName: "",
       relationship: "", createRecipient: false, familyPlaceholderId: "relative",

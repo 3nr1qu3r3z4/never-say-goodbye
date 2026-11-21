@@ -15,9 +15,26 @@ published moment. Photos on Shared Moments use the existing viewing permissions;
 other moment types do not yet have a viewing page. For older drafts containing
 only a filename, select the original photo again. Older published moments
 cannot be edited, so recreate them to include the original photo.
-Inputs up to 20 MB are optimized to at most 640 KB. Protected and scheduled
-unlocks, Future Moment Maker recipients, and video or audio uploads are not
-implemented here.
+Inputs up to 20 MB are optimized to at most 640 KB. Shared Moments also support
+one MP4, MOV, or M4V video up to 100 MiB, uploaded directly to private Blob
+storage. Playback uses the same Shared Moment access check and depends on the
+browser supporting the video's codec; no transcoding is performed. Older
+filename-only video selections must be uploaded again. Protected and scheduled
+unlocks, Future Moment Maker recipients, and audio uploads are not implemented.
+
+### Video deployment
+
+Apply migration 021 before deploying. Connect a **private** Vercel Blob store
+and configure `BLOB_READ_WRITE_TOKEN` for each environment: the client upload
+token flow requires it. Configure `CRON_SECRET` and verify the daily
+`/api/cron/moment-videos` job succeeds. On other hosts, invoke that endpoint
+daily with `Authorization: Bearer <CRON_SECRET>`.
+
+Uploaded videos are kept with saved Shared Moment drafts or published moments.
+Deleting a moment makes its video inaccessible immediately; physical Blob
+deletion occurs on the next successful cleanup job. Unreferenced uploads are
+removed after seven days. Monitor and retry failed jobs. Blob storage and
+playback incur provider charges.
 
 ## Run locally and deploy
 
@@ -67,7 +84,9 @@ create a local data directory or write account data to the app filesystem.
      then
      `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/019_site_analytics.sql`
      then
-     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/020_honored_lives.sql`.
+     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/020_honored_lives.sql`
+     then
+     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/021_moment_videos.sql`.
    - In Bash, export `DATABASE_URL` and run
      `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/001_initial_schema.sql`
      then
@@ -107,7 +126,9 @@ create a local data directory or write account data to the app filesystem.
      then
      `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/019_site_analytics.sql`
      then
-     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/020_honored_lives.sql`.
+     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/020_honored_lives.sql`
+     then
+     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/021_moment_videos.sql`.
    - In the Neon Console, open the SQL Editor for the intended database. Run
      [`db/migrations/001_initial_schema.sql`](./db/migrations/001_initial_schema.sql)
      first, then run
@@ -130,6 +151,7 @@ create a local data directory or write account data to the app filesystem.
      then [`db/migrations/018_email_preferences.sql`](./db/migrations/018_email_preferences.sql)
      then [`db/migrations/019_site_analytics.sql`](./db/migrations/019_site_analytics.sql)
      then [`db/migrations/020_honored_lives.sql`](./db/migrations/020_honored_lives.sql)
+     then [`db/migrations/021_moment_videos.sql`](./db/migrations/021_moment_videos.sql)
      in order.
 3. Set `DATABASE_URL` to the same pooled connection string in local
    `.env.local` and in Vercel Project Settings → Environment Variables for each
@@ -180,7 +202,8 @@ WHERE version IN (
   '011_profile_birthplace', '012_profile_location_visibility',
   '013_weekly_moment_makers', '014_family_calendar',
   '015_connected_lives_directory', '016_account_status', '017_profile_visits',
-  '018_email_preferences', '019_site_analytics', '020_honored_lives'
+  '018_email_preferences', '019_site_analytics', '020_honored_lives',
+  '021_moment_videos'
 )
 ORDER BY version;
 

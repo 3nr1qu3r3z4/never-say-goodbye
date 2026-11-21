@@ -22,6 +22,7 @@ function loadModule(relativePath, dependencies) {
   vm.runInNewContext(compiled, {
     exports,
     Buffer,
+    process, Request, Response, console,
     require: (name) => {
       if (!(name in dependencies)) throw new Error(`Unexpected import: ${name}`);
       return dependencies[name];
@@ -34,6 +35,7 @@ test("moment page authorizes before rendering and hides denied or missing moment
   let allowed = false;
   let signedIn = true;
   let photoData = null;
+  let hasVideo = false;
   const calls = [];
   const page = loadModule("app/moments/[id]/page.tsx", {
     "react/jsx-runtime": jsxRuntime,
@@ -46,7 +48,7 @@ test("moment page authorizes before rendering and hides denied or missing moment
         calls.push(args);
         return allowed
           ? {
-            title: "A story", authorName: "Author", authorId: "author",
+            id: "moment", title: "A story", authorName: "Author", authorId: "author", hasVideo,
             story: "Memory", writtenMessage: "Message", tags: "family",
             photoName: "photo.jpg", photoData, videoName: "video.mp4", voiceName: null,
           }
@@ -71,9 +73,13 @@ test("moment page authorizes before rendering and hides denied or missing moment
   assert.doesNotMatch(withPhoto, /Photo: photo.jpg/);
   assert.match(withPhoto, /Video: video.mp4/);
   assert.match(withPhoto, /files were not uploaded/);
+  hasVideo = true;
+  const withVideo = renderToStaticMarkup(await page({ params: Promise.resolve({ id: "moment" }) }));
+  assert.match(withVideo, /<video[^>]*src="\/api\/moments\/moment\/video"/);
+  assert.doesNotMatch(withVideo, /Video: video.mp4/);
   signedIn = false;
   await page({ params: Promise.resolve({ id: "moment" }) });
-  assert.deepEqual(calls[3], [null, "moment"]);
+  assert.deepEqual(calls[4], [null, "moment"]);
 });
 
 test("moment menu confirms deletion and hides management actions from non-authors", async () => {
@@ -186,6 +192,8 @@ test("moment audiences are enforced against current relationships in PostgreSQL"
              ('private', 'author', 'shared', 'Private', 'Secret', '{}', 'private', NULL, '2026-01-01', '2026-01-01'),
              ('public', 'author', 'shared', 'Public', 'Public story', '{}', 'public', NULL, '2026-01-01', '2026-01-01'),
              ('unexpected-code', 'author', 'shared', 'Protected', 'Secret', '{}', 'connections', 'hash', '2026-01-01', '2026-01-01');
+      INSERT INTO moment_videos (id, user_id, moment_id, pathname, filename, content_type, size_bytes, state)
+      VALUES ('public-video', 'author', 'public', 'moment-videos/public.mp4', 'public.mp4', 'video/mp4', 100, 'attached');
     `);
     const sql = async (strings, ...values) => {
       const text = strings.reduce((result, part, index) => result + (index ? `$${index}` : "") + part, "");
@@ -219,6 +227,7 @@ test("moment audiences are enforced against current relationships in PostgreSQL"
     assert.equal((await access.getAccessibleMoment("author", "private"))?.story, "Secret");
     assert.equal(await access.getAccessibleMoment("accepted", "private"), null);
     assert.equal((await access.getAccessibleMoment(null, "public"))?.story, "Public story");
+    assert.equal((await access.getAccessibleMoment(null, "public"))?.hasVideo, true);
     assert.equal((await access.getAccessibleMoment("author", "public"))?.isAuthor, true);
     assert.deepEqual(Array.from(await access.getAccessibleMoments("relative"), (moment) => moment.id), ["family"]);
     assert.deepEqual(Array.from(await access.getAccessibleMoments("author"), (moment) => moment.id).sort(), ["connections", "family", "private", "public"]);
@@ -268,14 +277,46 @@ test("moment audiences are enforced against current relationships in PostgreSQL"
     const [withoutPhotoRow] = (await db.query("SELECT details_json FROM moments WHERE title = 'No photo'")).rows;
     assert.equal(JSON.parse(withoutPhotoRow.details_json).photoData, null);
     assert.equal(JSON.parse(withoutPhotoRow.details_json).attachmentNames.photo, undefined);
-    const { photoData: ignored, ...legacyDraft } = photoDraft;
+    const { photoData: ignored, videoUploadId: ignoredVideo, ...legacyDraft } = photoDraft;
     assert.ok(ignored);
+    assert.equal(ignoredVideo, "");
     await db.query(`INSERT INTO drafts (id, user_id, kind, title, payload_json, created_at, updated_at)
       VALUES ('old-draft', 'author', 'shared', 'Old', $1, '2026-01-01', '2026-01-01')`, [JSON.stringify(legacyDraft)]);
     const restored = await editor.loadMomentDraft("shared");
     assert.equal(restored.draft.photoData, "");
+    assert.equal(restored.draft.videoUploadId, "");
     assert.equal(restored.draft.attachmentNames.photo, "family.png");
     assert.match((await editor.publishMoment("shared", restored.draftId, restored.draft)).error, /Choose a photo/);
+
+    await db.exec(`
+      INSERT INTO moment_videos (id, user_id, pathname, filename, content_type, size_bytes, state)
+      VALUES ('video-own', 'author', 'moment-videos/own.mp4', 'own.mp4', 'video/mp4', 100, 'ready'),
+             ('video-other', 'outsider', 'moment-videos/other.mp4', 'other.mp4', 'video/mp4', 100, 'ready');
+    `);
+    const videoDraft = {
+      ...initialMomentDraft, title: "Video memory", content: ["video"],
+      attachmentNames: { video: "own.mp4" }, videoUploadId: "video-own", audience: "family",
+    };
+    assert.match((await editor.publishMoment("shared", "", { ...videoDraft, videoUploadId: "" })).error, /Upload a video/);
+    assert.match((await editor.publishMoment("shared", "", { ...videoDraft, videoUploadId: "video-other" })).error, /no longer available/);
+    assert.match((await editor.saveMomentDraft("shared", "", { ...videoDraft, videoUploadId: "video-other" })).error, /no longer available/);
+    const savedVideo = await editor.saveMomentDraft("shared", "", videoDraft);
+    assert.equal((await editor.loadMomentDraft("shared")).draft.videoUploadId, "video-own");
+    assert.equal((await editor.publishMoment("shared", savedVideo.draftId, videoDraft)).success, true);
+    const [videoMoment] = (await db.query("SELECT id FROM moments WHERE title = 'Video memory'")).rows;
+    assert.equal((await access.getAccessibleMoment("relative", videoMoment.id)).hasVideo, true);
+    assert.equal(await access.getAccessibleMoment("outsider", videoMoment.id), null);
+    assert.match((await editor.publishMoment("shared", "", videoDraft)).error, /no longer available/);
+    assert.equal((await db.query("SELECT COUNT(*)::int AS n FROM moments WHERE title = 'Video memory'")).rows[0].n, 1);
+    await db.exec(`INSERT INTO moment_videos (id, user_id, pathname, filename, content_type, size_bytes, state)
+      VALUES ('video-race', 'author', 'moment-videos/race.mp4', 'race.mp4', 'video/mp4', 100, 'ready')`);
+    const raceDraft = { ...videoDraft, title: "Concurrent video", videoUploadId: "video-race" };
+    const raceResults = await Promise.all([
+      editor.publishMoment("shared", "", raceDraft),
+      editor.publishMoment("shared", "", raceDraft),
+    ]);
+    assert.equal(raceResults.filter((result) => result.success).length, 1);
+    assert.equal(raceResults.filter((result) => result.error).length, 1);
 
     await db.exec(`
       UPDATE connected_lives SET status = 'declined' WHERE id = 'accepted';
@@ -284,6 +325,7 @@ test("moment audiences are enforced against current relationships in PostgreSQL"
     assert.equal(await access.getAccessibleMoment("accepted", "connections"), null);
     assert.equal(await access.getAccessibleMoment("relative", "family"), null);
     assert.equal(await access.getAccessibleMoment("relative", published.id), null);
+    assert.equal(await access.getAccessibleMoment("relative", videoMoment.id), null);
     assert.equal((await access.getAccessibleMoments("relative")).length, 0);
 
     let currentUser = null;
@@ -305,6 +347,10 @@ test("moment audiences are enforced against current relationships in PostgreSQL"
     assert.match((await actions.deleteSharedMoment("missing")).error, /no longer available/);
     assert.equal(revalidated.length, 0);
     assert.equal((await actions.deleteSharedMoment("family")).success, true);
+    assert.equal((await actions.deleteSharedMoment(videoMoment.id)).success, true);
+    const [detachedVideo] = (await db.query("SELECT moment_id, state FROM moment_videos WHERE id = 'video-own'")).rows;
+    assert.equal(detachedVideo.moment_id, null);
+    assert.equal(detachedVideo.state, "attached");
     assert.equal(await access.getAccessibleMoment("author", "family"), null);
     assert.equal((await db.query("SELECT COUNT(*)::int AS count FROM moments WHERE id = 'family'")).rows[0].count, 0);
     assert.equal((await actions.deleteSharedMoment("private")).success, true);
@@ -312,6 +358,40 @@ test("moment audiences are enforced against current relationships in PostgreSQL"
     assert.equal((await db.query("SELECT COUNT(*)::int AS count FROM moments WHERE id = 'protected'")).rows[0].count, 1);
     assert.ok(revalidated.some(([path]) => path === "/moments"));
     assert.ok(revalidated.some(([path]) => path === "/my-profile/preview"));
+
+    await db.exec(`
+      INSERT INTO moment_videos (id, user_id, pathname, filename, content_type, size_bytes, state, last_used_at)
+      VALUES ('abandoned', 'author', 'moment-videos/abandoned.mp4', 'old.mp4', 'video/mp4', 100, 'ready', CURRENT_TIMESTAMP - INTERVAL '8 days'),
+             ('kept', 'author', 'moment-videos/kept.mp4', 'kept.mp4', 'video/mp4', 100, 'ready', CURRENT_TIMESTAMP - INTERVAL '8 days');
+      INSERT INTO drafts (id, user_id, kind, title, payload_json, created_at, updated_at)
+      VALUES ('kept-draft', 'author', 'shared', 'Kept', '{"videoUploadId":"kept"}', '2026-01-01', '2026-01-01');
+    `);
+    let cleanupFails = true;
+    const deletedBlobs = [];
+    const retention = loadModule("app/api/cron/moment-videos/route.ts", {
+      "@vercel/blob": { del: async (pathname) => {
+        if (cleanupFails) throw new Error("storage unavailable");
+        deletedBlobs.push(pathname);
+      } },
+      "next/server": { connection: async () => {} },
+      "@/lib/db": { getSql: () => sql },
+    });
+    const originalSecret = process.env.CRON_SECRET;
+    process.env.CRON_SECRET = "test-secret";
+    try {
+      assert.equal((await retention.GET(new Request("https://example.test/cron"))).status, 401);
+      const cronRequest = () => new Request("https://example.test/cron", { headers: { Authorization: "Bearer test-secret" } });
+      assert.equal((await retention.GET(cronRequest())).status, 500);
+      cleanupFails = false;
+      assert.equal((await retention.GET(cronRequest())).status, 204);
+      assert.ok(deletedBlobs.includes("moment-videos/own.mp4"));
+      assert.ok(deletedBlobs.includes("moment-videos/abandoned.mp4"));
+      assert.equal(deletedBlobs.includes("moment-videos/kept.mp4"), false);
+      assert.equal((await db.query("SELECT COUNT(*)::int AS n FROM moment_videos WHERE id = 'kept'")).rows[0].n, 1);
+    } finally {
+      if (originalSecret === undefined) delete process.env.CRON_SECRET;
+      else process.env.CRON_SECRET = originalSecret;
+    }
   } finally {
     await db.close();
   }

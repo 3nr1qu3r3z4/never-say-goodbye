@@ -17,6 +17,7 @@ export type MomentDraft = {
   content: ContentKind[];
   attachmentNames: AttachmentNames;
   photoData: string;
+  videoUploadId: string;
   writtenMessage: string;
   audience: Audience;
   accessCodeRequired: boolean;
@@ -38,6 +39,7 @@ export const initialMomentDraft: MomentDraft = {
   content: [],
   attachmentNames: {},
   photoData: "",
+  videoUploadId: "",
   writtenMessage: "",
   audience: "connections",
   accessCodeRequired: false,

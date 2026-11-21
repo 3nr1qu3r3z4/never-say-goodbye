@@ -7,6 +7,10 @@
     {
       "path": "/api/cron/site-analytics",
       "schedule": "15 0 * * *"
+    },
+    {
+      "path": "/api/cron/moment-videos",
+      "schedule": "30 0 * * *"
     }
   ]
 }

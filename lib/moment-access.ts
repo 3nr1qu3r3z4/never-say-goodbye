@@ -11,21 +11,24 @@ export type AccessibleMoment = {
   photoName: string | null;
   photoData: string | null;
   videoName: string | null;
+  hasVideo: boolean;
   voiceName: string | null;
   authorName: string;
   authorId: string;
   isAuthor: boolean;
 };
 
-async function findAccessibleMoments(viewerId: string | null, momentId: string | null) {
+async function findAccessibleMoments(viewerId: string | null, momentId: string | null, includePhoto: boolean) {
   const sql = getSql();
   return (await sql`
     SELECT m.id, m.title, m.story, m.tags,
            m.details_json::jsonb ->> 'writtenMessage' AS "writtenMessage",
            m.details_json::jsonb -> 'attachmentNames' ->> 'photo' AS "photoName",
-           CASE WHEN ${momentId}::text IS NOT NULL
+           CASE WHEN ${momentId}::text IS NOT NULL AND ${includePhoto}::boolean
              THEN m.details_json::jsonb ->> 'photoData' END AS "photoData",
            m.details_json::jsonb -> 'attachmentNames' ->> 'video' AS "videoName",
+           EXISTS (SELECT 1 FROM moment_videos AS mv
+                   WHERE mv.moment_id = m.id AND mv.state = 'attached') AS "hasVideo",
            m.details_json::jsonb -> 'attachmentNames' ->> 'voice' AS "voiceName",
            COALESCE(NULLIF(BTRIM(u.display_name), ''), 'Moment Maker') AS "authorName",
            m.user_id AS "authorId",
@@ -71,10 +74,10 @@ async function findAccessibleMoments(viewerId: string | null, momentId: string |
 }
 
 export async function getAccessibleMoments(viewerId: string) {
-  return findAccessibleMoments(viewerId, null);
+  return findAccessibleMoments(viewerId, null, false);
 }
 
-export async function getAccessibleMoment(viewerId: string | null, momentId: string) {
-  const moments = await findAccessibleMoments(viewerId, momentId);
+export async function getAccessibleMoment(viewerId: string | null, momentId: string, includePhoto = true) {
+  const moments = await findAccessibleMoments(viewerId, momentId, includePhoto);
   return moments[0] ?? null;
 }

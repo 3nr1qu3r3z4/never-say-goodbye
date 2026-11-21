@@ -21,7 +21,7 @@ export default async function MomentPage({
   if (!moment) notFound();
   const attachments = [
     { label: "Photo", name: moment.photoData ? null : moment.photoName },
-    { label: "Video", name: moment.videoName },
+    { label: "Video", name: moment.hasVideo ? null : moment.videoName },
     { label: "Voice recording", name: moment.voiceName },
   ].filter((attachment) => attachment.name);
 
@@ -57,6 +57,18 @@ export default async function MomentPage({
             unoptimized
             className="mt-8 max-h-[42rem] w-auto max-w-full rounded-2xl object-contain"
           />
+        )}
+        {moment.hasVideo && (
+          <video
+            controls
+            playsInline
+            preload="metadata"
+            src={`/api/moments/${encodeURIComponent(moment.id)}/video`}
+            aria-label={`Video for ${moment.title}`}
+            className="mt-8 aspect-video w-full rounded-2xl bg-black"
+          >
+            Your browser does not support video playback.
+          </video>
         )}
         {moment.tags && <p className="mt-6 break-words text-sm text-slate-400">Tags: {moment.tags}</p>}
         {attachments.length > 0 && (

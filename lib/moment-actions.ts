@@ -35,6 +35,7 @@ function isMomentDraft(value: unknown): value is MomentDraft {
     typeof attachments === "object" &&
     Object.values(attachments).every((name) => typeof name === "string") &&
     typeof draft.photoData === "string" &&
+    typeof draft.videoUploadId === "string" &&
     typeof draft.writtenMessage === "string" &&
     audiences.includes(draft.audience as Audience) &&
     typeof draft.accessCodeRequired === "boolean" &&
@@ -81,6 +82,7 @@ export async function loadMomentDraft(kind: MomentKind) {
       ...parsed,
       ...(!("familyPlaceholderId" in parsed) ? { familyPlaceholderId: "" } : {}),
       ...(!("photoData" in parsed) ? { photoData: "" } : {}),
+      ...(!("videoUploadId" in parsed) ? { videoUploadId: "" } : {}),
     };
   }
   if (!isMomentDraft(parsed)) {
@@ -135,6 +137,14 @@ export async function saveMomentDraft(
   }
 
   const sql = getSql();
+  if (kind === "shared" && draft.content.includes("video") && draft.videoUploadId) {
+    const [video] = await sql`
+      UPDATE moment_videos SET last_used_at = CURRENT_TIMESTAMP
+      WHERE id = ${draft.videoUploadId} AND user_id = ${user.id} AND state = 'ready'
+      RETURNING id
+    `;
+    if (!video) return { error: "This video is no longer available. Please upload it again." };
+  }
   const id = draftId || randomUUID();
   const [existing] = (await sql`
     SELECT kind, access_code_hash AS "accessCodeHash"
@@ -158,6 +168,7 @@ export async function saveMomentDraft(
     ...draft,
     attachmentNames,
     photoData: draft.content.includes("photo") ? draft.photoData : "",
+    videoUploadId: kind === "shared" && draft.content.includes("video") ? draft.videoUploadId : "",
     accessCode: "",
   };
   if (existing) {
@@ -202,8 +213,12 @@ export async function publishMoment(
   if (draft.content.includes("photo") && !draft.photoData) {
     return { error: "Choose a photo before publishing, or deselect Photo." };
   }
-  if (!draft.story.trim() && !draft.writtenMessage.trim() && !draft.content.includes("photo")) {
-    return { error: "Add a written story, message, or photo before publishing." };
+  if (kind === "shared" && draft.content.includes("video") && !draft.videoUploadId) {
+    return { error: "Upload a video before publishing, or deselect Video." };
+  }
+  if (!draft.story.trim() && !draft.writtenMessage.trim() && !draft.content.includes("photo") &&
+      !(kind === "shared" && draft.content.includes("video") && draft.videoUploadId)) {
+    return { error: "Add a written story, message, photo, or video before publishing." };
   }
   if (
     draft.story.length > 50_000 ||
@@ -274,6 +289,7 @@ export async function publishMoment(
 
   const now = new Date().toISOString();
   const momentId = randomUUID();
+  const videoUploadId = kind === "shared" && draft.content.includes("video") ? draft.videoUploadId : null;
   const futureMakerId =
     kind === "future-moment-maker" ? randomUUID() : null;
   const attachmentNames = { ...draft.attachmentNames };
@@ -303,12 +319,18 @@ export async function publishMoment(
       )
     `);
   }
+  const momentStatementIndex = statements.length;
   statements.push(sql`
+      WITH claimed_video AS (
+        UPDATE moment_videos SET state = 'attached', moment_id = ${momentId}
+        WHERE id = ${videoUploadId} AND user_id = ${user.id} AND state = 'ready'
+        RETURNING id
+      )
       INSERT INTO moments (
         id, user_id, future_moment_maker_id, kind, title, story, tags,
         content_json, details_json, audience, access_code_hash, release_date,
         occasion, family_placeholder_id, created_at, updated_at
-      ) VALUES (
+      ) SELECT
         ${momentId}, ${user.id}, ${futureMakerId}, ${kind}, ${draft.title.trim()},
         ${draft.story.trim()}, ${draft.tags.trim()}, ${JSON.stringify(draft.content)},
         ${JSON.stringify(details)}, ${kind === "shared" ? draft.audience : "private"},
@@ -321,14 +343,19 @@ export async function publishMoment(
           : null},
         ${draft.familyPlaceholderId || null},
         ${now}, ${now}
-      )
+      WHERE ${videoUploadId}::text IS NULL OR EXISTS (SELECT 1 FROM claimed_video)
+      RETURNING id
     `);
   if (draftId) {
     statements.push(sql`
       DELETE FROM drafts WHERE id = ${draftId} AND user_id = ${user.id}
+        AND EXISTS (SELECT 1 FROM moments WHERE id = ${momentId})
     `);
   }
-  await sql.transaction(statements);
+  const results = await sql.transaction(statements);
+  if (videoUploadId && !results[momentStatementIndex]?.length) {
+    return { error: "This video is no longer available. Please upload it again." };
+  }
 
   return { success: true };
 }

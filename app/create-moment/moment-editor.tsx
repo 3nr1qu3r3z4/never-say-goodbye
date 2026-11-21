@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
+import { upload } from "@vercel/blob/client";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -19,6 +20,8 @@ import {
   type MomentKind,
 } from "@/lib/moment-types";
 import { prepareMomentPhoto } from "@/lib/prepare-moment-photo";
+import { beginMomentVideoUpload, completeMomentVideoUpload } from "@/lib/moment-video-actions";
+import { getMomentVideoFormat, MAX_MOMENT_VIDEO_BYTES } from "@/lib/moment-video";
 
 const contentOptions: {
   value: ContentKind;
@@ -32,7 +35,7 @@ const contentOptions: {
     label: "Photo",
     accept: "image/*,.heic,.heif",
   },
-  { value: "video", icon: "🎥", label: "Video", accept: "video/*" },
+  { value: "video", icon: "🎥", label: "Video", accept: ".mp4,.mov,.m4v,video/mp4,video/quicktime,video/x-m4v" },
   { value: "voice", icon: "🎤", label: "Voice Recording", accept: "audio/*" },
   { value: "written", icon: "✍", label: "Written Message" },
 ];
@@ -100,6 +103,9 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
   const [isSaving, setIsSaving] = useState(false);
   const [isPhotoPreparing, setIsPhotoPreparing] = useState(false);
   const [photoError, setPhotoError] = useState("");
+  const [isVideoUploading, setIsVideoUploading] = useState(false);
+  const [videoProgress, setVideoProgress] = useState(0);
+  const [videoError, setVideoError] = useState("");
   const [familyPlaceholders, setFamilyPlaceholders] = useState<
     { id: string; name: string; relationship: string }[]
   >([]);
@@ -158,10 +164,11 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
 
   function toggleContent(content: ContentKind) {
     if (content === "photo") setPhotoError("");
+    if (content === "video") setVideoError("");
     setDraft((current) => {
       const removing = current.content.includes(content);
       const attachmentNames = { ...current.attachmentNames };
-      if (content === "photo" && removing) delete attachmentNames.photo;
+      if ((content === "photo" || content === "video") && removing) delete attachmentNames[content];
       return {
         ...current,
         content: removing
@@ -169,6 +176,7 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
           : [...current.content, content],
         attachmentNames,
         photoData: content === "photo" && removing ? "" : current.photoData,
+        videoUploadId: content === "video" && removing ? "" : current.videoUploadId,
       };
     });
     setStatusMessage("");
@@ -203,6 +211,36 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
         return;
       }
 
+      if (option.value === "video" && kind === "shared") {
+        setIsVideoUploading(true);
+        setVideoProgress(0);
+        setVideoError("");
+        setDraft((current) => {
+          const attachmentNames = { ...current.attachmentNames };
+          delete attachmentNames.video;
+          return { ...current, videoUploadId: "", attachmentNames };
+        });
+        if (!getMomentVideoFormat(file.name)) throw new Error("Choose an MP4, MOV, or M4V video.");
+        if (!file.size || file.size > MAX_MOMENT_VIDEO_BYTES) throw new Error("Choose a video up to 100 MiB.");
+        const reservation = await beginMomentVideoUpload(file.name, file.size);
+        if ("error" in reservation) throw new Error(reservation.error);
+        await upload(reservation.pathname, file, {
+          access: "private",
+          handleUploadUrl: "/api/moment-video-upload",
+          contentType: reservation.contentType,
+          onUploadProgress: ({ percentage }) => setVideoProgress(Math.round(percentage)),
+        });
+        const completed = await completeMomentVideoUpload(reservation.id);
+        if ("error" in completed) throw new Error(completed.error);
+        setDraft((current) => ({
+          ...current,
+          videoUploadId: reservation.id,
+          attachmentNames: { ...current.attachmentNames, video: file.name },
+        }));
+        setStatusMessage("Video is ready to add.");
+        return;
+      }
+
       setDraft((current) => ({
         ...current,
         attachmentNames: { ...current.attachmentNames, [option.value]: file.name },
@@ -210,11 +248,13 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
     } catch (cause) {
       const message = cause instanceof Error
         ? cause.message
-        : "This photo could not be prepared. Please try another image.";
+        : "The selected file could not be prepared. Please try again.";
       if (option.value === "photo") setPhotoError(message);
+      if (option.value === "video") setVideoError(message);
       setStatusMessage(message);
     } finally {
       if (option.value === "photo") setIsPhotoPreparing(false);
+      if (option.value === "video") setIsVideoUploading(false);
     }
   }
 
@@ -229,7 +269,7 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
         setAccessCodeSaved(result.accessCodeSaved);
         setDraft((current) => ({ ...current, accessCode: "" }));
         setStatusMessage(
-          "Draft saved to your account. Photos are kept; video and audio uploads are not yet available.",
+          "Draft saved to your account. Photos and Shared Moment videos are kept; audio uploads are not yet available.",
         );
       }
     } catch {
@@ -352,7 +392,9 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
                   <input
                     type="checkbox"
                     checked={draft.content.includes(option.value)}
-                    disabled={option.value === "photo" && isPhotoPreparing}
+                    disabled={(option.value === "photo" && isPhotoPreparing) ||
+                      (option.value === "video" && (isVideoUploading ||
+                        (kind !== "shared" && !draft.content.includes("video"))))}
                     onChange={() => toggleContent(option.value)}
                     className="h-4 w-4 shrink-0 accent-[#D8A35B] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D8A35B]"
                   />
@@ -360,6 +402,9 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
                     {option.icon}
                   </span>
                   {option.label}
+                  {option.value === "video" && kind !== "shared" && (
+                    <span className="text-xs text-slate-400">(Shared Moments only)</span>
+                  )}
                 </label>
               ))}
             </fieldset>
@@ -384,7 +429,9 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
                     id={`moment-${option.value}`}
                     type="file"
                     accept={option.accept}
-                    disabled={option.value === "photo" && (!isReady || isPhotoPreparing)}
+                    disabled={!isReady || isSaving ||
+                      (option.value === "photo" && isPhotoPreparing) ||
+                      (option.value === "video" && (isVideoUploading || kind !== "shared"))}
                     onChange={(event) =>
                       void handleMediaSelection(option, event.currentTarget)
                     }
@@ -415,6 +462,18 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
                     <p className="mt-2 text-xs text-amber-300">
                       This older draft saved only the file name. Choose the photo again to include it.
                     </p>
+                  )}
+                  {option.value === "video" && kind === "shared" && (
+                    <p className="mt-2 text-xs text-slate-400">MP4, MOV, or M4V, up to 100 MiB. Playback depends on your browser and video codec.</p>
+                  )}
+                  {option.value === "video" && isVideoUploading && (
+                    <p className="mt-2 text-xs text-slate-400" role="status">Uploading video: {videoProgress}%</p>
+                  )}
+                  {option.value === "video" && videoError && (
+                    <p className="mt-2 text-xs text-amber-300" role="alert">{videoError}</p>
+                  )}
+                  {option.value === "video" && kind === "shared" && draft.attachmentNames.video && !draft.videoUploadId && (
+                    <p className="mt-2 text-xs text-amber-300">This older draft saved only the file name. Choose the video again to include it.</p>
                   )}
                 </div>
               ))}
@@ -689,7 +748,7 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
               <button
                 type="button"
-                disabled={!isReady || isSaving || isPhotoPreparing}
+                disabled={!isReady || isSaving || isPhotoPreparing || isVideoUploading}
                 onClick={saveDraft}
                 className={secondaryButtonClassName}
               >
@@ -714,7 +773,7 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
 
           <button
             type="submit"
-            disabled={!isReady || isSaving || isPhotoPreparing}
+            disabled={!isReady || isSaving || isPhotoPreparing || isVideoUploading}
             className="min-h-14 w-full rounded-full bg-[#D8A35B] px-8 py-4 text-sm font-semibold tracking-wide text-[#0F172A] shadow-lg shadow-[#D8A35B]/10 transition hover:bg-[#e6b66f] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B] sm:text-base"
           >
             {isSaving ? "Saving..." : "Publish Moment"}
