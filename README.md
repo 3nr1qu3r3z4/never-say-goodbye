@@ -3,6 +3,15 @@
 Never Say Goodbye is a Moment Maker platform for preserving stories, moments,
 and family connections.
 
+## Connections and Family moments
+
+Signed-in members can view Shared Moments addressed to their accepted Connected
+Lives or to members of a Legacy Tree shared with the author at `/moments`.
+Authors can also view their own moments in these two audiences. Access is
+checked when a moment is requested; other audiences and moment types are not
+available through this viewing path. Protected and scheduled unlocks, Future
+Moment Maker recipients, and media uploads are not implemented here.
+
 ## Run locally and deploy
 
 The application uses Neon managed PostgreSQL for persistent data. It does not

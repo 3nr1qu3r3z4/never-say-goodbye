@@ -44,6 +44,7 @@ export default async function DashboardPage() {
       items: [
         { label: "New Moment", href: "/create-moment" },
         { label: `Drafts (${data.counts.drafts})`, href: "/drafts" },
+        { label: "Connections and Family Moments", href: "/moments" },
         { label: "Shared Moment", href: "/create-moment/shared" },
         { label: "Personal / Protected Moment", href: "/create-moment/personal" },
         { label: "Cannot Open Until™ (scheduled opening)", href: "/create-moment/cannot-open-until" },
@@ -230,12 +231,21 @@ export default async function DashboardPage() {
                   <ul className="border-t border-white/10 p-2">
                     {action.items.map((item) => (
                       <li key={item.href}>
-                        <Link
-                          href={item.href}
-                          className={`flex min-h-11 items-center rounded-lg px-3 text-sm text-slate-200 transition hover:bg-white/5 hover:text-[#f0c98e] ${actionFocusClassName}`}
-                        >
-                          {item.label}
-                        </Link>
+                        {item.href === "/moments" ? (
+                          <a
+                            href={item.href}
+                            className={`flex min-h-11 items-center rounded-lg px-3 text-sm text-slate-200 transition hover:bg-white/5 hover:text-[#f0c98e] ${actionFocusClassName}`}
+                          >
+                            {item.label}
+                          </a>
+                        ) : (
+                          <Link
+                            href={item.href}
+                            className={`flex min-h-11 items-center rounded-lg px-3 text-sm text-slate-200 transition hover:bg-white/5 hover:text-[#f0c98e] ${actionFocusClassName}`}
+                          >
+                            {item.label}
+                          </Link>
+                        )}
                       </li>
                     ))}
                   </ul>
