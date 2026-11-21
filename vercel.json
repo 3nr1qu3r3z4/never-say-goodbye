@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/profile-visits",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/site-analytics",
+      "schedule": "15 0 * * *"
     }
   ]
 }

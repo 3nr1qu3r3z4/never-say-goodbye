@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { createLegacyTree } from "@/app/actions/family-tree";
 import { getCurrentUser } from "@/lib/auth";
 import { getSql } from "@/lib/db";
@@ -27,6 +28,11 @@ type FamilyPlaceholder = {
   birthYear: number | null;
   deathYear: number | null;
   notes: string | null;
+  isHonored: boolean;
+  birthDate: string | null;
+  passingDate: string | null;
+  shortStory: string | null;
+  profilePhoto: string | null;
 };
 type LinkedMoment = {
   id: string;
@@ -117,8 +123,11 @@ async function FamilyMembersForUser({ userId }: { userId: string }) {
       sql`
         SELECT fp.id, fp.legacy_tree_id AS "treeId", fp.name, fp.relationship,
                fp.birth_year AS "birthYear", fp.death_year AS "deathYear",
-               fp.notes
+               fp.notes, (honored.family_placeholder_id IS NOT NULL) AS "isHonored",
+               fp.birth_date::text AS "birthDate", honored.passing_date::text AS "passingDate",
+               honored.short_story AS "shortStory", honored.profile_photo_data AS "profilePhoto"
         FROM family_placeholders AS fp
+        LEFT JOIN honored_lives AS honored ON honored.family_placeholder_id = fp.id
         WHERE fp.legacy_tree_id IN (
           SELECT tree_id FROM legacy_tree_members WHERE user_id = ${userId}
         )
@@ -216,14 +225,27 @@ async function FamilyMembersForUser({ userId }: { userId: string }) {
                   {treePlaceholders.map((member) => (
                     <li key={`placeholder-${member.id}`} className={cardClassName}>
                       <span className="inline-flex rounded-full border border-[#D8A35B]/30 px-3 py-1 text-xs font-semibold text-[#f0c98e]">
-                        Family Placeholder
+                        {member.isHonored ? "🕊 Honored Life™" : "Family Placeholder"}
                       </span>
+                      {member.isHonored && member.profilePhoto && (
+                        <Image src={member.profilePhoto} alt="" width={96} height={96} unoptimized className="mt-4 h-24 w-24 rounded-full object-cover" />
+                      )}
                       <p className="mt-3 font-serif text-lg text-white">{member.name}</p>
                       <p className="mt-1 text-sm text-slate-300">
                         {member.relationship}
                         {member.birthYear || member.deathYear
                           ? ` · ${member.birthYear ?? "?"}–${member.deathYear ?? "?"}` : ""}
                       </p>
+                      {member.isHonored && (member.birthDate || member.passingDate) && (
+                        <p className="mt-2 text-sm text-slate-400">
+                          {member.birthDate && `Born: ${member.birthDate}`}
+                          {member.birthDate && member.passingDate && " · "}
+                          {member.passingDate && `Passed: ${member.passingDate}`}
+                        </p>
+                      )}
+                      {member.isHonored && member.shortStory && (
+                        <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-300">{member.shortStory}</p>
+                      )}
                       {member.notes && (
                         <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-400">{member.notes}</p>
                       )}

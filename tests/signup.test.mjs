@@ -32,6 +32,7 @@ test("signup requires terms and the existing visibility agreement on the server"
     "@/lib/auth": { createSession: async () => {}, deleteCurrentSession: async () => {} },
     "@/lib/db": { getSql: () => async () => { queries++; return [{ id: "existing" }]; } },
     "@/lib/password": { hashSecret: async () => "", verifySecret: async () => false },
+    "@/lib/site-analytics": { attributeSignup: async () => {} },
     "@/lib/account-validation": loadModule("lib/account-validation.ts"),
   });
   const data = new FormData();

@@ -32,6 +32,7 @@ function familyComponent(user, sql) {
   return loadModule("app/legacy-tree/family-members.tsx", {
     "react/jsx-runtime": jsxRuntime,
     "next/link": { default: ({ children, href, ...props }) => React.createElement("a", { href, ...props }, children) },
+    "next/image": { default: () => null },
     "@/app/actions/family-tree": { createLegacyTree: async () => {} },
     "@/lib/auth": { getCurrentUser: async () => user },
     "@/lib/db": { getSql: () => sql },

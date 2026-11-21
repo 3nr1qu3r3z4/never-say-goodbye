@@ -6,6 +6,7 @@ import { createSession, deleteCurrentSession } from "@/lib/auth";
 import { getSql } from "@/lib/db";
 import { hashSecret, verifySecret } from "@/lib/password";
 import { emailPattern, usernamePattern } from "@/lib/account-validation";
+import { attributeSignup } from "@/lib/site-analytics";
 
 export type AuthFormState = { error?: string };
 
@@ -135,6 +136,7 @@ export async function signupAction(
     throw error;
   }
 
+  await attributeSignup();
   await createSession(userId);
   redirect("/dashboard?welcome=1");
 }

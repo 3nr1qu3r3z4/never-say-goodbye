@@ -47,7 +47,11 @@ create a local data directory or write account data to the app filesystem.
      then
      `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/017_profile_visits.sql`
      then
-     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/018_email_preferences.sql`.
+     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/018_email_preferences.sql`
+     then
+     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/019_site_analytics.sql`
+     then
+     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/020_honored_lives.sql`.
    - In Bash, export `DATABASE_URL` and run
      `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/001_initial_schema.sql`
      then
@@ -83,7 +87,11 @@ create a local data directory or write account data to the app filesystem.
      then
      `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/017_profile_visits.sql`
      then
-     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/018_email_preferences.sql`.
+     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/018_email_preferences.sql`
+     then
+     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/019_site_analytics.sql`
+     then
+     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/020_honored_lives.sql`.
    - In the Neon Console, open the SQL Editor for the intended database. Run
      [`db/migrations/001_initial_schema.sql`](./db/migrations/001_initial_schema.sql)
      first, then run
@@ -104,6 +112,8 @@ create a local data directory or write account data to the app filesystem.
      then [`db/migrations/016_account_status.sql`](./db/migrations/016_account_status.sql)
      then [`db/migrations/017_profile_visits.sql`](./db/migrations/017_profile_visits.sql)
      then [`db/migrations/018_email_preferences.sql`](./db/migrations/018_email_preferences.sql)
+     then [`db/migrations/019_site_analytics.sql`](./db/migrations/019_site_analytics.sql)
+     then [`db/migrations/020_honored_lives.sql`](./db/migrations/020_honored_lives.sql)
      in order.
 3. Set `DATABASE_URL` to the same pooled connection string in local
    `.env.local` and in Vercel Project Settings → Environment Variables for each
@@ -111,9 +121,9 @@ create a local data directory or write account data to the app filesystem.
    database where you ran the migration.
 4. Redeploy after setting or changing Vercel environment variables.
 
-All eighteen migrations are idempotent and record their application in
+All twenty migrations are idempotent and record their application in
 `schema_migrations`. [`db/schema.sql`](./db/schema.sql) is the standalone
-bootstrap copy of the current schema; use all eighteen versioned migrations above for
+bootstrap copy of the current schema; use all twenty versioned migrations above for
 an existing database. There is no automatic migration runner in the
 application, so SQL must be applied to Neon before database-backed features
 can use new schema changes. The initial migration creates
@@ -139,7 +149,8 @@ WHERE table_schema = 'public'
     'family_relationship_milestones', 'family_calendar_events',
     'family_calendar_import_settings', 'family_calendar_reminders',
     'connected_lives_person_tags', 'account_status_history', 'profile_visits',
-    'email_preferences'
+    'email_preferences', 'site_analytics_visitors',
+    'site_analytics_visitor_days', 'site_analytics_daily', 'honored_lives'
   )
 ORDER BY table_name;
 
@@ -153,7 +164,7 @@ WHERE version IN (
   '011_profile_birthplace', '012_profile_location_visibility',
   '013_weekly_moment_makers', '014_family_calendar',
   '015_connected_lives_directory', '016_account_status', '017_profile_visits',
-  '018_email_preferences'
+  '018_email_preferences', '019_site_analytics', '020_honored_lives'
 )
 ORDER BY version;
 
@@ -241,6 +252,54 @@ explicitly. Non-Vercel deployments must arrange an authenticated daily GET to
 that endpoint with `Authorization: Bearer <CRON_SECRET>`. Do not log the secret,
 visit records, or identifiers. The retention job continues to run when tracking
 is disabled, so existing records can expire.
+
+### Founder dashboard and beta analytics
+
+Set `FOUNDER_USER_IDS` to a comma-separated allowlist of immutable `users.id`
+values for the founder accounts, and redeploy. An empty or missing allowlist
+denies access. The My Profile menu and `/admin-dashboard` enforce the same
+server-side check; the page does not provide editing or management tools.
+
+Site analytics is disabled by default. Family Beta consent is collected
+outside the application: enable tracking only when that consent applies to
+all visitors to the deployment. First apply migration 019, configure a strong
+`CRON_SECRET`, deploy, and verify that the daily `/api/cron/site-analytics`
+job runs successfully. Set `SITE_ANALYTICS_ENABLED=true` and redeploy only
+afterward. The endpoint fails closed if the secret is missing. On non-Vercel
+deployments, arrange an authenticated daily GET to the cron endpoint using
+`Authorization: Bearer <CRON_SECRET>`. Monitor and retry failed jobs: a late
+job delays physical deletion. The job continues when tracking is disabled.
+
+The tracker uses first-party, HTTP-only random browser and 30-minute visit
+cookies. It stores no IP address, URL, or user ID. A visit is a browser session
+separated by 30 minutes without a page navigation; blocked scripts/cookies,
+shared devices and bots affect counts. Tracking begins only when enabled.
+Anonymous visitor-day detail and signup attribution expire after 90 days;
+anonymous daily visit totals remain for the lifetime total. The 90-day
+conversion estimate is attributed signup browsers divided by unique
+visitors in that window, not a strict cohort or a ratio of lifetime signups to
+visits. Historical signups and signups without a tracked browser cannot be
+attributed. The platform funnel combines a 90-day visitor count with current
+account counts and is not a cohort funnel. Profiles count as complete only
+when a profile photo and non-empty bio are present. Current profile photos
+are measurable; moment attachment filenames do not represent stored uploads.
+The Founder Overview counts unique browsers for today, the current calendar
+week (Monday onward), and the current calendar month in UTC. Its first-moment
+count is members with at least one published moment, and established Connected
+Lives are accepted connections.
+
+### Honored Lives™
+
+Apply migration 020 before deploying the Legacy Tree or Honored Lives page.
+Tree owners and administrators can honor an existing Family Placeholder or
+create a new one. The name, relationship and birth date belong to the
+placeholder; the passing date, short story and optional photo belong to its
+Honored Life. Selecting an existing placeholder can update its details and
+its birth date may appear on the tree calendar when imports are enabled.
+Passing dates are not automatically imported as memorial dates. All tree
+members can see the record; it is not publicly searchable. V1 has no editing,
+contributor or user-account memorialization workflow. Removing the underlying
+placeholder also removes its Honored Life under the existing cascade rules.
 
 Migration 014 must be applied before deploying Family Calendar™. Tree members
 can create shared manual events and enable live imports; only owners and admins

@@ -52,6 +52,27 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE UNIQUE INDEX IF NOT EXISTS users_email_unique_idx ON users (LOWER(email));
 CREATE UNIQUE INDEX IF NOT EXISTS users_username_unique_idx ON users (LOWER(username));
 
+CREATE TABLE IF NOT EXISTS site_analytics_visitors (
+  visitor_id TEXT PRIMARY KEY,
+  last_seen_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  signup_at TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS site_analytics_visitors_last_seen_idx
+  ON site_analytics_visitors (last_seen_at);
+
+CREATE TABLE IF NOT EXISTS site_analytics_visitor_days (
+  visitor_id TEXT NOT NULL REFERENCES site_analytics_visitors(visitor_id) ON DELETE CASCADE,
+  visit_date DATE NOT NULL,
+  PRIMARY KEY (visitor_id, visit_date)
+);
+CREATE INDEX IF NOT EXISTS site_analytics_visitor_days_date_idx
+  ON site_analytics_visitor_days (visit_date);
+
+CREATE TABLE IF NOT EXISTS site_analytics_daily (
+  visit_date DATE PRIMARY KEY,
+  visits BIGINT NOT NULL DEFAULT 0 CHECK (visits >= 0)
+);
+
 CREATE TABLE IF NOT EXISTS email_preferences (
   user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
   new_connection_requests BOOLEAN NOT NULL DEFAULT TRUE,
@@ -258,6 +279,14 @@ CREATE TABLE IF NOT EXISTS family_placeholders (
 );
 CREATE INDEX IF NOT EXISTS family_placeholders_tree_idx
   ON family_placeholders(legacy_tree_id, created_at);
+
+CREATE TABLE IF NOT EXISTS honored_lives (
+  family_placeholder_id TEXT PRIMARY KEY REFERENCES family_placeholders(id) ON DELETE CASCADE,
+  passing_date DATE,
+  short_story TEXT NOT NULL DEFAULT '',
+  profile_photo_data TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 
 CREATE TABLE IF NOT EXISTS legacy_successors (
   id TEXT PRIMARY KEY,
@@ -479,4 +508,8 @@ ON CONFLICT (version) DO NOTHING;
 
 INSERT INTO schema_migrations (version)
 VALUES ('017_profile_visits')
+ON CONFLICT (version) DO NOTHING;
+
+INSERT INTO schema_migrations (version)
+VALUES ('018_email_preferences'), ('019_site_analytics'), ('020_honored_lives')
 ON CONFLICT (version) DO NOTHING;

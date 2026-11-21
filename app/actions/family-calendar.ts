@@ -133,6 +133,10 @@ export async function saveTreeSourceDate(
         AND (${first}::date IS NULL OR fp.death_year IS NULL OR EXTRACT(YEAR FROM ${first}::date) <= fp.death_year)
         AND (${second}::date IS NULL OR fp.birth_year IS NULL OR EXTRACT(YEAR FROM ${second}::date) >= fp.birth_year)
         AND (${first}::date IS NULL OR ${second}::date IS NULL OR ${first}::date <= ${second}::date)
+        AND NOT EXISTS (SELECT 1 FROM honored_lives AS honored
+          WHERE honored.family_placeholder_id = fp.id
+            AND honored.passing_date IS NOT NULL
+            AND ${first}::date > honored.passing_date)
         AND EXISTS (SELECT 1 FROM legacy_tree_members AS admin WHERE admin.tree_id = fp.legacy_tree_id
           AND admin.user_id = ${user.id} AND admin.role IN ('owner', 'admin'))
       RETURNING fp.id

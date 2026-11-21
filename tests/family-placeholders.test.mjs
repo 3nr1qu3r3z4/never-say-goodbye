@@ -172,6 +172,7 @@ test("linked story query stays author-only and withholds protected content", asy
   const components = loadModule("app/legacy-tree/family-members.tsx", {
     "react/jsx-runtime": { jsx, jsxs: jsx },
     "next/link": { default: () => null },
+    "next/image": { default: () => null },
     "@/app/actions/family-tree": { createLegacyTree: async () => {} },
     "@/lib/auth": { getCurrentUser: async () => ({ id: "author" }) },
     "@/lib/db": { getSql: () => sql },

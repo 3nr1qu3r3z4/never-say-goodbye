@@ -198,6 +198,7 @@ test("existing email and new username both work as login identifiers", async () 
         verifySecret: async (password, hash) => password === "password" && hash === "stored",
       },
       "@/lib/account-validation": validation,
+      "@/lib/site-analytics": { attributeSignup: async () => {} },
     });
     await assert.rejects(
       actions.loginAction({}, form({ identifier, password: "password" })),

@@ -64,18 +64,31 @@ test("directory searches and combines relationship and tag filters; sorts unknow
   assert.deepEqual(ids("", "all", "all", "za"), ["1", "4", "3", "2"]);
 });
 
-function loadDashboard(data) {
+function loadDashboard(data, founder = false) {
   return loadModule("app/dashboard/page.tsx", {
     react: React,
     "react/jsx-runtime": jsxRuntime,
     "next/link": { default: ({ href, children }) => React.createElement("a", { href }, children) },
     "@/lib/auth": { requireUser: async () => ({ id: "owner", firstName: "Owner" }) },
+    "@/lib/admin": { isFounder: () => founder },
     "@/lib/account-data": { getDashboardData: async () => data },
     "@/lib/frequent-visits": { frequentVisitsEnabled: () => false },
     "./signup-welcome": { default: () => null },
     "./frequent-visits": { default: () => null },
   }).default;
 }
+
+test("admin dashboard link is visible only to the founder", async () => {
+  const data = {
+    counts: {
+      sharedMoments: 0, personalMoments: 0, connectedLives: 0,
+      newLivesRequests: 0, unreadLivesNotifications: 0, futureMomentMakers: 0, drafts: 0,
+    },
+    futureMomentMakers: [], recentActivity: [],
+  };
+  assert.doesNotMatch(renderToStaticMarkup(await loadDashboard(data)()), /href="\/admin-dashboard"/);
+  assert.match(renderToStaticMarkup(await loadDashboard(data, true)()), /href="\/admin-dashboard"/);
+});
 
 test("dashboard notification card guides users with no new requests while retaining updates", async () => {
   const data = {
@@ -139,6 +152,7 @@ test("dashboard groups moment, people, and profile destinations without losing d
   assert.match(groups[1], /href="\/create-moment\/future-moment-maker"[^>]*>Create Future Moment Maker™<\/a>/);
   assert.match(groups[1], /href="\/connected-lives#future-heading"[^>]*>View Future Moment Makers™<\/a>/);
   assert.match(groups[1], /href="\/legacy-tree"[^>]*>Family Placeholders \(Legacy Tree™\)<\/a>/);
+  assert.match(groups[1], /href="\/honored-lives"[^>]*>Honored Lives™<\/a>/);
   assert.match(groups[1], /href="\/email-preferences"[^>]*>Email Preferences<\/a>/);
   assert.match(groups[2], /<summary\b[^>]*>[\s\S]*?My Profile[\s\S]*?<\/summary>/);
   assert.match(groups[2], /href="\/my-profile"[^>]*>View Profile<\/a>/);

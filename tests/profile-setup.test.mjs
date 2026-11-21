@@ -57,9 +57,20 @@ function createActions(authenticated = true, userExists = true) {
         return userExists ? [{ id: "user-1" }] : [];
       },
     },
+    "@/lib/profile-photo": loadModule("lib/profile-photo.ts", { "server-only": {} }),
   });
   return { actions, queries };
 }
+
+test("profile photo validation still accepts supported images and rejects invalid data", async () => {
+  const { actions, queries } = createActions();
+  const invalid = await actions.saveProfilePhoto("data:text/html;base64,AAAA");
+  assert.ok(invalid.error);
+  assert.equal(queries.length, 0);
+  const valid = await actions.saveProfilePhoto("data:image/png;base64,iVBORw0KGgo=");
+  assert.ok(valid.success);
+  assert.equal(queries.length, 1);
+});
 
 test("profile setup is prefilled with all requested fields and visibility", () => {
   const components = loadModule("app/my-profile/setup/profile-setup-form.tsx", {

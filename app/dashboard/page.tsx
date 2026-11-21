@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getDashboardData } from "@/lib/account-data";
 import { requireUser } from "@/lib/auth";
+import { isFounder } from "@/lib/admin";
 import { frequentVisitsEnabled, getFrequentVisitSections } from "@/lib/frequent-visits";
 import SignupWelcome from "./signup-welcome";
 import FrequentVisits from "./frequent-visits";
@@ -57,6 +58,7 @@ export default async function DashboardPage() {
         { label: "Create Future Moment Maker™", href: "/create-moment/future-moment-maker" },
         { label: "View Future Moment Makers™", href: "/connected-lives#future-heading" },
         { label: "Family Placeholders (Legacy Tree™)", href: "/legacy-tree" },
+        { label: "Honored Lives™", href: "/honored-lives" },
         { label: "Email Preferences", href: "/email-preferences" },
       ],
     },
@@ -79,6 +81,7 @@ export default async function DashboardPage() {
       items: [
         { label: "View Profile", href: "/my-profile" },
         { label: "Legacy Controls™", href: "/legacy-controls" },
+        ...(isFounder(user) ? [{ label: "Admin Dashboard", href: "/admin-dashboard" }] : []),
       ],
     },
   ];
