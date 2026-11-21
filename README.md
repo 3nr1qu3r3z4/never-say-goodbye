@@ -36,6 +36,12 @@ deletion occurs on the next successful cleanup job. Unreferenced uploads are
 removed after seven days. Monitor and retry failed jobs. Blob storage and
 playback incur provider charges.
 
+The Moments in the Making card on My Legacy shows up to five recent Shared
+Moments from accepted Connected Lives and members of a shared Legacy Tree,
+subject to the same viewing permissions.
+The feed identifies uploaded videos, photos, and written messages within each
+moment; it does not include drafts, private moments, or separate messages.
+
 ## Run locally and deploy
 
 The application uses Neon managed PostgreSQL for persistent data. It does not

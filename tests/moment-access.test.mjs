@@ -233,12 +233,48 @@ test("moment audiences are enforced against current relationships in PostgreSQL"
     assert.deepEqual(Array.from(await access.getAccessibleMoments("author"), (moment) => moment.id).sort(), ["connections", "family", "private", "public"]);
     assert.deepEqual(Array.from(await access.getAccessibleMoments("outsider"), (moment) => moment.id), []);
 
+    await db.exec(`UPDATE moments SET details_json = '{"photoData":"data:image/jpeg;base64,abc"}' WHERE id = 'family'`);
+    const activityFor = async (viewer) => Array.from(await access.getRecentFamilyActivity(viewer), (moment) => moment.id);
+    assert.deepEqual(await activityFor("accepted"), ["connections", "public"]);
+    assert.deepEqual(await activityFor("reverse"), ["connections", "public"]);
+    assert.deepEqual(await activityFor("relative"), ["family", "public"]);
+    for (const viewer of ["author", "pending", "declined", "outsider"]) {
+      assert.deepEqual(await activityFor(viewer), [], viewer);
+    }
+    const familyFeed = await access.getRecentFamilyActivity("relative");
+    assert.equal(familyFeed[0].hasPhoto, true);
+    assert.equal(familyFeed[0].photoData, null);
+    assert.equal(familyFeed[1].hasVideo, true);
+    assert.equal((await access.getRecentFamilyActivity("accepted"))[0].hasMessage, true);
+    await db.query("UPDATE moments SET created_at = $1 WHERE id = 'connections'",
+      [new Date(Date.now() - 5 * 60000).toISOString()]);
+    assert.equal((await access.getRecentFamilyActivity("accepted"))[0].relativeTime, "5 minutes ago");
+    await db.exec("UPDATE moments SET created_at = '2026-01-01' WHERE id = 'connections'");
+    await db.exec("UPDATE connected_lives SET status = 'declined' WHERE id = 'accepted'");
+    assert.deepEqual(await activityFor("accepted"), []);
+    await db.exec("UPDATE connected_lives SET status = 'accepted' WHERE id = 'accepted'");
+    await db.exec("DELETE FROM legacy_tree_members WHERE tree_id = 'shared-tree' AND user_id = 'relative'");
+    assert.deepEqual(await activityFor("relative"), []);
+    await db.exec("INSERT INTO legacy_tree_members (tree_id, user_id, role, joined_at) VALUES ('shared-tree', 'relative', 'member', '2026-01-01')");
+    for (let i = 1; i <= 12; i++) {
+      await db.query(`INSERT INTO moments (id, user_id, kind, title, story, details_json, audience, created_at, updated_at)
+        VALUES ($1, 'author', 'shared', 'Recent', 'Story', '{}', 'connections', $2, $2)`,
+      [`recent-${i}`, `2026-03-${String(i).padStart(2, "0")}`]);
+    }
+    const recent = await activityFor("accepted");
+    assert.equal(recent.length, 5);
+    assert.equal(recent[0], "recent-12");
+    assert.equal(recent[4], "recent-8");
+    await db.exec("DELETE FROM moments WHERE id LIKE 'recent-%'");
+
     await db.exec("UPDATE users SET public_shared_moments = FALSE WHERE id = 'author'");
     assert.equal(await access.getAccessibleMoment(null, "public"), null);
     assert.equal((await access.getAccessibleMoment("author", "public"))?.story, "Public story");
+    assert.deepEqual(await activityFor("accepted"), ["connections"]);
     await db.exec("UPDATE users SET public_shared_moments = TRUE, discoverability = 'private' WHERE id = 'author'");
     assert.equal(await access.getAccessibleMoment(null, "public"), null);
     assert.equal((await access.getAccessibleMoment("author", "public"))?.story, "Public story");
+    assert.deepEqual(await activityFor("relative"), ["family"]);
 
     const { initialMomentDraft } = loadModule("lib/moment-types.ts", {});
     const { validatePhoto } = loadModule("lib/profile-photo.ts", { "server-only": {} });

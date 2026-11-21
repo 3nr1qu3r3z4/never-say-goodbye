@@ -64,7 +64,7 @@ test("directory searches and combines relationship and tag filters; sorts unknow
   assert.deepEqual(ids("", "all", "all", "za"), ["1", "4", "3", "2"]);
 });
 
-function loadDashboard(data, founder = false) {
+function loadDashboard(data, founder = false, familyActivity = []) {
   return loadModule("app/dashboard/page.tsx", {
     react: React,
     "react/jsx-runtime": jsxRuntime,
@@ -72,11 +72,47 @@ function loadDashboard(data, founder = false) {
     "@/lib/auth": { requireUser: async () => ({ id: "owner", firstName: "Owner" }) },
     "@/lib/admin": { isFounder: () => founder },
     "@/lib/account-data": { getDashboardData: async () => data },
+    "@/lib/moment-access": { getRecentFamilyActivity: async (id) => {
+      assert.equal(id, "owner");
+      return familyActivity;
+    } },
     "@/lib/frequent-visits": { frequentVisitsEnabled: () => false },
     "./signup-welcome": { default: () => null },
     "./frequent-visits": { default: () => null },
   }).default;
 }
+
+test("Moments in the Making shows shared media, relative time and moment links", async () => {
+  const data = {
+    counts: {
+      sharedMoments: 0, personalMoments: 0, connectedLives: 0, newLivesRequests: 0,
+      unreadLivesNotifications: 0, futureMomentMakers: 0, drafts: 0,
+    },
+    recentActivity: [{ id: "own", action: "Created", detail: "Existing activity" }],
+  };
+  const entries = [
+    { id: "video/id", authorName: "Kiowea", createdAt: "2026-01-01", relativeTime: "5 minutes ago", hasVideo: true, hasPhoto: true, hasMessage: true },
+    { id: "photo", authorName: "Alex", createdAt: "invalid", relativeTime: "Date unavailable", hasVideo: false, hasPhoto: true, hasMessage: false },
+    { id: "message", authorName: "Sam", createdAt: "2026-01-01", relativeTime: "Just now", hasVideo: false, hasPhoto: false, hasMessage: true },
+    { id: "moment", authorName: "Lee", createdAt: "2026-01-01", relativeTime: "Just now", hasVideo: false, hasPhoto: false, hasMessage: false },
+  ];
+  const html = renderToStaticMarkup(await loadDashboard(data, false, entries)());
+  const feed = html.match(/<section aria-labelledby="moments-in-the-making-heading"[\s\S]*?<\/section>/)?.[0];
+  assert.ok(feed);
+  assert.match(feed, /🎥[\s\S]*New video, photo and message shared by <span[^>]*>Kiowea<\/span>/);
+  assert.match(feed, /5 minutes ago/);
+  assert.match(feed, /href="\/moments\/video%2Fid"[^>]*aria-label="View Kiowea&#x27;s moment"[^>]*>View Moment<\/a>/);
+  assert.match(feed, /📷[\s\S]*New photo shared by <span[^>]*>Alex<\/span>/);
+  assert.match(feed, /Date unavailable/);
+  assert.match(feed, /💬[\s\S]*New message shared by <span[^>]*>Sam<\/span>/);
+  assert.match(feed, /New memory shared by <span[^>]*>Lee<\/span>/);
+  assert.equal((feed.match(/>View Moment<\/a>/g) ?? []).length, 4);
+  assert.doesNotMatch(html, /Recent Family Activity/);
+  assert.match(html, /Existing activity/);
+  const empty = renderToStaticMarkup(await loadDashboard(data)());
+  assert.match(empty, /No new moments yet\./);
+  assert.match(empty, /Create a memory, share a photo, or upload a video to start building your family&#x27;s story\./);
+});
 
 test("admin dashboard link is visible only to the founder", async () => {
   const data = {
@@ -90,7 +126,7 @@ test("admin dashboard link is visible only to the founder", async () => {
   assert.match(renderToStaticMarkup(await loadDashboard(data, true)()), /href="\/admin-dashboard"/);
 });
 
-test("dashboard notification card guides users with no new requests while retaining updates", async () => {
+test("Moments in the Making always offers Find People and retains request and update links", async () => {
   const data = {
     counts: {
       sharedMoments: 0, personalMoments: 0, connectedLives: 0,
@@ -101,7 +137,7 @@ test("dashboard notification card guides users with no new requests while retain
   };
   const dashboard = loadDashboard(data);
   for (const [requests, updates, expected] of [
-    [0, 0, "View Connected Lives"],
+    [0, 0, null],
     [1, 2, "1 New Request"],
     [2, 0, "2 New Requests"],
     [0, 1, "1 New Update"],
@@ -110,18 +146,17 @@ test("dashboard notification card guides users with no new requests while retain
     data.counts.newLivesRequests = requests;
     data.counts.unreadLivesNotifications = updates;
     const html = renderToStaticMarkup(await dashboard());
-    const card = html.match(/<section aria-labelledby="connected-lives-heading"[\s\S]*?<\/section>/)?.[0];
+    const card = html.match(/<section aria-labelledby="moments-in-the-making-heading"[\s\S]*?<\/section>/)?.[0];
     assert.ok(card);
     assert.equal((card.match(/❤️/g) ?? []).length, 1);
-    assert.match(card, new RegExp(`<a href="/connected-lives"[^>]*><span>${expected}</span>`));
-    if (requests === 0) {
-      assert.match(card, /<h2 id="connected-lives-heading"[^>]*>Stay Connected<\/h2>/);
-      assert.match(card, /Search for family and friends already preserving their stories on Never Say Goodbye\./);
-      assert.match(card, /<a href="\/search"[^>]*><span>Find People<\/span>/);
-      assert.doesNotMatch(card, /0 New Requests/);
+    assert.match(card, /<h2 id="moments-in-the-making-heading"[^>]*>Moments in the Making<\/h2>/);
+    assert.match(card, /See the latest memories, photos, videos, and messages being shared by the people who matter most\./);
+    assert.match(card, /<a href="\/search"[^>]*><span>Find People<\/span>/);
+    assert.doesNotMatch(card, /View Connected Lives|Stay Connected|Someone Is Thinking of You/);
+    if (expected) {
+      assert.match(card, new RegExp(`<a href="/connected-lives"[^>]*>${expected}</a>`));
     } else {
-      assert.match(card, /<h2 id="connected-lives-heading"[^>]*>Someone Is Thinking of You<\/h2>/);
-      assert.doesNotMatch(card, /Search for family and friends|href="\/search"/);
+      assert.doesNotMatch(card, /href="\/connected-lives"/);
     }
   }
 });

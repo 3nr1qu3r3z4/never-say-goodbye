@@ -5,6 +5,7 @@ import { getDashboardData } from "@/lib/account-data";
 import { requireUser } from "@/lib/auth";
 import { isFounder } from "@/lib/admin";
 import { frequentVisitsEnabled, getFrequentVisitSections } from "@/lib/frequent-visits";
+import { getRecentFamilyActivity } from "@/lib/moment-access";
 import SignupWelcome from "./signup-welcome";
 import FrequentVisits from "./frequent-visits";
 
@@ -33,6 +34,7 @@ const notificationActionClassName =
 export default async function DashboardPage() {
   const user = await requireUser();
   const data = await getDashboardData(user);
+  const familyActivity = await getRecentFamilyActivity(user.id);
   const frequentVisits = frequentVisitsEnabled()
     ? await getFrequentVisitSections(user.id)
     : null;
@@ -122,17 +124,15 @@ export default async function DashboardPage() {
           </div>
 
           <section
-            aria-labelledby="connected-lives-heading"
-            className="w-full max-w-[18rem] rounded-2xl border border-[#D8A35B]/30 bg-white/[0.04] p-5 shadow-xl shadow-black/20 backdrop-blur-xl sm:p-6"
+            aria-labelledby="moments-in-the-making-heading"
+            className="w-full max-w-md rounded-2xl border border-[#D8A35B]/30 bg-white/[0.04] p-5 shadow-xl shadow-black/20 backdrop-blur-xl sm:p-6"
           >
             <div className="flex items-start justify-between gap-4">
               <h2
-                id="connected-lives-heading"
+                id="moments-in-the-making-heading"
                 className="font-serif text-xl text-white sm:text-2xl"
               >
-                {data.counts.newLivesRequests > 0
-                  ? "Someone Is Thinking of You"
-                  : "Stay Connected"}
+                Moments in the Making
               </h2>
               <span
                 aria-hidden="true"
@@ -141,49 +141,59 @@ export default async function DashboardPage() {
                 ❤️
               </span>
             </div>
-            {data.counts.newLivesRequests > 0 ? (
-              <Link
-                href="/connected-lives"
-                className={`mt-5 ${notificationActionClassName}`}
-              >
-                <span>
-                  {`${data.counts.newLivesRequests} ${
-                    data.counts.newLivesRequests === 1
-                      ? "New Request"
-                      : "New Requests"
-                  }`}
-                </span>
-                <span aria-hidden="true" className="text-lg">→</span>
-              </Link>
+            <p className="mt-4 text-sm leading-6 text-slate-400">
+              See the latest memories, photos, videos, and messages being shared by the people who matter most.
+            </p>
+            {familyActivity.length ? (
+              <ol className="mt-4 divide-y divide-white/10">
+                {familyActivity.map((activity) => {
+                  const types = [
+                    activity.hasVideo && "video",
+                    activity.hasPhoto && "photo",
+                    activity.hasMessage && "message",
+                  ].filter(Boolean);
+                  const description = types.length ? types.join(", ").replace(/, ([^,]+)$/, " and $1") : "memory";
+                  const icon = activity.hasVideo ? "🎥" : activity.hasPhoto ? "📷" : "💬";
+                  return (
+                    <li key={activity.id} className="flex gap-3 py-3">
+                      <span aria-hidden="true" className="text-xl">{icon}</span>
+                      <div className="min-w-0">
+                        <p className="break-words text-sm leading-5 text-slate-300">
+                          New {description} shared by{" "}
+                          <span className="font-semibold text-white">{activity.authorName}</span>
+                        </p>
+                        <time dateTime={activity.createdAt} className="mt-1 block text-xs text-slate-400">
+                          {activity.relativeTime}
+                        </time>
+                        <a
+                          href={`/moments/${encodeURIComponent(activity.id)}`}
+                          aria-label={`View ${activity.authorName}'s moment`}
+                          className={`mt-1 inline-flex min-h-11 items-center text-sm font-semibold text-[#f0c98e] hover:underline ${actionFocusClassName}`}
+                        >
+                          View Moment
+                        </a>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ol>
             ) : (
-              <>
-                <p className="mt-5 text-sm leading-6 text-slate-400">
-                  Search for family and friends already preserving their stories on Never Say Goodbye.
-                </p>
-                <Link
-                  href="/search"
-                  className={`mt-5 ${notificationActionClassName}`}
-                >
-                  <span>Find People</span>
-                  <span aria-hidden="true" className="text-lg">→</span>
-                </Link>
-                <Link
-                  href="/connected-lives"
-                  className={`mt-3 ${notificationActionClassName}`}
-                >
-                  <span>
-                    {data.counts.unreadLivesNotifications > 0
-                      ? `${data.counts.unreadLivesNotifications} ${
-                          data.counts.unreadLivesNotifications === 1
-                            ? "New Update"
-                            : "New Updates"
-                        }`
-                      : "View Connected Lives"}
-                  </span>
-                  <span aria-hidden="true" className="text-lg">→</span>
-                </Link>
-              </>
+              <div className="mt-4 text-sm leading-6 text-slate-400">
+                <p>No new moments yet.</p>
+                <p className="mt-1">Create a memory, share a photo, or upload a video to start building your family&apos;s story.</p>
+              </div>
             )}
+            {(data.counts.newLivesRequests > 0 || data.counts.unreadLivesNotifications > 0) && (
+              <Link href="/connected-lives" className={`mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-[#f0c98e] hover:underline ${actionFocusClassName}`}>
+                {data.counts.newLivesRequests > 0
+                  ? `${data.counts.newLivesRequests} ${data.counts.newLivesRequests === 1 ? "New Request" : "New Requests"}`
+                  : `${data.counts.unreadLivesNotifications} ${data.counts.unreadLivesNotifications === 1 ? "New Update" : "New Updates"}`}
+              </Link>
+            )}
+            <Link href="/search" className={`mt-4 ${notificationActionClassName}`}>
+              <span>Find People</span>
+              <span aria-hidden="true" className="text-lg">→</span>
+            </Link>
           </section>
         </div>
       </header>
