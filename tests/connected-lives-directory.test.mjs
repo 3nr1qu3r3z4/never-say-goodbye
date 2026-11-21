@@ -68,7 +68,7 @@ function loadDashboard(data, founder = false) {
   return loadModule("app/dashboard/page.tsx", {
     react: React,
     "react/jsx-runtime": jsxRuntime,
-    "next/link": { default: ({ href, children }) => React.createElement("a", { href }, children) },
+    "next/link": { default: ({ children, ...props }) => React.createElement("a", props, children) },
     "@/lib/auth": { requireUser: async () => ({ id: "owner", firstName: "Owner" }) },
     "@/lib/admin": { isFounder: () => founder },
     "@/lib/account-data": { getDashboardData: async () => data },
@@ -182,10 +182,32 @@ test("dashboard omits the future-maker section while retaining its count and men
     data.counts.futureMomentMakers = futureMakers.length;
     const html = renderToStaticMarkup(await dashboard());
     assert.doesNotMatch(html, /future-makers-heading|A place for a story still to come/);
-    assert.match(html, new RegExp(`<dd[^>]*>${futureMakers.length}</dd><dt[^>]*>Future Moment Makers™</dt>`));
+    assert.match(html, new RegExp(`<dt[^>]*>Future Moment Makers™[\\s\\S]*?</dt><dd[^>]*>${futureMakers.length}</dd>`));
     assert.match(html, /href="\/create-moment\/future-moment-maker"[^>]*>Create Future Moment Maker™<\/a>/);
     assert.match(html, /href="\/connected-lives#future-heading"[^>]*>View Future Moment Makers™<\/a>/);
   }
+});
+
+test("dashboard snapshot links available counts to their corresponding pages", async () => {
+  const dashboard = loadDashboard({
+    counts: {
+      sharedMoments: 3, personalMoments: 2, connectedLives: 4,
+      futureMomentMakers: 5, drafts: 6, newLivesRequests: 0, unreadLivesNotifications: 0,
+    },
+    futureMomentMakers: [], recentActivity: [],
+  });
+  const html = renderToStaticMarkup(await dashboard());
+  const snapshot = html.match(/<section aria-labelledby="summary-heading"[\s\S]*?<\/section>/)?.[0];
+  assert.ok(snapshot);
+  for (const [label, count, href] of [
+    ["Shared Moments", 3, "/moments"],
+    ["Connected Lives", 4, "/connected-lives"],
+    ["Future Moment Makers™", 5, "/connected-lives#future-heading"],
+    ["Drafts", 6, "/drafts"],
+  ]) {
+    assert.match(snapshot, new RegExp(`<dt[^>]*>${label}[\\s\\S]*?<a href="${href}" aria-label="View ${label}, ${count}"[^>]*></a></dt><dd[^>]*>${count}</dd>`));
+  }
+  assert.match(snapshot, /<dt[^>]*>Personal Moments<\/dt><dd[^>]*>2<\/dd>/);
 });
 
 test("connected lives lists owned future-maker records with distinct routes", async () => {

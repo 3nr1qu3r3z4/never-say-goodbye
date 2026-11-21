@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
@@ -19,7 +20,7 @@ export default async function MomentPage({
   const moment = await getAccessibleMoment(user?.id ?? null, id);
   if (!moment) notFound();
   const attachments = [
-    { label: "Photo", name: moment.photoName },
+    { label: "Photo", name: moment.photoData ? null : moment.photoName },
     { label: "Video", name: moment.videoName },
     { label: "Voice recording", name: moment.voiceName },
   ].filter((attachment) => attachment.name);
@@ -46,6 +47,16 @@ export default async function MomentPage({
         )}
         {moment.writtenMessage && (
           <p className="mt-6 whitespace-pre-wrap break-words leading-7 text-slate-300">{moment.writtenMessage}</p>
+        )}
+        {moment.photoData && (
+          <Image
+            src={moment.photoData}
+            alt={`Photo for ${moment.title}`}
+            width={1600}
+            height={1600}
+            unoptimized
+            className="mt-8 max-h-[42rem] w-auto max-w-full rounded-2xl object-contain"
+          />
         )}
         {moment.tags && <p className="mt-6 break-words text-sm text-slate-400">Tags: {moment.tags}</p>}
         {attachments.length > 0 && (

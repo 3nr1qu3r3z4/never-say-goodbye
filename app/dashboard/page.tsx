@@ -87,14 +87,15 @@ export default async function DashboardPage() {
     },
   ];
   const statistics = [
-    { label: "Shared Moments", value: data.counts.sharedMoments },
+    { label: "Shared Moments", value: data.counts.sharedMoments, href: "/moments" },
     { label: "Personal Moments", value: data.counts.personalMoments },
-    { label: "Connected Lives", value: data.counts.connectedLives },
+    { label: "Connected Lives", value: data.counts.connectedLives, href: "/connected-lives" },
     {
       label: "Future Moment Makers™",
       value: data.counts.futureMomentMakers,
+      href: "/connected-lives#future-heading",
     },
-    { label: "Drafts", value: data.counts.drafts },
+    { label: "Drafts", value: data.counts.drafts, href: "/drafts" },
   ];
 
   return (
@@ -292,14 +293,26 @@ export default async function DashboardPage() {
             {statistics.map((statistic) => (
               <div
                 key={statistic.label}
-                className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6"
+                className={`relative flex flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6 ${
+                  statistic.href ? "group transition hover:border-[#D8A35B]/40 hover:bg-white/[0.06]" : ""
+                }`}
               >
-                <dd className="font-serif text-3xl text-[#f0c98e] sm:text-4xl">
+                <dt className="order-2 mt-2 text-sm leading-5 text-slate-400">
+                  {statistic.label}
+                  {statistic.href && (
+                    <>
+                      <span aria-hidden="true" className="ml-2 inline-block text-[#f0c98e] transition group-hover:translate-x-1">→</span>
+                      <Link
+                        href={statistic.href}
+                        aria-label={`View ${statistic.label}, ${statistic.value}`}
+                        className={`absolute inset-0 rounded-2xl ${actionFocusClassName}`}
+                      />
+                    </>
+                  )}
+                </dt>
+                <dd className="order-1 font-serif text-3xl text-[#f0c98e] sm:text-4xl">
                   {statistic.value}
                 </dd>
-                <dt className="mt-2 text-sm leading-5 text-slate-400">
-                  {statistic.label}
-                </dt>
               </div>
             ))}
           </dl>

@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { getCurrentUser } from "@/lib/auth";
 import { getSql } from "@/lib/db";
 import { hashSecret } from "@/lib/password";
+import { validatePhoto } from "@/lib/profile-photo";
 import type {
   Audience,
   ContentKind,
@@ -33,6 +34,7 @@ function isMomentDraft(value: unknown): value is MomentDraft {
     !!attachments &&
     typeof attachments === "object" &&
     Object.values(attachments).every((name) => typeof name === "string") &&
+    typeof draft.photoData === "string" &&
     typeof draft.writtenMessage === "string" &&
     audiences.includes(draft.audience as Audience) &&
     typeof draft.accessCodeRequired === "boolean" &&
@@ -74,13 +76,12 @@ export async function loadMomentDraft(kind: MomentKind) {
   } catch {
     return { error: "This saved draft could not be read. You can start a new one." };
   }
-  if (
-    parsed &&
-    typeof parsed === "object" &&
-    !Array.isArray(parsed) &&
-    !("familyPlaceholderId" in parsed)
-  ) {
-    parsed = { ...parsed, familyPlaceholderId: "" };
+  if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+    parsed = {
+      ...parsed,
+      ...(!("familyPlaceholderId" in parsed) ? { familyPlaceholderId: "" } : {}),
+      ...(!("photoData" in parsed) ? { photoData: "" } : {}),
+    };
   }
   if (!isMomentDraft(parsed)) {
     return { error: "This saved draft has invalid data. You can start a new one." };
@@ -117,6 +118,10 @@ export async function saveMomentDraft(
   if (!isMomentKind(kind) || !isMomentDraft(draft)) {
     return { error: "This draft has invalid data and could not be saved." };
   }
+  if (draft.photoData) {
+    const photo = validatePhoto(draft.photoData);
+    if (typeof photo !== "string") return photo;
+  }
   if (
     draft.title.length > 200 ||
     draft.story.length > 50_000 ||
@@ -147,7 +152,14 @@ export async function saveMomentDraft(
       : (existing?.accessCodeHash ?? null);
   }
 
-  const persistedDraft = { ...draft, accessCode: "" };
+  const attachmentNames = { ...draft.attachmentNames };
+  if (!draft.content.includes("photo")) delete attachmentNames.photo;
+  const persistedDraft = {
+    ...draft,
+    attachmentNames,
+    photoData: draft.content.includes("photo") ? draft.photoData : "",
+    accessCode: "",
+  };
   if (existing) {
     await sql`
       UPDATE drafts
@@ -183,8 +195,15 @@ export async function publishMoment(
   if (!draft.title.trim() || draft.title.length > 200) {
     return { error: "Add a title of 200 characters or fewer." };
   }
-  if (!draft.story.trim() && !draft.writtenMessage.trim()) {
-    return { error: "Add a written story or message before publishing." };
+  if (draft.photoData) {
+    const photo = validatePhoto(draft.photoData);
+    if (typeof photo !== "string") return photo;
+  }
+  if (draft.content.includes("photo") && !draft.photoData) {
+    return { error: "Choose a photo before publishing, or deselect Photo." };
+  }
+  if (!draft.story.trim() && !draft.writtenMessage.trim() && !draft.content.includes("photo")) {
+    return { error: "Add a written story, message, or photo before publishing." };
   }
   if (
     draft.story.length > 50_000 ||
@@ -257,9 +276,12 @@ export async function publishMoment(
   const momentId = randomUUID();
   const futureMakerId =
     kind === "future-moment-maker" ? randomUUID() : null;
+  const attachmentNames = { ...draft.attachmentNames };
+  if (!draft.content.includes("photo")) delete attachmentNames.photo;
   const details = {
     writtenMessage: draft.writtenMessage,
-    attachmentNames: draft.attachmentNames,
+    attachmentNames,
+    photoData: draft.content.includes("photo") ? draft.photoData : null,
     releaseKind: draft.releaseKind,
     customOccasionDate: draft.customOccasionDate,
     createRecipient: draft.createRecipient,

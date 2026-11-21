@@ -9,6 +9,7 @@ export type AccessibleMoment = {
   tags: string;
   writtenMessage: string | null;
   photoName: string | null;
+  photoData: string | null;
   videoName: string | null;
   voiceName: string | null;
   authorName: string;
@@ -22,6 +23,8 @@ async function findAccessibleMoments(viewerId: string | null, momentId: string |
     SELECT m.id, m.title, m.story, m.tags,
            m.details_json::jsonb ->> 'writtenMessage' AS "writtenMessage",
            m.details_json::jsonb -> 'attachmentNames' ->> 'photo' AS "photoName",
+           CASE WHEN ${momentId}::text IS NOT NULL
+             THEN m.details_json::jsonb ->> 'photoData' END AS "photoData",
            m.details_json::jsonb -> 'attachmentNames' ->> 'video' AS "videoName",
            m.details_json::jsonb -> 'attachmentNames' ->> 'voice' AS "voiceName",
            COALESCE(NULLIF(BTRIM(u.display_name), ''), 'Moment Maker') AS "authorName",

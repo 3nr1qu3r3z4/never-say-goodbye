@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -17,7 +18,7 @@ import {
   type MomentDraft,
   type MomentKind,
 } from "@/lib/moment-types";
-import { isHeicFile, toSupportedImage } from "@/lib/convert-image";
+import { prepareMomentPhoto } from "@/lib/prepare-moment-photo";
 
 const contentOptions: {
   value: ContentKind;
@@ -97,6 +98,8 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
   const [statusMessage, setStatusMessage] = useState("");
   const [accessCodeSaved, setAccessCodeSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isPhotoPreparing, setIsPhotoPreparing] = useState(false);
+  const [photoError, setPhotoError] = useState("");
   const [familyPlaceholders, setFamilyPlaceholders] = useState<
     { id: string; name: string; relationship: string }[]
   >([]);
@@ -154,12 +157,20 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
   }
 
   function toggleContent(content: ContentKind) {
-    setDraft((current) => ({
-      ...current,
-      content: current.content.includes(content)
-        ? current.content.filter((item) => item !== content)
-        : [...current.content, content],
-    }));
+    if (content === "photo") setPhotoError("");
+    setDraft((current) => {
+      const removing = current.content.includes(content);
+      const attachmentNames = { ...current.attachmentNames };
+      if (content === "photo" && removing) delete attachmentNames.photo;
+      return {
+        ...current,
+        content: removing
+          ? current.content.filter((item) => item !== content)
+          : [...current.content, content],
+        attachmentNames,
+        photoData: content === "photo" && removing ? "" : current.photoData,
+      };
+    });
     setStatusMessage("");
   }
 
@@ -173,27 +184,37 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
     setStatusMessage("");
 
     try {
-      if (option.value === "photo" && (await isHeicFile(file))) {
-        setStatusMessage("Preparing your iPhone photo…");
-        const supportedFile = await toSupportedImage(file);
-        updateDraft("attachmentNames", {
-          ...draft.attachmentNames,
-          [option.value]: supportedFile.name,
+      if (option.value === "photo") {
+        setIsPhotoPreparing(true);
+        setPhotoError("");
+        setStatusMessage("Preparing your photo…");
+        setDraft((current) => {
+          const attachmentNames = { ...current.attachmentNames };
+          delete attachmentNames.photo;
+          return { ...current, photoData: "", attachmentNames };
         });
-        setStatusMessage("iPhone photo is ready to add.");
+        const photo = await prepareMomentPhoto(file);
+        setDraft((current) => ({
+          ...current,
+          photoData: photo.data,
+          attachmentNames: { ...current.attachmentNames, photo: photo.name },
+        }));
+        setStatusMessage("Photo is ready to add.");
         return;
       }
 
-      updateDraft("attachmentNames", {
-        ...draft.attachmentNames,
-        [option.value]: file.name,
-      });
+      setDraft((current) => ({
+        ...current,
+        attachmentNames: { ...current.attachmentNames, [option.value]: file.name },
+      }));
     } catch (cause) {
-      setStatusMessage(
-        cause instanceof Error
-          ? cause.message
-          : "This photo could not be prepared. Please try another image.",
-      );
+      const message = cause instanceof Error
+        ? cause.message
+        : "This photo could not be prepared. Please try another image.";
+      if (option.value === "photo") setPhotoError(message);
+      setStatusMessage(message);
+    } finally {
+      if (option.value === "photo") setIsPhotoPreparing(false);
     }
   }
 
@@ -208,7 +229,7 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
         setAccessCodeSaved(result.accessCodeSaved);
         setDraft((current) => ({ ...current, accessCode: "" }));
         setStatusMessage(
-          "Draft saved to your account. Choose local files again when you return.",
+          "Draft saved to your account. Photos are kept; video and audio uploads are not yet available.",
         );
       }
     } catch {
@@ -331,6 +352,7 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
                   <input
                     type="checkbox"
                     checked={draft.content.includes(option.value)}
+                    disabled={option.value === "photo" && isPhotoPreparing}
                     onChange={() => toggleContent(option.value)}
                     className="h-4 w-4 shrink-0 accent-[#D8A35B] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D8A35B]"
                   />
@@ -362,6 +384,7 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
                     id={`moment-${option.value}`}
                     type="file"
                     accept={option.accept}
+                    disabled={option.value === "photo" && (!isReady || isPhotoPreparing)}
                     onChange={(event) =>
                       void handleMediaSelection(option, event.currentTarget)
                     }
@@ -370,6 +393,27 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
                   {draft.attachmentNames[option.value] && (
                     <p className="mt-2 text-xs text-slate-400">
                       Selected: {draft.attachmentNames[option.value]}
+                    </p>
+                  )}
+                  {option.value === "photo" && draft.photoData && (
+                    <Image
+                      src={draft.photoData}
+                      alt="Selected moment photo"
+                      width={1600}
+                      height={1600}
+                      unoptimized
+                      className="mt-4 max-h-96 w-auto max-w-full rounded-xl object-contain"
+                    />
+                  )}
+                  {option.value === "photo" && isPhotoPreparing && (
+                    <p className="mt-2 text-xs text-slate-400" role="status">Preparing your photo…</p>
+                  )}
+                  {option.value === "photo" && photoError && (
+                    <p className="mt-2 text-xs text-amber-300" role="alert">{photoError}</p>
+                  )}
+                  {option.value === "photo" && draft.attachmentNames.photo && !draft.photoData && (
+                    <p className="mt-2 text-xs text-amber-300">
+                      This older draft saved only the file name. Choose the photo again to include it.
                     </p>
                   )}
                 </div>
@@ -645,7 +689,7 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
               <button
                 type="button"
-                disabled={!isReady || isSaving}
+                disabled={!isReady || isSaving || isPhotoPreparing}
                 onClick={saveDraft}
                 className={secondaryButtonClassName}
               >
@@ -670,7 +714,7 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
 
           <button
             type="submit"
-            disabled={isSaving}
+            disabled={!isReady || isSaving || isPhotoPreparing}
             className="min-h-14 w-full rounded-full bg-[#D8A35B] px-8 py-4 text-sm font-semibold tracking-wide text-[#0F172A] shadow-lg shadow-[#D8A35B]/10 transition hover:bg-[#e6b66f] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B] sm:text-base"
           >
             {isSaving ? "Saving..." : "Publish Moment"}

@@ -137,10 +137,11 @@ test("publishing links only an accessible placeholder and preserves audience", a
       "@/lib/auth": { getCurrentUser: async () => ({ id: "author" }) },
       "@/lib/db": { getSql: () => sql },
       "@/lib/password": { hashSecret: async () => "hash" },
+      "@/lib/profile-photo": { validatePhoto: (value) => value },
     });
     const result = await actions.publishMoment("shared", "", {
       title: "A story", story: "A memory", tags: "", content: ["written"],
-      attachmentNames: {}, writtenMessage: "", audience: "family",
+      attachmentNames: {}, photoData: "", writtenMessage: "", audience: "family",
       accessCodeRequired: false, accessCode: "", releaseKind: "date",
       releaseDate: "", occasion: "", customOccasionDate: "", recipientName: "",
       relationship: "", createRecipient: false, familyPlaceholderId: "relative",

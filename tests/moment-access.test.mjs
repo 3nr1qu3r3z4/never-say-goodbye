@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
+import { randomUUID } from "node:crypto";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import vm from "node:vm";
@@ -20,6 +21,7 @@ function loadModule(relativePath, dependencies) {
   const exports = {};
   vm.runInNewContext(compiled, {
     exports,
+    Buffer,
     require: (name) => {
       if (!(name in dependencies)) throw new Error(`Unexpected import: ${name}`);
       return dependencies[name];
@@ -31,9 +33,11 @@ function loadModule(relativePath, dependencies) {
 test("moment page authorizes before rendering and hides denied or missing moments", async () => {
   let allowed = false;
   let signedIn = true;
+  let photoData = null;
   const calls = [];
   const page = loadModule("app/moments/[id]/page.tsx", {
     "react/jsx-runtime": jsxRuntime,
+    "next/image": { default: (props) => React.createElement("img", { src: props.src, alt: props.alt }) },
     "next/link": { default: ({ children, href }) => React.createElement("a", { href }, children) },
     "next/navigation": { notFound: () => { throw new Error("not found"); } },
     "@/lib/auth": { getCurrentUser: async () => signedIn ? { id: "viewer" } : null },
@@ -44,7 +48,7 @@ test("moment page authorizes before rendering and hides denied or missing moment
           ? {
             title: "A story", authorName: "Author", authorId: "author",
             story: "Memory", writtenMessage: "Message", tags: "family",
-            photoName: "photo.jpg", videoName: null, voiceName: null,
+            photoName: "photo.jpg", photoData, videoName: "video.mp4", voiceName: null,
           }
           : null;
       },
@@ -61,9 +65,15 @@ test("moment page authorizes before rendering and hides denied or missing moment
   assert.match(html, /Tags: family/);
   assert.match(html, /Photo: photo.jpg/);
   assert.match(html, /files were not uploaded/);
+  photoData = "data:image/jpeg;base64,/9j/2Q==";
+  const withPhoto = renderToStaticMarkup(await page({ params: Promise.resolve({ id: "moment" }) }));
+  assert.match(withPhoto, /src="data:image\/jpeg;base64,\/9j\/2Q=="/);
+  assert.doesNotMatch(withPhoto, /Photo: photo.jpg/);
+  assert.match(withPhoto, /Video: video.mp4/);
+  assert.match(withPhoto, /files were not uploaded/);
   signedIn = false;
   await page({ params: Promise.resolve({ id: "moment" }) });
-  assert.deepEqual(calls[2], [null, "moment"]);
+  assert.deepEqual(calls[3], [null, "moment"]);
 });
 
 test("moment menu confirms deletion and hides management actions from non-authors", async () => {
@@ -181,6 +191,7 @@ test("moment audiences are enforced against current relationships in PostgreSQL"
       const text = strings.reduce((result, part, index) => result + (index ? `$${index}` : "") + part, "");
       return (await db.query(text, values)).rows;
     };
+    sql.transaction = async (statements) => Promise.all(statements);
     const access = loadModule("lib/moment-access.ts", {
       "server-only": {},
       "@/lib/db": { getSql: () => sql },
@@ -220,12 +231,59 @@ test("moment audiences are enforced against current relationships in PostgreSQL"
     assert.equal(await access.getAccessibleMoment(null, "public"), null);
     assert.equal((await access.getAccessibleMoment("author", "public"))?.story, "Public story");
 
+    const { initialMomentDraft } = loadModule("lib/moment-types.ts", {});
+    const { validatePhoto } = loadModule("lib/profile-photo.ts", { "server-only": {} });
+    const editor = loadModule("lib/moment-actions.ts", {
+      "node:crypto": { randomUUID },
+      "@/lib/auth": { getCurrentUser: async () => ({ id: "author" }) },
+      "@/lib/db": { getSql: () => sql },
+      "@/lib/password": { hashSecret: async () => "hash" },
+      "@/lib/profile-photo": { validatePhoto },
+    });
+    const photoData = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=";
+    const photoDraft = {
+      ...initialMomentDraft, title: "Photo memory", content: ["photo"],
+      attachmentNames: { photo: "family.png" }, photoData, audience: "family",
+    };
+    assert.match((await editor.publishMoment("shared", "", { ...photoDraft, photoData: "" })).error, /Choose a photo/);
+    assert.ok((await editor.saveMomentDraft("shared", "", { ...photoDraft, photoData: "invalid" })).error);
+    assert.ok((await editor.publishMoment("shared", "", { ...photoDraft, photoData: "invalid" })).error);
+    const saved = await editor.saveMomentDraft("shared", "", photoDraft);
+    assert.ok(saved.draftId);
+    assert.equal((await editor.loadMomentDraft("shared")).draft.photoData, photoData);
+    assert.equal((await editor.publishMoment("shared", saved.draftId, photoDraft)).success, true);
+    const [published] = (await db.query("SELECT id, details_json FROM moments WHERE title = 'Photo memory'")).rows;
+    assert.equal(JSON.parse(published.details_json).photoData, photoData);
+    assert.equal((await editor.loadMomentDraft("shared")).draft, null);
+    assert.equal((await access.getAccessibleMoment("author", published.id)).photoData, photoData);
+    assert.equal((await access.getAccessibleMoment("relative", published.id)).photoData, photoData);
+    assert.equal(await access.getAccessibleMoment("accepted", published.id), null);
+    assert.equal(await access.getAccessibleMoment(null, published.id), null);
+    assert.equal((await access.getAccessibleMoments("relative")).find((moment) => moment.id === published.id).photoData, null);
+
+    const withoutPhoto = { ...photoDraft, title: "No photo", story: "Story", content: ["written"] };
+    const savedWithoutPhoto = await editor.saveMomentDraft("shared", "", withoutPhoto);
+    assert.equal((await editor.loadMomentDraft("shared")).draft.photoData, "");
+    assert.equal((await editor.publishMoment("shared", savedWithoutPhoto.draftId, withoutPhoto)).success, true);
+    const [withoutPhotoRow] = (await db.query("SELECT details_json FROM moments WHERE title = 'No photo'")).rows;
+    assert.equal(JSON.parse(withoutPhotoRow.details_json).photoData, null);
+    assert.equal(JSON.parse(withoutPhotoRow.details_json).attachmentNames.photo, undefined);
+    const { photoData: ignored, ...legacyDraft } = photoDraft;
+    assert.ok(ignored);
+    await db.query(`INSERT INTO drafts (id, user_id, kind, title, payload_json, created_at, updated_at)
+      VALUES ('old-draft', 'author', 'shared', 'Old', $1, '2026-01-01', '2026-01-01')`, [JSON.stringify(legacyDraft)]);
+    const restored = await editor.loadMomentDraft("shared");
+    assert.equal(restored.draft.photoData, "");
+    assert.equal(restored.draft.attachmentNames.photo, "family.png");
+    assert.match((await editor.publishMoment("shared", restored.draftId, restored.draft)).error, /Choose a photo/);
+
     await db.exec(`
       UPDATE connected_lives SET status = 'declined' WHERE id = 'accepted';
       DELETE FROM legacy_tree_members WHERE tree_id = 'shared-tree' AND user_id = 'relative';
     `);
     assert.equal(await access.getAccessibleMoment("accepted", "connections"), null);
     assert.equal(await access.getAccessibleMoment("relative", "family"), null);
+    assert.equal(await access.getAccessibleMoment("relative", published.id), null);
     assert.equal((await access.getAccessibleMoments("relative")).length, 0);
 
     let currentUser = null;

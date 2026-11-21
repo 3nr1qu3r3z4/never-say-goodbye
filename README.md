@@ -10,8 +10,14 @@ their accepted Connected Lives or members of a shared Legacy Tree at `/moments`.
 Public Shared Moments can be viewed when the author's profile and Shared
 Moments visibility settings permit it. Authors can delete their own Shared
 Moments from the actions menu; editing published moments is not yet available.
-Protected and scheduled unlocks, Future Moment Maker recipients, and moment
-media uploads are not implemented here.
+One photo per moment can be selected, optimized, and saved with a draft or
+published moment. Photos on Shared Moments use the existing viewing permissions;
+other moment types do not yet have a viewing page. For older drafts containing
+only a filename, select the original photo again. Older published moments
+cannot be edited, so recreate them to include the original photo.
+Inputs up to 20 MB are optimized to at most 640 KB. Protected and scheduled
+unlocks, Future Moment Maker recipients, and video or audio uploads are not
+implemented here.
 
 ## Run locally and deploy
 
