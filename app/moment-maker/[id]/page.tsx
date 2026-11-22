@@ -4,12 +4,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getSql } from "@/lib/db";
+import { getPublicProfileSharedMoments } from "@/lib/moment-access";
 import ConnectionRequestButton from "./connection-request-button";
 import ProfileLocations from "@/app/profile-locations";
 import { frequentVisitsEnabled } from "@/lib/frequent-visits";
 import type { ConnectionStatus } from "@/app/actions/connected-lives";
 import VisitTracker from "./visit-tracker";
-import MomentActionsMenu from "@/app/moments/moment-actions-menu";
+import MomentCard from "@/app/moments/moment-card";
 
 export const instant = false;
 
@@ -73,14 +74,13 @@ export default async function MomentMakerProfilePage({
   const profile = (profileRows as Profile[])[0];
   if (!profile) notFound();
 
-  const [momentRows, connectionRows] = await Promise.all([
+  const [momentRows, connectionRows, sharedMoments] = await Promise.all([
     sql`
       SELECT id, title, kind
       FROM moments
       WHERE user_id = ${profile.id}
         AND audience = 'public'
-        AND kind IN ('shared', 'personal')
-        AND (kind <> 'shared' OR access_code_hash IS NULL)
+        AND kind = 'personal'
       ORDER BY created_at DESC
     `,
     currentUser && currentUser.id !== profile.id
@@ -96,12 +96,11 @@ export default async function MomentMakerProfilePage({
           LIMIT 1
         `
       : Promise.resolve([]),
+    profile.publicSharedMoments
+      ? getPublicProfileSharedMoments(currentUser?.id ?? null, profile.id)
+      : Promise.resolve([]),
   ]);
   const moments = momentRows as Moment[];
-  const sharedMoments =
-    profile.publicSharedMoments
-      ? moments.filter((moment) => moment.kind === "shared")
-      : [];
   const personalMoments =
     profile.publicPersonalMoments
       ? moments.filter((moment) => moment.kind === "personal")
@@ -206,16 +205,8 @@ export default async function MomentMakerProfilePage({
             <h2 className="font-serif text-3xl text-white sm:text-4xl">
               Shared Moments
             </h2>
-            <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {sharedMoments.map((moment) => (
-                <li
-                  key={moment.id}
-                  className="relative rounded-2xl border border-white/10 bg-white/[0.03] p-5 pr-16"
-                >
-                  <MomentActionsMenu momentId={moment.id} title={moment.title} isAuthor={isOwnProfile} />
-                  <p className="font-serif text-lg text-white">{moment.title}</p>
-                </li>
-              ))}
+            <ul className="mt-6 grid gap-3 lg:grid-cols-2">
+              {sharedMoments.map((moment) => <MomentCard key={moment.id} moment={moment} />)}
             </ul>
           </div>
         </section>

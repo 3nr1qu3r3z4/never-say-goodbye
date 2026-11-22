@@ -3,8 +3,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { getSql } from "@/lib/db";
+import { getPublicProfileSharedMoments } from "@/lib/moment-access";
 import ProfileLocations from "@/app/profile-locations";
-import MomentActionsMenu from "@/app/moments/moment-actions-menu";
+import MomentCard from "@/app/moments/moment-card";
 
 export const metadata: Metadata = {
   title: "Profile Preview | Never Say Goodbye",
@@ -62,7 +63,7 @@ type FutureMomentMaker = {
 export default async function MyProfilePreviewPage() {
   const user = await requireUser();
   const sql = getSql();
-  const [profileRows, moments, connections, legacyTrees, futureMomentMakers] =
+  const [profileRows, moments, connections, legacyTrees, futureMomentMakers, publicSharedMoments] =
     await Promise.all([
     sql`
       SELECT COALESCE(
@@ -96,8 +97,7 @@ export default async function MyProfilePreviewPage() {
       SELECT id, title, kind, audience
       FROM moments
       WHERE user_id = ${user.id}
-        AND kind IN ('shared', 'personal')
-        AND (kind <> 'shared' OR access_code_hash IS NULL)
+        AND kind = 'personal'
       ORDER BY created_at DESC
     `,
     sql`
@@ -128,6 +128,7 @@ export default async function MyProfilePreviewPage() {
         AND status != 'archived'
       ORDER BY created_at DESC
     `,
+    getPublicProfileSharedMoments(user.id, user.id),
   ]);
   const profile = (profileRows as ProfileDetails[])[0] ?? {
     displayName: user.displayName || "Moment Maker",
@@ -158,13 +159,8 @@ export default async function MyProfilePreviewPage() {
   ].filter((word): word is string => Boolean(word?.trim()));
   const profileMoments = moments as Moment[];
   const isPubliclyVisible = profile.discoverability !== "private";
-  const sharedMoments = profileMoments.filter(
-    (moment) =>
-      isPubliclyVisible &&
-      profile.publicSharedMoments &&
-      moment.kind === "shared" &&
-      moment.audience === "public",
-  );
+  const sharedMoments =
+    isPubliclyVisible && profile.publicSharedMoments ? publicSharedMoments : [];
   const personalMoments = profileMoments.filter(
     (moment) =>
       isPubliclyVisible &&
@@ -297,20 +293,9 @@ export default async function MyProfilePreviewPage() {
             <h2 className="mt-3 font-serif text-3xl text-white sm:text-4xl">
               Shared Moments
             </h2>
-            <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {sharedMoments.map((moment) => (
-                <article
-                  key={moment.id}
-                  className="relative flex min-h-40 flex-col justify-end rounded-2xl border border-white/10 bg-gradient-to-br from-[#293b4a] via-[#33465a] to-[#172437] p-5"
-                >
-                  <MomentActionsMenu momentId={moment.id} title={moment.title} isAuthor />
-                  <span aria-hidden="true" className="mb-auto text-2xl text-[#f0c98e]">
-                    ✦
-                  </span>
-                  <h3 className="font-serif text-lg text-white">{moment.title}</h3>
-                </article>
-              ))}
-            </div>
+            <ul className="mt-8 grid gap-3 lg:grid-cols-2">
+              {sharedMoments.map((moment) => <MomentCard key={moment.id} moment={moment} />)}
+            </ul>
           </div>
         </section>
       )}

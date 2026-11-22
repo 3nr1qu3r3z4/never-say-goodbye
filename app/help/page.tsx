@@ -119,7 +119,7 @@ const guides = [
       {
         question: "How do I view or delete a published Moment?",
         steps: [
-          "Open Shared Moments from My Legacy and select a Moment's title or preview, or choose View Moment from its three-dot menu.",
+          "Open Shared Moments from My Legacy or a visible Moment Maker profile and select a Moment's title or preview, or choose View Moment from its three-dot menu.",
           "To delete your own Shared Moment, open its three-dot menu, choose Delete Moment, and confirm. Deletion is permanent. Editing published Moments is not available yet.",
         ],
       },

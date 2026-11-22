@@ -89,14 +89,18 @@ test("shared moment cards link their previews and titles without enclosing the a
     { id: "text", title: "A story", story: "Today we celebrated together.", writtenMessage: null, hasPhoto: false, hasVideo: false, authorName: "Lee", isAuthor: true },
     { id: "message", title: "A note", story: " ", writtenMessage: "Thinking of you.", hasPhoto: false, hasVideo: false, authorName: "Lee", isAuthor: true },
   ];
+  const card = loadModule("app/moments/moment-card.tsx", {
+    "react/jsx-runtime": jsxRuntime,
+    "next/image": { default: ({ src, alt }) => React.createElement("img", { src, alt }) },
+    "./moment-actions-menu": { default: ({ title }) => React.createElement("button", null, `Actions for ${title}`) },
+    "./video-preview": { default: ({ momentId }) => React.createElement("span", { "data-video": momentId }, "▶") },
+  }).default;
   const page = loadModule("app/moments/page.tsx", {
     "react/jsx-runtime": jsxRuntime,
     "next/link": { default: ({ href, children }) => React.createElement("a", { href }, children) },
-    "next/image": { default: ({ src, alt }) => React.createElement("img", { src, alt }) },
     "@/lib/auth": { requireUser: async () => ({ id: "viewer" }) },
     "@/lib/moment-access": { getAccessibleMoments: async (id) => { assert.equal(id, "viewer"); return rows; } },
-    "./moment-actions-menu": { default: ({ title }) => React.createElement("button", null, `Actions for ${title}`) },
-    "./video-preview": { default: ({ momentId }) => React.createElement("span", { "data-video": momentId }, "▶") },
+    "./moment-card": { default: card },
   }).default;
   const html = renderToStaticMarkup(await page());
   assert.match(html, /<button>Actions for Turning 5<\/button><a href="\/moments\/photo%2Fid"[\s\S]*?<img[^>]*src="\/api\/moments\/photo%2Fid\/photo"[\s\S]*?Turning 5[\s\S]*?<\/a>/);
@@ -321,6 +325,14 @@ test("moment audiences are enforced against current relationships in PostgreSQL"
     assert.deepEqual(Array.from(await access.getAccessibleMoments("relative"), (moment) => moment.id), ["family"]);
     assert.deepEqual(Array.from(await access.getAccessibleMoments("author"), (moment) => moment.id).sort(), ["connections", "family", "private", "public"]);
     assert.deepEqual(Array.from(await access.getAccessibleMoments("outsider"), (moment) => moment.id), []);
+    for (const viewer of [null, "author", "relative", "outsider"]) {
+      const profileMoments = await access.getPublicProfileSharedMoments(viewer, "author");
+      assert.deepEqual(Array.from(profileMoments, (moment) => moment.id), ["public"]);
+      assert.equal(profileMoments[0].hasVideo, true);
+      assert.equal(profileMoments[0].isAuthor, viewer === "author");
+      assert.equal(profileMoments[0].photoData, null);
+    }
+    assert.deepEqual(Array.from(await access.getPublicProfileSharedMoments(null, "outsider")), []);
 
     await db.exec(`UPDATE moments SET details_json = '{"photoData":"data:image/jpeg;base64,abc"}' WHERE id = 'family'`);
     const activityFor = async (viewer) => Array.from(await access.getRecentFamilyActivity(viewer), (moment) => moment.id);
@@ -359,10 +371,14 @@ test("moment audiences are enforced against current relationships in PostgreSQL"
     await db.exec("UPDATE users SET public_shared_moments = FALSE WHERE id = 'author'");
     assert.equal(await access.getAccessibleMoment(null, "public"), null);
     assert.equal((await access.getAccessibleMoment("author", "public"))?.story, "Public story");
+    assert.equal((await access.getPublicProfileSharedMoments("author", "author")).length, 0);
+    assert.equal((await access.getPublicProfileSharedMoments(null, "author")).length, 0);
     assert.deepEqual(await activityFor("accepted"), ["connections"]);
     await db.exec("UPDATE users SET public_shared_moments = TRUE, discoverability = 'private' WHERE id = 'author'");
     assert.equal(await access.getAccessibleMoment(null, "public"), null);
     assert.equal((await access.getAccessibleMoment("author", "public"))?.story, "Public story");
+    assert.equal((await access.getPublicProfileSharedMoments("author", "author")).length, 0);
+    assert.equal((await access.getPublicProfileSharedMoments(null, "author")).length, 0);
     assert.deepEqual(await activityFor("relative"), ["family"]);
 
     const { initialMomentDraft } = loadModule("lib/moment-types.ts", {});

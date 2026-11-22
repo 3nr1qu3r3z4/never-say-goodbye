@@ -10,7 +10,8 @@ their accepted Connected Lives or members of a shared Legacy Tree at `/moments`.
 Public Shared Moments can be viewed when the author's profile and Shared
 Moments visibility settings permit it. Authors can delete their own Shared
 Moments from the actions menu; editing published moments is not yet available.
-Select a Shared Moment's title or preview to open it. Cards show photos,
+Select a Shared Moment's title or preview on the Shared Moments page or a
+visible profile to open it. Cards show photos,
 video previews where supported, or a short text excerpt. Photo and video
 previews use the same access checks as the Moment itself.
 One photo per moment can be selected, optimized, and saved with a draft or

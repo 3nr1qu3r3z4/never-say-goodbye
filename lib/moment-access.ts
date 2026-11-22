@@ -21,7 +21,7 @@ export type AccessibleMoment = {
   isAuthor: boolean;
 };
 
-async function findAccessibleMoments(viewerId: string | null, momentId: string | null, includePhoto: boolean, familyActivity = false) {
+async function findAccessibleMoments(viewerId: string | null, momentId: string | null, includePhoto: boolean, familyActivity = false, profileAuthorId: string | null = null) {
   const sql = getSql();
   return (await sql`
     SELECT m.id, m.title, m.story, m.tags,
@@ -45,6 +45,15 @@ async function findAccessibleMoments(viewerId: string | null, momentId: string |
       AND m.access_code_hash IS NULL
       AND (${momentId}::text IS NULL OR m.id = ${momentId})
       AND (
+        ${profileAuthorId}::text IS NULL
+        OR (
+          m.user_id = ${profileAuthorId}
+          AND m.audience = 'public'
+          AND u.discoverability IN ('searchable', 'public')
+          AND COALESCE((to_jsonb(u) ->> 'public_shared_moments')::boolean, TRUE)
+        )
+      )
+      AND (
         NOT ${familyActivity}::boolean
         OR (
           m.user_id <> ${viewerId}
@@ -66,7 +75,7 @@ async function findAccessibleMoments(viewerId: string | null, momentId: string |
       AND (
         m.user_id = ${viewerId}
         OR (
-          (${momentId}::text IS NOT NULL OR ${familyActivity}::boolean)
+          (${momentId}::text IS NOT NULL OR ${familyActivity}::boolean OR ${profileAuthorId}::text IS NOT NULL)
           AND m.audience = 'public'
           AND u.discoverability IN ('searchable', 'public')
           AND COALESCE((to_jsonb(u) ->> 'public_shared_moments')::boolean, TRUE)
@@ -106,6 +115,10 @@ export async function getAccessibleMoments(viewerId: string) {
 export async function getAccessibleMoment(viewerId: string | null, momentId: string, includePhoto = true) {
   const moments = await findAccessibleMoments(viewerId, momentId, includePhoto);
   return moments[0] ?? null;
+}
+
+export async function getPublicProfileSharedMoments(viewerId: string | null, authorId: string) {
+  return findAccessibleMoments(viewerId, null, false, false, authorId);
 }
 
 function relativeTime(value: string, now: number) {

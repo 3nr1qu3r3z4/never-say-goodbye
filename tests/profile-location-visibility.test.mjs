@@ -32,6 +32,14 @@ const ProfileLocations = loadModule("app/profile-locations.tsx", {
   "react/jsx-runtime": jsxRuntime,
 }).default;
 
+const MomentCard = loadModule("app/moments/moment-card.tsx", {
+  "react/jsx-runtime": jsxRuntime,
+  "next/image": { default: ({ src, alt }) => React.createElement("img", { src, alt }) },
+  "./moment-actions-menu": { default: ({ momentId, isAuthor }) =>
+    React.createElement("button", { "data-owner": String(isAuthor) }, `Actions for ${momentId}`) },
+  "./video-preview": { default: ({ momentId }) => React.createElement("span", { "data-video": momentId }, "▶") },
+}).default;
+
 const profile = {
   id: "person", displayName: "Jane", bio: "", location: "Seattle",
   birthplace: "Boston", descriptorOne: "Kind", descriptorTwo: "",
@@ -47,7 +55,8 @@ const basicDependencies = {
   "next/link": { default: ({ children }) => React.createElement("a", null, children) },
   "next/image": { default: () => null },
   "@/app/profile-locations": { default: ProfileLocations },
-  "@/app/moments/moment-actions-menu": { default: () => null },
+  "@/app/moments/moment-card": { default: MomentCard },
+  "@/lib/moment-access": { getPublicProfileSharedMoments: async () => [] },
   "@/lib/frequent-visits": { frequentVisitsEnabled: () => false },
   "./visit-tracker": { default: () => null },
 };
@@ -93,23 +102,27 @@ test("saved profile photo uses the same square framing in editor, preview and pu
   assert.match(editorFrame, /src="data:image\/png;base64,c2F2ZWQtY3JvcA=="[^>]*class="object-cover object-center"/);
 });
 
-test("real Shared Moment cards pass author status to the actions menu", async () => {
+test("profile Shared Moments use the shared cards and respect profile visibility", async () => {
+  let visible = true;
+  let discoverability = "public";
   const sql = async (strings) => {
     const text = strings.join("");
     if (text.includes("FROM users AS u")) {
-      return [{ ...profile, publicSharedMoments: true }];
-    }
-    if (text.includes("FROM moments")) {
-      return [{ id: "moment", title: "Shared story", kind: "shared", audience: "public" }];
+      return [{ ...profile, publicSharedMoments: visible, discoverability }];
     }
     return [];
   };
-  const menu = ({ momentId, isAuthor }) => React.createElement(
-    "span", { "data-owner": String(isAuthor) }, momentId,
-  );
+  const calls = [];
   const dependencies = {
     ...basicDependencies,
-    "@/app/moments/moment-actions-menu": { default: menu },
+    "@/lib/moment-access": { getPublicProfileSharedMoments: async (viewer, author) => {
+      calls.push([viewer, author]);
+      return [
+        { id: "photo", title: "Photo story", story: "", writtenMessage: null, hasPhoto: true, hasVideo: false, authorName: "Jane", isAuthor: viewer === author },
+        { id: "video", title: "Family video", story: "", writtenMessage: null, hasPhoto: false, hasVideo: true, authorName: "Jane", isAuthor: viewer === author },
+        { id: "text", title: "Text story", story: "A family memory.", writtenMessage: null, hasPhoto: false, hasVideo: false, authorName: "Jane", isAuthor: viewer === author },
+      ];
+    } },
     "@/lib/db": { getSql: () => sql },
   };
   for (const [currentUser, expected] of [[{ id: "person" }, "true"], [null, "false"]]) {
@@ -120,13 +133,26 @@ test("real Shared Moment cards pass author status to the actions menu", async ()
       "./connection-request-button": { default: () => null },
     }).default;
     const html = renderToStaticMarkup(await page({ params: Promise.resolve({ id: "person" }) }));
-    assert.match(html, new RegExp(`data-owner="${expected}">moment`));
+    assert.match(html, new RegExp(`data-owner="${expected}">Actions for photo`));
+    assert.match(html, /href="\/moments\/photo"[\s\S]*?src="\/api\/moments\/photo\/photo"[\s\S]*?Photo story[\s\S]*?<\/a>/);
+    assert.match(html, /href="\/moments\/video"[\s\S]*?data-video="video"[\s\S]*?Video Moment[\s\S]*?<\/a>/);
+    assert.match(html, /href="\/moments\/text"[\s\S]*?A family memory\.[\s\S]*?<\/a>/);
   }
   const preview = loadModule("app/my-profile/preview/page.tsx", {
     ...dependencies,
     "@/lib/auth": { requireUser: async () => ({ id: "person" }) },
   }).default;
-  assert.match(renderToStaticMarkup(await preview()), /data-owner="true">moment/);
+  const previewHtml = renderToStaticMarkup(await preview());
+  assert.match(previewHtml, /data-owner="true">Actions for photo/);
+  assert.match(previewHtml, /href="\/moments\/photo"[\s\S]*?src="\/api\/moments\/photo\/photo"[\s\S]*?Photo story[\s\S]*?<\/a>/);
+  assert.match(previewHtml, /href="\/moments\/video"[\s\S]*?data-video="video"[\s\S]*?Video Moment[\s\S]*?<\/a>/);
+  assert.match(previewHtml, /href="\/moments\/text"[\s\S]*?A family memory\.[\s\S]*?<\/a>/);
+  assert.deepEqual(calls, [["person", "person"], [null, "person"], ["person", "person"]]);
+  visible = false;
+  assert.doesNotMatch(renderToStaticMarkup(await preview()), /Photo story/);
+  visible = true;
+  discoverability = "private";
+  assert.doesNotMatch(renderToStaticMarkup(await preview()), /Photo story/);
 });
 
 test("profile preview displays each location only when its visibility is enabled", async () => {
