@@ -67,6 +67,7 @@ test("signed-in primary navigation retains My Legacy and Sign Out", async () => 
   const navigation = loadPage(["app", "site-navigation.tsx"], { id: "viewer" });
   const html = await renderSuspendedActions(navigation().props.children);
   assert.equal((html.match(/href="\/dashboard"[^>]*>My Legacy<\/a>/g) ?? []).length, 2);
+  assert.doesNotMatch(html, /href="\/help"/);
   assert.equal((html.match(/type="submit"[^>]*>Sign Out<\/button>/g) ?? []).length, 2);
   assert.match(html, /<summary[^>]*>Menu<\/summary>/);
 });
@@ -95,6 +96,7 @@ test("guest primary navigation retains desktop and mobile account links", async 
   const html = await renderSuspendedActions(container);
   assert.equal((html.match(/href="\/signup"[^>]*>Create Your Legacy<\/a>/g) ?? []).length, 2);
   assert.equal((html.match(/href="\/login"[^>]*>Sign In<\/a>/g) ?? []).length, 2);
+  assert.doesNotMatch(html, /href="\/help"/);
   assert.match(html, /<summary[^>]*>Menu<\/summary>/);
   const controls = [...html.matchAll(/<a\b[^>]*class="([^"]+)"[^>]*>(?:Create Your Legacy|Sign In)<\/a>/g)];
   assert.equal(controls.length, 4);
@@ -107,6 +109,34 @@ test("guest primary navigation retains desktop and mobile account links", async 
     assert.ok(!classes.split(" ").includes("text-sm"));
   }
   assert.match(html, /<summary[^>]*class="[^"]*font-medium[^"]*text-sm[^"]*"[^>]*>Menu<\/summary>/);
+});
+
+test("the shared layout provides Help Center in footer navigation", () => {
+  const layout = loadPage(["app", "layout.tsx"], null, {
+    "next/font/google": { Geist: () => ({ variable: "sans" }), Geist_Mono: () => ({ variable: "mono" }) },
+    "./site-navigation": { default: () => null },
+    "./site-visit-tracker": { default: () => null },
+    "./globals.css": {},
+  });
+  const html = renderToStaticMarkup(React.createElement(layout, null, React.createElement("main", null, "Page content")));
+  assert.match(html, /<main>Page content<\/main>[\s\S]*<footer[^>]*><nav aria-label="Footer navigation"><a href="\/help"[^>]*>Help Center<\/a>/);
+});
+
+test("Help Center presents current guides, limitations and support contact", () => {
+  const html = renderPage(["app", "help", "page.tsx"]);
+  for (const id of ["getting-started", "connected-lives", "legacy-tree", "honored-lives", "creating-moments", "photos-videos", "moments-in-the-making", "membership", "support", "ideas"]) {
+    assert.match(html, new RegExp(`<section id="${id}"`));
+    assert.match(html, new RegExp(`href="#${id}"`));
+  }
+  assert.equal((html.match(/Screenshot coming soon:/g) ?? []).length, 7);
+  assert.match(html, /<details/);
+  assert.match(html, /Searchable Only or Public/);
+  assert.match(html, /Placeholders are not accounts/);
+  assert.match(html, /not video uploads or contributor permissions/);
+  assert.match(html, /MP4, MOV, or M4V video up to 100 MiB/);
+  assert.match(html, /Free is currently the only membership available for new accounts/);
+  assert.match(html, /href="mailto:NeverSayGoodbye.life@yahoo.com"/);
+  assert.match(html, /href="\/forgot-password"/);
 });
 
 test("the homepage showcase link opens John's profile without the message fragment", () => {

@@ -193,6 +193,7 @@ test("dashboard groups moment, people, and profile destinations without losing d
   assert.match(groups[2], /<summary\b[^>]*>[\s\S]*?My Profile[\s\S]*?<\/summary>/);
   assert.match(groups[2], /href="\/my-profile"[^>]*>View Profile<\/a>/);
   assert.match(groups[2], /href="\/legacy-controls"[^>]*>Legacy Controls™<\/a>/);
+  assert.match(groups[2], /href="\/help"[^>]*>Help Center<\/a>/);
   for (const href of ["/create-moment", "/drafts", "/create-moment/shared", "/create-moment/personal", "/create-moment/cannot-open-until", "/create-moment/future-moment-maker", "/my-profile", "/legacy-controls", "/connected-lives", "/family-calendar"]) {
     assert.equal([...section.matchAll(new RegExp(`href="${href}"`, "g"))].length, 1, href);
   }

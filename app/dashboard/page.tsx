@@ -84,6 +84,7 @@ export default async function DashboardPage() {
       items: [
         { label: "View Profile", href: "/my-profile" },
         { label: "Legacy Controls™", href: "/legacy-controls" },
+        { label: "Help Center", href: "/help" },
         ...(isFounder(user) ? [{ label: "Admin Dashboard", href: "/admin-dashboard" }] : []),
       ],
     },
