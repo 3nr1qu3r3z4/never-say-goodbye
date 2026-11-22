@@ -13,7 +13,7 @@ import ts from "typescript";
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 
-function loadModule(relativePath, dependencies) {
+function loadModule(relativePath, dependencies, globals = {}) {
   const source = fs.readFileSync(path.join(root, relativePath), "utf8");
   const compiled = ts.transpileModule(source, {
     compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX },
@@ -21,7 +21,7 @@ function loadModule(relativePath, dependencies) {
   const exports = {};
   vm.runInNewContext(compiled, {
     exports,
-    Buffer,
+    Buffer, ...globals,
     process, Request, Response, console,
     require: (name) => {
       if (!(name in dependencies)) throw new Error(`Unexpected import: ${name}`);
@@ -80,6 +80,95 @@ test("moment page authorizes before rendering and hides denied or missing moment
   signedIn = false;
   await page({ params: Promise.resolve({ id: "moment" }) });
   assert.deepEqual(calls[4], [null, "moment"]);
+});
+
+test("shared moment cards link their previews and titles without enclosing the actions menu", async () => {
+  const rows = [
+    { id: "photo/id", title: "Turning 5", story: "", writtenMessage: null, hasPhoto: true, hasVideo: false, authorName: "Alex", isAuthor: true },
+    { id: "video", title: "Family video", story: "", writtenMessage: null, hasPhoto: false, hasVideo: true, authorName: "Sam", isAuthor: false },
+    { id: "text", title: "A story", story: "Today we celebrated together.", writtenMessage: null, hasPhoto: false, hasVideo: false, authorName: "Lee", isAuthor: true },
+    { id: "message", title: "A note", story: " ", writtenMessage: "Thinking of you.", hasPhoto: false, hasVideo: false, authorName: "Lee", isAuthor: true },
+  ];
+  const page = loadModule("app/moments/page.tsx", {
+    "react/jsx-runtime": jsxRuntime,
+    "next/link": { default: ({ href, children }) => React.createElement("a", { href }, children) },
+    "next/image": { default: ({ src, alt }) => React.createElement("img", { src, alt }) },
+    "@/lib/auth": { requireUser: async () => ({ id: "viewer" }) },
+    "@/lib/moment-access": { getAccessibleMoments: async (id) => { assert.equal(id, "viewer"); return rows; } },
+    "./moment-actions-menu": { default: ({ title }) => React.createElement("button", null, `Actions for ${title}`) },
+    "./video-preview": { default: ({ momentId }) => React.createElement("span", { "data-video": momentId }, "▶") },
+  }).default;
+  const html = renderToStaticMarkup(await page());
+  assert.match(html, /<button>Actions for Turning 5<\/button><a href="\/moments\/photo%2Fid"[\s\S]*?<img[^>]*src="\/api\/moments\/photo%2Fid\/photo"[\s\S]*?Turning 5[\s\S]*?<\/a>/);
+  assert.match(html, /href="\/moments\/video"[\s\S]*?data-video="video"[\s\S]*?Family video[\s\S]*?Video Moment[\s\S]*?<\/a>/);
+  assert.match(html, /href="\/moments\/text"[\s\S]*?Today we celebrated together\.[\s\S]*?<\/a>/);
+  assert.match(html, /href="\/moments\/message"[\s\S]*?Thinking of you\.[\s\S]*?<\/a>/);
+  assert.doesNotMatch(html, /<a[^>]*>[^<]*<button/);
+});
+
+test("photo previews recheck access and return private image data only for authorized moments", async () => {
+  const photo = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=";
+  let result = null;
+  let viewer = { id: "viewer" };
+  const calls = [];
+  const route = loadModule("app/api/moments/[id]/photo/route.ts", {
+    "@/lib/auth": { getCurrentUser: async () => viewer },
+    "@/lib/moment-access": { getAccessibleMoment: async (...args) => { calls.push(args); return result; } },
+    "@/lib/profile-photo": loadModule("lib/profile-photo.ts", { "server-only": {} }),
+  });
+  const get = () => route.GET(new Request("https://example.test/photo"), { params: Promise.resolve({ id: "moment" }) });
+  assert.equal((await get()).status, 404);
+  assert.deepEqual(calls[0], ["viewer", "moment"]);
+  result = { photoData: photo };
+  const response = await get();
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("content-type"), "image/png");
+  assert.equal(response.headers.get("cache-control"), "private, no-store");
+  assert.equal(response.headers.get("x-content-type-options"), "nosniff");
+  assert.deepEqual(Buffer.from(await response.arrayBuffer()), Buffer.from(photo.split(",")[1], "base64"));
+  viewer = null;
+  result = null;
+  const denied = await get();
+  assert.equal(denied.status, 404);
+  assert.equal(denied.headers.get("cache-control"), "private, no-store");
+  assert.deepEqual(calls[2], [null, "moment"]);
+});
+
+test("video previews load the authorized first frame near the viewport", () => {
+  let visible = false;
+  let callback;
+  let observed = false;
+  let disconnected = false;
+  class Observer {
+    constructor(onIntersection) { callback = onIntersection; }
+    observe() { observed = true; }
+    disconnect() { disconnected = true; }
+  }
+  const jsx = (type, props) => ({ type, props });
+  let effect;
+  const VideoPreview = loadModule("app/moments/video-preview.tsx", {
+    "react/jsx-runtime": { jsx, jsxs: jsx },
+    react: {
+      useEffect: (fn) => { effect = fn; },
+      useRef: () => ({ current: {} }),
+      useState: () => [visible, (value) => { visible = value; }],
+    },
+  }, { window: { IntersectionObserver: Observer }, IntersectionObserver: Observer }).default;
+  const initial = VideoPreview({ momentId: "video/id" });
+  assert.equal(initial.props.children[0], false);
+  const cleanup = effect();
+  assert.equal(observed, true);
+  callback([{ isIntersecting: false }]);
+  assert.equal(visible, false);
+  callback([{ isIntersecting: true }]);
+  assert.equal(visible, true);
+  assert.equal(disconnected, true);
+  const loaded = VideoPreview({ momentId: "video/id" }).props.children[0];
+  assert.equal(loaded.type, "video");
+  assert.equal(loaded.props.src, "/api/moments/video%2Fid/video#t=0.001");
+  assert.equal(loaded.props.preload, "metadata");
+  assert.equal(loaded.props.muted, true);
+  cleanup();
 });
 
 test("moment menu confirms deletion and hides management actions from non-authors", async () => {
@@ -305,6 +394,21 @@ test("moment audiences are enforced against current relationships in PostgreSQL"
     assert.equal(await access.getAccessibleMoment("accepted", published.id), null);
     assert.equal(await access.getAccessibleMoment(null, published.id), null);
     assert.equal((await access.getAccessibleMoments("relative")).find((moment) => moment.id === published.id).photoData, null);
+    let photoViewer = { id: "relative" };
+    const photoRoute = loadModule("app/api/moments/[id]/photo/route.ts", {
+      "@/lib/auth": { getCurrentUser: async () => photoViewer },
+      "@/lib/moment-access": access,
+      "@/lib/profile-photo": { validatePhoto },
+    });
+    const getPhoto = () => photoRoute.GET(new Request("https://example.test/photo"), { params: Promise.resolve({ id: published.id }) });
+    assert.equal((await getPhoto()).status, 200);
+    photoViewer = { id: "accepted" };
+    assert.equal((await getPhoto()).status, 404);
+    photoViewer = { id: "relative" };
+    await db.exec("DELETE FROM legacy_tree_members WHERE tree_id = 'shared-tree' AND user_id = 'relative'");
+    assert.equal((await getPhoto()).status, 404);
+    await db.exec("INSERT INTO legacy_tree_members (tree_id, user_id, role, joined_at) VALUES ('shared-tree', 'relative', 'member', '2026-01-01')");
+    assert.equal((await getPhoto()).status, 200);
 
     const withoutPhoto = { ...photoDraft, title: "No photo", story: "Story", content: ["written"] };
     const savedWithoutPhoto = await editor.saveMomentDraft("shared", "", withoutPhoto);
