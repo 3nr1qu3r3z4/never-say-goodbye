@@ -64,7 +64,7 @@ test("directory searches and combines relationship and tag filters; sorts unknow
   assert.deepEqual(ids("", "all", "all", "za"), ["1", "4", "3", "2"]);
 });
 
-function loadDashboard(data, founder = false, familyActivity = []) {
+function loadDashboard(data, founder = false, familyActivity = [], bulletins = []) {
   return loadModule("app/dashboard/page.tsx", {
     react: React,
     "react/jsx-runtime": jsxRuntime,
@@ -76,11 +76,28 @@ function loadDashboard(data, founder = false, familyActivity = []) {
       assert.equal(id, "owner");
       return familyActivity;
     } },
+    "@/lib/family-calendar-data": { getFamilyBulletins: async () => bulletins },
     "@/lib/frequent-visits": { frequentVisitsEnabled: () => false },
     "./signup-welcome": { default: () => null },
     "./frequent-visits": { default: () => null },
   }).default;
 }
+
+test("family bulletins share the recent activity limit and link to their calendar", async () => {
+  const data = { counts: { sharedMoments: 0, personalMoments: 0, connectedLives: 0, newLivesRequests: 0,
+    unreadLivesNotifications: 0, futureMomentMakers: 0, drafts: 0 }, recentActivity: [] };
+  const moments = Array.from({ length: 5 }, (_, i) => ({
+    id: `m${i}`, authorName: "Alex", createdAt: `2026-01-0${i + 1}T00:00:00Z`, relativeTime: "Recently",
+    hasVideo: false, hasPhoto: false, hasMessage: true,
+  }));
+  const bulletins = [{ id: "bulletin", treeId: "family", authorName: "Enrique", createdAt: "2026-01-06T00:00:00Z", message: "Hello" }];
+  const html = renderToStaticMarkup(await loadDashboard(data, false, moments, bulletins)());
+  const feed = html.match(/<section aria-labelledby="moments-in-the-making-heading"[\s\S]*?<\/section>/)?.[0];
+  assert.match(feed, /New family bulletin from/);
+  assert.match(feed, /href="\/family-calendar\?tree=family#bulletin-bulletin"[^>]*>View Bulletin/);
+  assert.equal((feed.match(/<li /g) ?? []).length, 5);
+  assert.doesNotMatch(feed, /href="\/moments\/m0"/);
+});
 
 test("Moments in the Making shows shared media, relative time and moment links", async () => {
   const data = {
@@ -193,7 +210,7 @@ test("dashboard groups moment, people, and profile destinations without losing d
   assert.match(groups[2], /<summary\b[^>]*>[\s\S]*?My Profile[\s\S]*?<\/summary>/);
   assert.match(groups[2], /href="\/my-profile"[^>]*>View Profile<\/a>/);
   assert.match(groups[2], /href="\/legacy-controls"[^>]*>Legacy Controls™<\/a>/);
-  assert.match(groups[2], /href="\/help"[^>]*>Help Center<\/a>/);
+  assert.doesNotMatch(section, /href="\/help"/);
   for (const href of ["/create-moment", "/drafts", "/create-moment/shared", "/create-moment/personal", "/create-moment/cannot-open-until", "/create-moment/future-moment-maker", "/my-profile", "/legacy-controls", "/connected-lives", "/family-calendar"]) {
     assert.equal([...section.matchAll(new RegExp(`href="${href}"`, "g"))].length, 1, href);
   }

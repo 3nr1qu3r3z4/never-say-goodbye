@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import Link from "next/link";
 import { signupAction } from "@/app/actions/auth";
+import SearchabilityWarning from "@/app/searchability-warning";
 
 const inputClassName =
   "min-h-12 w-full rounded-xl border border-white/10 bg-slate-950/50 px-4 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-[#D8A35B]/70 focus:ring-2 focus:ring-[#D8A35B]/20";
@@ -89,6 +90,8 @@ export default function SignupForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [discoverability, setDiscoverability] = useState<"private" | "searchable" | "public">("searchable");
+  const [showSearchWarning, setShowSearchWarning] = useState(false);
 
   const accountName = [firstName.trim(), lastName.trim()]
     .filter(Boolean)
@@ -385,6 +388,8 @@ export default function SignupForm() {
                   type="radio"
                   name="discoverability"
                   value="private"
+                  checked={discoverability === "private"}
+                  onChange={() => { setDiscoverability("private"); setShowSearchWarning(true); }}
                   className="mt-0.5 h-4 w-4 shrink-0 accent-[#D8A35B] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D8A35B]"
                 />
                 <span>
@@ -399,7 +404,8 @@ export default function SignupForm() {
                   type="radio"
                   name="discoverability"
                   value="searchable"
-                  defaultChecked
+                  checked={discoverability === "searchable"}
+                  onChange={() => setDiscoverability("searchable")}
                   className="mt-0.5 h-4 w-4 shrink-0 accent-[#D8A35B] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D8A35B]"
                 />
                 <span>
@@ -415,6 +421,8 @@ export default function SignupForm() {
                   type="radio"
                   name="discoverability"
                   value="public"
+                  checked={discoverability === "public"}
+                  onChange={() => setDiscoverability("public")}
                   className="mt-0.5 h-4 w-4 shrink-0 accent-[#D8A35B] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D8A35B]"
                 />
                 <span>
@@ -426,6 +434,7 @@ export default function SignupForm() {
                 </span>
               </label>
             </fieldset>
+            <SearchabilityWarning open={showSearchWarning} onChoose={(choice) => { setDiscoverability(choice); setShowSearchWarning(false); }} />
             <div className="mt-5">
               <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-4">
                 <input

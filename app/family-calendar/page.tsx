@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
-import { getCalendarEvents, getCalendarSettings, getEditableCalendarSources } from "@/lib/family-calendar-data";
+import { getCalendarEvents, getCalendarSettings, getEditableCalendarSources, getFamilyBulletins } from "@/lib/family-calendar-data";
 import { occurrences, validCalendarDate, type CalendarEvent } from "@/lib/family-calendar";
-import { ImportDates, ManualEvent, ProfileDates, ReminderSettings, SourceDates } from "./calendar-forms";
+import { BulletinForm, ImportDates, ManualEvent, ProfileDates, ReminderSettings, SourceDates } from "./calendar-forms";
 
 export const metadata: Metadata = {
   title: "Family Calendar™ | Never Say Goodbye",
@@ -62,14 +62,15 @@ export default async function FamilyCalendarPage({
       : base;
   const count = view === "month" ? 42 : view === "week" ? 7 : 90;
   const end = new Date(start.getTime() + (count - 1) * dayMs);
-  const [allEvents, sources] = selected
+  const [allEvents, sources, bulletins] = selected
     ? await Promise.all([
         getCalendarEvents(user.id, selected.id),
         selected.role === "owner" || selected.role === "admin"
           ? getEditableCalendarSources(user.id, selected.id)
           : Promise.resolve([]),
+        getFamilyBulletins(user.id, selected.id),
       ])
-    : [[], []];
+    : [[], [], []];
   const events = occurrences(allEvents, dateText(start), dateText(end));
   const link = (nextView: string, date = anchor) => {
     const query = new URLSearchParams({ view: nextView, date });
@@ -120,6 +121,26 @@ export default async function FamilyCalendarPage({
                     <Link href={link(view, dateText(new Date()))}>Today</Link>
                     {next.getUTCFullYear() <= 9998 && <Link href={link(view, dateText(next))}>Next →</Link>}
                   </div>
+                  {selected && (
+                    <section id="bulletins" aria-labelledby="bulletin-heading" className="mt-6 scroll-mt-6 rounded-3xl border border-white/10 bg-white/[0.03] p-5 sm:p-6">
+                      <h2 id="bulletin-heading" className="font-serif text-2xl text-white">📌 Family Bulletin Board</h2>
+                      <p className="mt-2 text-sm text-slate-400">Announcements are visible to members of {selected.name}.</p>
+                      <div className="mt-5"><BulletinForm key={selected.id} treeId={selected.id} /></div>
+                      {bulletins.length ? (
+                        <ol className="mt-5 space-y-3">
+                          {bulletins.map((bulletin) => (
+                            <li id={`bulletin-${bulletin.id}`} key={bulletin.id} className="scroll-mt-6 rounded-xl border border-white/10 p-4">
+                              <p className="font-semibold text-white">{bulletin.authorName}</p>
+                              <time dateTime={bulletin.createdAt} className="mt-1 block text-xs text-slate-400">
+                                {new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" }).format(new Date(bulletin.createdAt))} UTC
+                              </time>
+                              <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-slate-200">{bulletin.message}</p>
+                            </li>
+                          ))}
+                        </ol>
+                      ) : <p className="mt-5 text-sm text-slate-400">No family bulletins yet.</p>}
+                    </section>
+                  )}
                 </div>
                 <h2 className="my-6 font-serif text-2xl text-white">
                   {view === "month" ? readable(anchor, { month: "long", year: "numeric" }) : `${readable(dateText(start), { month: "short", day: "numeric", year: "numeric" })} – ${readable(dateText(end), { month: "short", day: "numeric", year: "numeric" })}`}

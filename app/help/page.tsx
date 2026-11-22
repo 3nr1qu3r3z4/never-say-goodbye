@@ -159,11 +159,15 @@ const guides = [
     questions: [
       {
         question: "What is Moments in the Making?",
-        answer: "This card on My Legacy shows up to five recent, accessible Shared Moments from your accepted Connected Lives™ and people in a shared Legacy Tree™. It identifies uploaded photos, videos, and written messages when present.",
+        answer: "This card on My Legacy shows up to five recent items: accessible Shared Moments from your accepted Connected Lives™ and people in a shared Legacy Tree™, and family bulletins from your trees. It identifies uploaded photos, videos, and written messages when present.",
       },
       {
         question: "How do I view an activity, and why might one be missing?",
-        answer: "Choose View Moment on an item. Only Moments you are currently authorized to view appear; audience settings, relationship or tree membership, deletion, or the five-item limit can affect what you see. Drafts and other Moment types are not included.",
+        answer: "Choose View Moment or View Bulletin on an item. Only items you are currently authorized to view appear; audience settings, relationship or tree membership, deletion, or the five-item limit can affect what you see. Drafts and other Moment types are not included.",
+      },
+      {
+        question: "How do family bulletins work?",
+        answer: "Open Family Calendar™, select a Legacy Tree™, and post an announcement of up to 300 characters on its Family Bulletin Board. Current members of that tree can read and post bulletins. Bulletin emails are not sent yet.",
       },
     ],
   },
@@ -216,7 +220,7 @@ export default function HelpPage() {
                 ))}
               </div>
               <div className="mt-4 rounded-xl border border-dashed border-white/20 px-4 py-5 text-sm text-slate-500">
-                Screenshot coming soon: {section.screenshot}
+                📷 Screenshot Coming Soon: {section.screenshot}
               </div>
               <Link href={section.href} className={`mt-3 ${linkClassName}`}>{section.link} <span aria-hidden="true" className="ml-2">→</span></Link>
             </section>

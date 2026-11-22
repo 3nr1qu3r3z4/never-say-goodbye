@@ -65,9 +65,10 @@ test("calendar renders month, week and agenda views with source labels", async (
         { id: "birthday", title: "Emma Birthday", date: "2020-05-04", repeatsYearly: true, source: "Legacy Tree™" },
       ],
       getEditableCalendarSources: async () => [],
+      getFamilyBulletins: async () => [],
     },
     "./calendar-forms": Object.fromEntries(
-      ["ImportDates", "ManualEvent", "ProfileDates", "ReminderSettings", "SourceDates"].map((name) => [name, () => null]),
+      ["BulletinForm", "ImportDates", "ManualEvent", "ProfileDates", "ReminderSettings", "SourceDates"].map((name) => [name, () => null]),
     ),
   };
   const page = loadModule("app/family-calendar/page.tsx", dependencies).default;
@@ -91,9 +92,10 @@ test("empty calendar explains available dates and how to enable sync", async () 
       getCalendarSettings: async () => ({ profile: {}, reminders: {}, trees: [{ id: "tree", name: "Family", role: "owner" }] }),
       getCalendarEvents: async () => [],
       getEditableCalendarSources: async () => [],
+      getFamilyBulletins: async () => [],
     },
     "./calendar-forms": Object.fromEntries(
-      ["ImportDates", "ManualEvent", "ProfileDates", "ReminderSettings", "SourceDates"].map((name) => [name, () => null]),
+      ["BulletinForm", "ImportDates", "ManualEvent", "ProfileDates", "ReminderSettings", "SourceDates"].map((name) => [name, () => null]),
     ),
   }).default;
   const html = renderToStaticMarkup(await page({ searchParams: Promise.resolve({ date: "2026-05-04" }) }));
@@ -169,6 +171,16 @@ test("family calendar authorization, consent and live imports in disposable Post
     }));
     const ids = async (id = "owner") => Array.from(await data.getCalendarEvents(id, "tree"), (event) => event.id);
 
+    assert.ok((await actions.createFamilyBulletin({}, form({ treeId: "tree", message: " " }))).error);
+    assert.ok((await actions.createFamilyBulletin({}, form({ treeId: "tree", message: "x".repeat(301) }))).error);
+    assert.ok((await actions.createFamilyBulletin({}, form({ treeId: "tree", message: "x".repeat(300) }))).success);
+    assert.equal((await data.getFamilyBulletins("member", "tree"))[0].message.length, 300);
+    assert.ok((await actions.createFamilyBulletin({}, form({ treeId: "tree", message: "❤️".repeat(301) }))).error);
+    assert.ok((await actions.createFamilyBulletin({}, form({ treeId: "tree", message: "😀".repeat(300) }))).success);
+    assert.equal((await data.getFamilyBulletins("member", null))[0].authorName, "owner");
+    assert.equal((await data.getFamilyBulletins("outsider", "tree")).length, 0);
+    assert.equal((await data.getFamilyBulletins("outsider", null)).length, 0);
+
     assert.ok((await save("placeholder", "placeholder", "1941-05-01")).error);
     assert.ok((await save("placeholder", "placeholder", "1940-05-01", "2020-06-01")).success);
     assert.ok((await save("future", "future", "2027-02-15")).success);
@@ -215,6 +227,7 @@ test("family calendar authorization, consent and live imports in disposable Post
     currentUser = "outsider";
     assert.ok((await actions.enableCalendarImports({}, form({ treeId: "tree" }))).error);
     assert.ok((await actions.createCalendarEvent({}, form({ treeId: "tree", title: "Bad", date: "2027-01-01" }))).error);
+    assert.ok((await actions.createFamilyBulletin({}, form({ treeId: "tree", message: "Unauthorized" }))).error);
     assert.ok((await save("connection", "connection", "2011-06-14")).error);
 
     await db.exec("UPDATE users SET share_birthday = FALSE, share_anniversary = FALSE, share_relationship_milestones = FALSE WHERE id = 'member'");
@@ -234,6 +247,8 @@ test("family calendar authorization, consent and live imports in disposable Post
     await db.exec("DELETE FROM legacy_tree_members WHERE tree_id = 'tree' AND user_id = 'member'");
     assert.ok(!(await ids()).includes("anniversary:connection"));
     assert.equal((await ids("member")).length, 0);
+    assert.equal((await data.getFamilyBulletins("member", "tree")).length, 0);
+    assert.equal((await data.getFamilyBulletins("member", null)).length, 0);
     await db.exec("UPDATE future_moment_makers SET status = 'archived' WHERE id = 'future'");
     await db.exec("DELETE FROM family_placeholders WHERE id = 'placeholder'");
     events = await ids();
@@ -256,7 +271,7 @@ test("standalone schema and migration expose the same calendar columns", {
     await bootstrap.exec(fs.readFileSync(path.join(root, "db", "schema.sql"), "utf8"));
     const query = `SELECT table_name, column_name, data_type, is_nullable, column_default
       FROM information_schema.columns WHERE table_schema = 'public' AND (
-        table_name IN ('family_calendar_events', 'family_calendar_import_settings', 'family_calendar_reminders', 'family_relationship_milestones')
+        table_name IN ('family_calendar_events', 'family_calendar_import_settings', 'family_calendar_reminders', 'family_relationship_milestones', 'family_bulletins')
         OR (table_name = 'users' AND column_name IN ('birth_date', 'birth_year', 'memorial_date', 'share_birthday', 'share_anniversary', 'share_memorial_date', 'share_relationship_milestones'))
         OR (table_name = 'family_placeholders' AND column_name IN ('birth_date', 'memorial_date'))
         OR (table_name = 'future_moment_makers' AND column_name = 'expected_birth_date')

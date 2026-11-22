@@ -91,6 +91,29 @@ export async function createCalendarEvent(
   return { success: "Family event added." };
 }
 
+export async function createFamilyBulletin(
+  _state: CalendarActionState, form: FormData,
+): Promise<CalendarActionState> {
+  const user = await requireUser();
+  const treeId = field(form, "treeId");
+  const message = field(form, "message");
+  if (!treeId || !message || Array.from(message).length > 300) {
+    return { error: "Enter a bulletin of up to 300 characters and choose a family tree." };
+  }
+  const sql = getSql();
+  const rows = await sql`
+    INSERT INTO family_bulletins (id, tree_id, author_user_id, message)
+    SELECT ${randomUUID()}, tree_id, ${user.id}, ${message}
+    FROM legacy_tree_members
+    WHERE tree_id = ${treeId} AND user_id = ${user.id}
+    RETURNING id
+  `;
+  if (!rows.length) return { error: "You must belong to the selected tree." };
+  revalidatePath("/family-calendar");
+  revalidatePath("/dashboard");
+  return { success: "Family bulletin posted." };
+}
+
 export async function enableCalendarImports(
   _state: CalendarActionState, form: FormData,
 ): Promise<CalendarActionState> {

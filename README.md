@@ -38,9 +38,17 @@ playback incur provider charges.
 
 The Moments in the Making card on My Legacy shows up to five recent Shared
 Moments from accepted Connected Lives and members of a shared Legacy Tree,
-subject to the same viewing permissions.
+subject to the same viewing permissions, and bulletins from the viewer's trees.
 The feed identifies uploaded videos, photos, and written messages within each
 moment; it does not include drafts, private moments, or separate messages.
+
+## Family Bulletin Board
+
+Apply migration 022 before deploying. Each Family Calendar has a bulletin
+board for its selected Legacy Tree. Tree members can post announcements of
+up to 300 characters; only current tree members can read or post them.
+Bulletins are stored with their author and timestamp, and appear in the
+Moments in the Making feed. Posting does not send email notifications.
 
 ## Run locally and deploy
 
@@ -92,7 +100,9 @@ create a local data directory or write account data to the app filesystem.
      then
      `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/020_honored_lives.sql`
      then
-     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/021_moment_videos.sql`.
+     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/021_moment_videos.sql`
+     then
+     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/022_family_bulletins.sql`.
    - In Bash, export `DATABASE_URL` and run
      `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/001_initial_schema.sql`
      then
@@ -134,7 +144,9 @@ create a local data directory or write account data to the app filesystem.
      then
      `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/020_honored_lives.sql`
      then
-     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/021_moment_videos.sql`.
+     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/021_moment_videos.sql`
+     then
+     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/022_family_bulletins.sql`.
    - In the Neon Console, open the SQL Editor for the intended database. Run
      [`db/migrations/001_initial_schema.sql`](./db/migrations/001_initial_schema.sql)
      first, then run
@@ -158,6 +170,7 @@ create a local data directory or write account data to the app filesystem.
      then [`db/migrations/019_site_analytics.sql`](./db/migrations/019_site_analytics.sql)
      then [`db/migrations/020_honored_lives.sql`](./db/migrations/020_honored_lives.sql)
      then [`db/migrations/021_moment_videos.sql`](./db/migrations/021_moment_videos.sql)
+     then [`db/migrations/022_family_bulletins.sql`](./db/migrations/022_family_bulletins.sql)
      in order.
 3. Set `DATABASE_URL` to the same pooled connection string in local
    `.env.local` and in Vercel Project Settings → Environment Variables for each
@@ -165,9 +178,9 @@ create a local data directory or write account data to the app filesystem.
    database where you ran the migration.
 4. Redeploy after setting or changing Vercel environment variables.
 
-All twenty migrations are idempotent and record their application in
+All migrations are idempotent and record their application in
 `schema_migrations`. [`db/schema.sql`](./db/schema.sql) is the standalone
-bootstrap copy of the current schema; use all twenty versioned migrations above for
+bootstrap copy of the current schema; use all versioned migrations above for
 an existing database. There is no automatic migration runner in the
 application, so SQL must be applied to Neon before database-backed features
 can use new schema changes. The initial migration creates
@@ -190,7 +203,7 @@ WHERE table_schema = 'public'
     'legacy_successors', 'legacy_frame_interests', 'password_reset_tokens',
     'account_recovery_attempts', 'weekly_moment_maker_settings',
     'weekly_moment_maker_weeks', 'weekly_moment_maker_selections',
-    'family_relationship_milestones', 'family_calendar_events',
+    'family_relationship_milestones', 'family_calendar_events', 'family_bulletins',
     'family_calendar_import_settings', 'family_calendar_reminders',
     'connected_lives_person_tags', 'account_status_history', 'profile_visits',
     'email_preferences', 'site_analytics_visitors',
@@ -209,7 +222,7 @@ WHERE version IN (
   '013_weekly_moment_makers', '014_family_calendar',
   '015_connected_lives_directory', '016_account_status', '017_profile_visits',
   '018_email_preferences', '019_site_analytics', '020_honored_lives',
-  '021_moment_videos'
+  '021_moment_videos', '022_family_bulletins'
 )
 ORDER BY version;
 

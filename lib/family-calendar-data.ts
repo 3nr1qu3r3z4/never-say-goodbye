@@ -5,6 +5,22 @@ import type { CalendarEvent } from "@/lib/family-calendar";
 import type { CalendarProfile, Reminders, SourceRecord } from "@/app/family-calendar/calendar-forms";
 
 export type CalendarTree = { id: string; name: string; role: string };
+export type FamilyBulletin = { id: string; treeId: string; message: string; authorName: string; createdAt: string };
+
+export async function getFamilyBulletins(userId: string, treeId: string | null): Promise<FamilyBulletin[]> {
+  const sql = getSql();
+  return await sql`
+    SELECT b.id, b.tree_id AS "treeId", b.message,
+           COALESCE(NULLIF(BTRIM(u.display_name), ''), 'Moment Maker') AS "authorName",
+           b.created_at::text AS "createdAt"
+    FROM family_bulletins b
+    JOIN legacy_tree_members member ON member.tree_id = b.tree_id AND member.user_id = ${userId}
+    JOIN users u ON u.id = b.author_user_id
+    WHERE (${treeId}::text IS NULL OR b.tree_id = ${treeId})
+    ORDER BY b.created_at DESC, b.id
+    LIMIT ${treeId === null ? 5 : null}
+  ` as FamilyBulletin[];
+}
 
 export async function getCalendarSettings(userId: string) {
   const sql = getSql();

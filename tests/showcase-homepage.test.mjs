@@ -128,7 +128,7 @@ test("Help Center presents current guides, limitations and support contact", () 
     assert.match(html, new RegExp(`<section id="${id}"`));
     assert.match(html, new RegExp(`href="#${id}"`));
   }
-  assert.equal((html.match(/Screenshot coming soon:/g) ?? []).length, 7);
+  assert.equal((html.match(/Screenshot Coming Soon:/g) ?? []).length, 7);
   assert.match(html, /<details/);
   assert.match(html, /Searchable Only or Public/);
   assert.match(html, /Placeholders are not accounts/);

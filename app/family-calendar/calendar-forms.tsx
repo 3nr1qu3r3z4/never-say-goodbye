@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import {
   addRelationshipMilestone,
   createCalendarEvent,
+  createFamilyBulletin,
   enableCalendarImports,
   saveCalendarProfile,
   saveCalendarReminders,
@@ -93,6 +94,21 @@ export function ManualEvent({ treeId }: { treeId: string }) {
         <Checkbox name="repeatsYearly" label="Repeat yearly" />
       </ActionForm>
     </details>
+  );
+}
+
+export function BulletinForm({ treeId }: { treeId: string }) {
+  return (
+    <ActionForm action={createFamilyBulletin} label="Post Bulletin">
+      <input type="hidden" name="treeId" value={treeId} />
+      <label className="block text-sm text-slate-200">
+        Family announcement (300 characters maximum)
+        <textarea name="message" required rows={3} className={fieldClass} onInput={(event) => {
+          event.currentTarget.setCustomValidity(Array.from(event.currentTarget.value.trim()).length > 300
+            ? "Enter no more than 300 characters." : "");
+        }} />
+      </label>
+    </ActionForm>
   );
 }
 

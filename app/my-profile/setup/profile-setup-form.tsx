@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { saveProfileSetup } from "@/app/actions/profile";
+import SearchabilityWarning from "@/app/searchability-warning";
 
 export type ProfileSetup = {
   displayName: string;
@@ -39,6 +40,8 @@ const visibilityOptions = [
 export default function ProfileSetupForm({ profile }: { profile: ProfileSetup }) {
   const [status, setStatus] = useState<{ error?: string; success?: string }>({});
   const [isSaving, startSaving] = useTransition();
+  const [discoverability, setDiscoverability] = useState(profile.discoverability);
+  const [showSearchWarning, setShowSearchWarning] = useState(false);
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -74,7 +77,11 @@ export default function ProfileSetupForm({ profile }: { profile: ProfileSetup })
                 type="radio"
                 name="discoverability"
                 value={option.value}
-                defaultChecked={profile.discoverability === option.value}
+                checked={discoverability === option.value}
+                onChange={() => {
+                  setDiscoverability(option.value);
+                  if (option.value === "private") setShowSearchWarning(true);
+                }}
                 required
                 className="mt-1 h-4 w-4 shrink-0 accent-[#D8A35B] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D8A35B]"
               />
@@ -85,6 +92,7 @@ export default function ProfileSetupForm({ profile }: { profile: ProfileSetup })
             </label>
           ))}
         </div>
+        <SearchabilityWarning open={showSearchWarning} onChoose={(choice) => { setDiscoverability(choice); setShowSearchWarning(false); }} />
         <Link href="/legacy-controls" className="mt-3 inline-block text-sm text-[#f0c98e] underline decoration-[#D8A35B]/40 underline-offset-4 hover:text-white">
           Review other Legacy Controls™
         </Link>

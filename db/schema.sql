@@ -395,6 +395,16 @@ CREATE TABLE IF NOT EXISTS family_calendar_events (
 CREATE INDEX IF NOT EXISTS family_calendar_events_tree_date_idx
   ON family_calendar_events (tree_id, event_date);
 
+CREATE TABLE IF NOT EXISTS family_bulletins (
+  id TEXT PRIMARY KEY,
+  tree_id TEXT NOT NULL REFERENCES legacy_trees(id) ON DELETE CASCADE,
+  author_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  message TEXT NOT NULL CHECK (char_length(btrim(message)) BETWEEN 1 AND 300),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS family_bulletins_tree_created_idx
+  ON family_bulletins (tree_id, created_at DESC, id);
+
 CREATE TABLE IF NOT EXISTS family_calendar_import_settings (
   tree_id TEXT PRIMARY KEY REFERENCES legacy_trees(id) ON DELETE CASCADE,
   enabled BOOLEAN NOT NULL DEFAULT TRUE
@@ -527,4 +537,8 @@ ON CONFLICT (version) DO NOTHING;
 
 INSERT INTO schema_migrations (version)
 VALUES ('018_email_preferences'), ('019_site_analytics'), ('020_honored_lives')
+ON CONFLICT (version) DO NOTHING;
+
+INSERT INTO schema_migrations (version)
+VALUES ('021_moment_videos'), ('022_family_bulletins')
 ON CONFLICT (version) DO NOTHING;

@@ -78,6 +78,7 @@ test("profile setup is prefilled with all requested fields and visibility", () =
     react: React,
     "next/link": { default: (props) => React.createElement("a", props) },
     "@/app/actions/profile": { saveProfileSetup: async () => ({}) },
+    "@/app/searchability-warning": { default: () => null },
   });
   const html = renderToStaticMarkup(React.createElement(components.default, { profile }));
   for (const [field, value] of Object.entries(profile)) {
@@ -87,6 +88,39 @@ test("profile setup is prefilled with all requested fields and visibility", () =
   const privateOption = html.match(/<input[^>]*value="private"[^>]*>/)?.[0];
   assert.ok(privateOption);
   assert.match(privateOption, /checked=""/);
+});
+
+test("choosing a hidden profile in setup opens the warning and respects either choice", () => {
+  const updates = [];
+  const warning = () => null;
+  const component = loadModule("app/my-profile/setup/profile-setup-form.tsx", {
+    "react/jsx-runtime": jsxRuntime,
+    react: {
+      useState: (initial) => [initial, (value) => updates.push(value)],
+      useTransition: () => [false, () => {}],
+    },
+    "next/link": { default: () => null },
+    "@/app/actions/profile": { saveProfileSetup: async () => ({}) },
+    "@/app/searchability-warning": { default: warning },
+  }).default;
+  const elements = [];
+  function visit(element) {
+    if (Array.isArray(element)) return element.forEach(visit);
+    if (!element || typeof element !== "object" || !element.props) return;
+    elements.push(element);
+    visit(element.props.children);
+  }
+  visit(component({ profile: { ...profile, discoverability: "searchable" } }));
+  const privateOption = elements.find((element) => element.type === "input" && element.props.value === "private");
+  privateOption.props.onChange();
+  assert.deepEqual(updates, ["private", true]);
+  const modal = elements.find((element) => element.type === warning);
+  updates.length = 0;
+  modal.props.onChoose("searchable");
+  assert.deepEqual(updates, ["searchable", false]);
+  updates.length = 0;
+  modal.props.onChoose("private");
+  assert.deepEqual(updates, ["private", false]);
 });
 
 test("saving setup updates only the signed-in user's requested fields", async () => {

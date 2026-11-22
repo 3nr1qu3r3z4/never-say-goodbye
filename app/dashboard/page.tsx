@@ -6,6 +6,7 @@ import { requireUser } from "@/lib/auth";
 import { isFounder } from "@/lib/admin";
 import { frequentVisitsEnabled, getFrequentVisitSections } from "@/lib/frequent-visits";
 import { getRecentFamilyActivity } from "@/lib/moment-access";
+import { getFamilyBulletins } from "@/lib/family-calendar-data";
 import SignupWelcome from "./signup-welcome";
 import FrequentVisits from "./frequent-visits";
 
@@ -34,7 +35,14 @@ const notificationActionClassName =
 export default async function DashboardPage() {
   const user = await requireUser();
   const data = await getDashboardData(user);
-  const familyActivity = await getRecentFamilyActivity(user.id);
+  const [moments, bulletins] = await Promise.all([
+    getRecentFamilyActivity(user.id),
+    getFamilyBulletins(user.id, null),
+  ]);
+  const familyActivity = [
+    ...moments.map((moment) => ({ kind: "moment" as const, ...moment })),
+    ...bulletins.map((bulletin) => ({ kind: "bulletin" as const, ...bulletin })),
+  ].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt) || a.id.localeCompare(b.id)).slice(0, 5);
   const frequentVisits = frequentVisitsEnabled()
     ? await getFrequentVisitSections(user.id)
     : null;
@@ -84,7 +92,6 @@ export default async function DashboardPage() {
       items: [
         { label: "View Profile", href: "/my-profile" },
         { label: "Legacy Controls™", href: "/legacy-controls" },
-        { label: "Help Center", href: "/help" },
         ...(isFounder(user) ? [{ label: "Admin Dashboard", href: "/admin-dashboard" }] : []),
       ],
     },
@@ -145,6 +152,19 @@ export default async function DashboardPage() {
             {familyActivity.length ? (
               <ol className="mt-4 divide-y divide-white/10">
                 {familyActivity.map((activity) => {
+                  if (activity.kind === "bulletin") {
+                    return (
+                      <li key={`bulletin-${activity.id}`} className="flex gap-3 py-3">
+                        <span aria-hidden="true" className="text-xl">📌</span>
+                        <div className="min-w-0">
+                          <p className="break-words text-sm leading-5 text-slate-300">New family bulletin from <span className="font-semibold text-white">{activity.authorName}</span></p>
+                          <Link href={`/family-calendar?tree=${encodeURIComponent(activity.treeId)}#bulletin-${encodeURIComponent(activity.id)}`} className={`mt-1 inline-flex min-h-11 items-center text-sm font-semibold text-[#f0c98e] hover:underline ${actionFocusClassName}`}>
+                            View Bulletin
+                          </Link>
+                        </div>
+                      </li>
+                    );
+                  }
                   const types = [
                     activity.hasVideo && "video",
                     activity.hasPhoto && "photo",
@@ -153,7 +173,7 @@ export default async function DashboardPage() {
                   const description = types.length ? types.join(", ").replace(/, ([^,]+)$/, " and $1") : "memory";
                   const icon = activity.hasVideo ? "🎥" : activity.hasPhoto ? "📷" : "💬";
                   return (
-                    <li key={activity.id} className="flex gap-3 py-3">
+                    <li key={`moment-${activity.id}`} className="flex gap-3 py-3">
                       <span aria-hidden="true" className="text-xl">{icon}</span>
                       <div className="min-w-0">
                         <p className="break-words text-sm leading-5 text-slate-300">
