@@ -150,7 +150,7 @@ test("Moments in the Making always offers Find People and retains request and up
     assert.ok(card);
     assert.equal((card.match(/❤️/g) ?? []).length, 1);
     assert.match(card, /<h2 id="moments-in-the-making-heading"[^>]*>Moments in the Making<\/h2>/);
-    assert.match(card, /See the latest memories, photos, videos, and messages being shared by the people who matter most\./);
+    assert.doesNotMatch(card, /See the latest memories, photos, videos, and messages/);
     assert.match(card, /<a href="\/search"[^>]*><span>Find People<\/span>/);
     assert.doesNotMatch(card, /View Connected Lives|Stay Connected|Someone Is Thinking of You/);
     if (expected) {

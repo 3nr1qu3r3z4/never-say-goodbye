@@ -141,9 +141,6 @@ export default async function DashboardPage() {
                 ❤️
               </span>
             </div>
-            <p className="mt-4 text-sm leading-6 text-slate-400">
-              See the latest memories, photos, videos, and messages being shared by the people who matter most.
-            </p>
             {familyActivity.length ? (
               <ol className="mt-4 divide-y divide-white/10">
                 {familyActivity.map((activity) => {
