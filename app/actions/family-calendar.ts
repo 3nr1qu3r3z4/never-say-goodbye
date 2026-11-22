@@ -98,7 +98,7 @@ export async function createFamilyBulletin(
   const treeId = field(form, "treeId");
   const message = field(form, "message");
   if (!treeId || !message || Array.from(message).length > 300) {
-    return { error: "Enter a bulletin of up to 300 characters and choose a family tree." };
+    return { error: "Enter a shout-out of up to 300 characters and choose a family tree." };
   }
   const sql = getSql();
   const rows = await sql`
@@ -111,7 +111,7 @@ export async function createFamilyBulletin(
   if (!rows.length) return { error: "You must belong to the selected tree." };
   revalidatePath("/family-calendar");
   revalidatePath("/dashboard");
-  return { success: "Family bulletin posted." };
+  return { success: "Family Shout-Out shared!" };
 }
 
 export async function enableCalendarImports(

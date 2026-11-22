@@ -99,6 +99,8 @@ test("empty calendar explains available dates and how to enable sync", async () 
     ),
   }).default;
   const html = renderToStaticMarkup(await page({ searchParams: Promise.resolve({ date: "2026-05-04" }) }));
+  assert.match(html, /❤️ Family Shout-Outs/);
+  assert.match(html, /No family shout-outs yet/);
   assert.match(html, /Your Family Calendar is waiting for family dates/);
   for (const text of ["Birthdays", "memorial dates", "anniversaries", "expected births", "Enable Family Date Sync"]) {
     assert.ok(html.includes(text), `Expected guidance about ${text}`);
@@ -123,6 +125,30 @@ test("calendar forms explain sync, privacy, and full-date requirements", () => {
   const sources = renderToStaticMarkup(React.createElement(forms.SourceDates, { treeId: "tree", records: [] }));
   assert.match(sources, /visible to all members of this tree/);
   assert.match(sources, /accepted Connected Lives™ connection, both people in this tree, and both to share/);
+  const shoutOut = renderToStaticMarkup(React.createElement(forms.BulletinForm, { treeId: "tree" }));
+  assert.match(shoutOut, /Share a quick note with your family \(300 characters maximum\)/);
+  assert.match(shoutOut, />Share Shout-Out<\/button>/);
+});
+
+test("family shout-outs retain author, time, message and existing deep links", async () => {
+  const page = loadModule("app/family-calendar/page.tsx", {
+    "react/jsx-runtime": jsxRuntime,
+    "next/link": { default: ({ href, children }) => React.createElement("a", { href }, children) },
+    "next/navigation": { notFound: () => { throw new Error("not found"); } },
+    "@/lib/auth": { requireUser: async () => ({ id: "owner" }) },
+    "@/lib/family-calendar": calendar,
+    "@/lib/family-calendar-data": {
+      getCalendarSettings: async () => ({ profile: {}, reminders: {}, trees: [{ id: "tree", name: "Family", role: "member" }] }),
+      getCalendarEvents: async () => [],
+      getFamilyBulletins: async () => [{ id: "note", authorName: "Enrique", createdAt: "2026-11-19T19:21:00Z", message: "Happy Birthday!" }],
+    },
+    "./calendar-forms": Object.fromEntries(
+      ["BulletinForm", "ImportDates", "ManualEvent", "ProfileDates", "ReminderSettings", "SourceDates"].map((name) => [name, () => null]),
+    ),
+  }).default;
+  const html = renderToStaticMarkup(await page({ searchParams: Promise.resolve({ tree: "tree", date: "2026-11-19" }) }));
+  assert.match(html, /Recent Family Shout-Outs/);
+  assert.match(html, /id="bulletin-note"[\s\S]*?Enrique[\s\S]*?dateTime="2026-11-19T19:21:00Z"[\s\S]*?Happy Birthday!/);
 });
 
 test("family calendar authorization, consent and live imports in disposable PostgreSQL", {

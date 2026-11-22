@@ -38,16 +38,16 @@ playback incur provider charges.
 
 The Moments in the Making card on My Legacy shows up to five recent Shared
 Moments from accepted Connected Lives and members of a shared Legacy Tree,
-subject to the same viewing permissions, and bulletins from the viewer's trees.
+subject to the same viewing permissions, and Family Shout-Outs from the viewer's trees.
 The feed identifies uploaded videos, photos, and written messages within each
 moment; it does not include drafts, private moments, or separate messages.
 
-## Family Bulletin Board
+## Family Shout-Outs
 
-Apply migration 022 before deploying. Each Family Calendar has a bulletin
-board for its selected Legacy Tree. Tree members can post announcements of
+Apply migration 022 before deploying. Each Family Calendar has Family Shout-Outs
+for its selected Legacy Tree. Tree members can share quick notes of
 up to 300 characters; only current tree members can read or post them.
-Bulletins are stored with their author and timestamp, and appear in the
+Shout-outs are stored with their author and timestamp, and appear in the
 Moments in the Making feed. Posting does not send email notifications.
 
 ## Run locally and deploy

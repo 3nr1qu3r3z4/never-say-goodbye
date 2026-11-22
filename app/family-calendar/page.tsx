@@ -123,22 +123,25 @@ export default async function FamilyCalendarPage({
                   </div>
                   {selected && (
                     <section id="bulletins" aria-labelledby="bulletin-heading" className="mt-6 scroll-mt-6 rounded-3xl border border-white/10 bg-white/[0.03] p-5 sm:p-6">
-                      <h2 id="bulletin-heading" className="font-serif text-2xl text-white">📌 Family Bulletin Board</h2>
-                      <p className="mt-2 text-sm text-slate-400">Announcements are visible to members of {selected.name}.</p>
+                      <h2 id="bulletin-heading" className="font-serif text-2xl text-white">❤️ Family Shout-Outs</h2>
+                      <p className="mt-2 text-sm text-slate-400">Share updates, appreciation, reminders, and encouragement with members of {selected.name}.</p>
                       <div className="mt-5"><BulletinForm key={selected.id} treeId={selected.id} /></div>
                       {bulletins.length ? (
-                        <ol className="mt-5 space-y-3">
-                          {bulletins.map((bulletin) => (
-                            <li id={`bulletin-${bulletin.id}`} key={bulletin.id} className="scroll-mt-6 rounded-xl border border-white/10 p-4">
-                              <p className="font-semibold text-white">{bulletin.authorName}</p>
-                              <time dateTime={bulletin.createdAt} className="mt-1 block text-xs text-slate-400">
-                                {new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" }).format(new Date(bulletin.createdAt))} UTC
-                              </time>
-                              <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-slate-200">{bulletin.message}</p>
-                            </li>
-                          ))}
-                        </ol>
-                      ) : <p className="mt-5 text-sm text-slate-400">No family bulletins yet.</p>}
+                        <>
+                          <h3 className="mt-5 font-serif text-lg text-white">Recent Family Shout-Outs</h3>
+                          <ol className="mt-3 space-y-3">
+                            {bulletins.map((bulletin) => (
+                              <li id={`bulletin-${bulletin.id}`} key={bulletin.id} className="scroll-mt-6 rounded-xl border border-white/10 p-4">
+                                <p className="font-semibold text-white">{bulletin.authorName}</p>
+                                <time dateTime={bulletin.createdAt} className="mt-1 block text-xs text-slate-400">
+                                  {new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" }).format(new Date(bulletin.createdAt))} UTC
+                                </time>
+                                <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-slate-200">{bulletin.message}</p>
+                              </li>
+                            ))}
+                          </ol>
+                        </>
+                      ) : <p className="mt-5 text-sm text-slate-400">No family shout-outs yet. Share a little something with your family.</p>}
                     </section>
                   )}
                 </div>

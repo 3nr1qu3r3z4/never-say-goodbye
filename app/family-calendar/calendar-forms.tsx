@@ -99,10 +99,10 @@ export function ManualEvent({ treeId }: { treeId: string }) {
 
 export function BulletinForm({ treeId }: { treeId: string }) {
   return (
-    <ActionForm action={createFamilyBulletin} label="Post Bulletin">
+    <ActionForm action={createFamilyBulletin} label="Share Shout-Out">
       <input type="hidden" name="treeId" value={treeId} />
       <label className="block text-sm text-slate-200">
-        Family announcement (300 characters maximum)
+        Share a quick note with your family (300 characters maximum)
         <textarea name="message" required rows={3} className={fieldClass} onInput={(event) => {
           event.currentTarget.setCustomValidity(Array.from(event.currentTarget.value.trim()).length > 300
             ? "Enter no more than 300 characters." : "");

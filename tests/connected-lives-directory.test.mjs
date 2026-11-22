@@ -93,8 +93,8 @@ test("family bulletins share the recent activity limit and link to their calenda
   const bulletins = [{ id: "bulletin", treeId: "family", authorName: "Enrique", createdAt: "2026-01-06T00:00:00Z", message: "Hello" }];
   const html = renderToStaticMarkup(await loadDashboard(data, false, moments, bulletins)());
   const feed = html.match(/<section aria-labelledby="moments-in-the-making-heading"[\s\S]*?<\/section>/)?.[0];
-  assert.match(feed, /New family bulletin from/);
-  assert.match(feed, /href="\/family-calendar\?tree=family#bulletin-bulletin"[^>]*>View Bulletin/);
+  assert.match(feed, /New family shout-out from/);
+  assert.match(feed, /href="\/family-calendar\?tree=family#bulletin-bulletin"[^>]*>View Shout-Out/);
   assert.equal((feed.match(/<li /g) ?? []).length, 5);
   assert.doesNotMatch(feed, /href="\/moments\/m0"/);
 });

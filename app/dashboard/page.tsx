@@ -155,11 +155,11 @@ export default async function DashboardPage() {
                   if (activity.kind === "bulletin") {
                     return (
                       <li key={`bulletin-${activity.id}`} className="flex gap-3 py-3">
-                        <span aria-hidden="true" className="text-xl">📌</span>
+                        <span aria-hidden="true" className="text-xl">❤️</span>
                         <div className="min-w-0">
-                          <p className="break-words text-sm leading-5 text-slate-300">New family bulletin from <span className="font-semibold text-white">{activity.authorName}</span></p>
+                          <p className="break-words text-sm leading-5 text-slate-300">New family shout-out from <span className="font-semibold text-white">{activity.authorName}</span></p>
                           <Link href={`/family-calendar?tree=${encodeURIComponent(activity.treeId)}#bulletin-${encodeURIComponent(activity.id)}`} className={`mt-1 inline-flex min-h-11 items-center text-sm font-semibold text-[#f0c98e] hover:underline ${actionFocusClassName}`}>
-                            View Bulletin
+                            View Shout-Out
                           </Link>
                         </div>
                       </li>
