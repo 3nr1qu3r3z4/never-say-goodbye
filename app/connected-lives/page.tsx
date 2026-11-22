@@ -145,19 +145,35 @@ export default async function ConnectedLivesPage() {
         <h1 className="mt-3 font-serif text-4xl text-white sm:text-5xl">
           Connected Lives™
         </h1>
+        {incoming.length > 0 && (
+          <section className="mt-6 rounded-2xl border border-[#D8A35B]/50 bg-[#D8A35B]/[0.08] p-5 sm:p-6" aria-labelledby="requests-heading">
+            <h2 id="requests-heading" className="flex flex-wrap items-center gap-3 font-serif text-2xl text-white sm:text-3xl">
+              Pending Connection Requests
+              <span className="rounded-full bg-[#D8A35B] px-3 py-1 font-sans text-sm font-semibold text-[#0F172A]">
+                {incoming.length}
+              </span>
+            </h2>
+            <ul className="mt-5 grid gap-4 sm:grid-cols-2">
+              {incoming.map((connection) => (
+                <li key={connection.id} className={cardClassName}>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#D8A35B]">
+                    ❤️ Connection request
+                  </p>
+                  <h3 className="mt-2 break-words font-serif text-xl text-white">
+                    {connection.displayName}
+                  </h3>
+                  <p className="mt-2 text-sm leading-6 text-slate-300">
+                    {connection.displayName} would like to connect with you.
+                  </p>
+                  <ConnectionResponse requestId={connection.id} />
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
         <p className="mt-4 max-w-2xl leading-7 text-slate-400">
           Explore the people and families connected to your life. Connected Lives™ and Legacy Trees™ work together but are managed separately; connecting does not automatically add someone to your tree.
         </p>
-        {notifications.some((notification) => !notification.readAt) && (
-          <form action={markLivesNotificationsRead} className="mt-5">
-            <button
-              type="submit"
-              className="min-h-11 rounded-full border border-[#D8A35B]/50 px-5 text-sm font-semibold text-[#f0c98e] transition hover:bg-[#D8A35B]/10"
-            >
-              Mark Notifications Read
-            </button>
-          </form>
-        )}
 
         <ConnectedLivesDirectory connections={connected} viewerId={user.id} />
 
@@ -174,37 +190,6 @@ export default async function ConnectedLivesPage() {
           </ul> : <p className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm text-slate-400">Future Moment Makers™ you create will appear here.</p>}
         </section>
 
-        <section className="mt-10" aria-labelledby="requests-heading">
-          <h2
-            id="requests-heading"
-            className="font-serif text-2xl text-white sm:text-3xl"
-          >
-            Connected Lives™ Requests
-          </h2>
-          {incoming.length ? (
-            <ul className="mt-5 grid gap-4 sm:grid-cols-2">
-              {incoming.map((connection) => (
-                <li key={connection.id} className={cardClassName}>
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#D8A35B]">
-                    ❤️ Connection request
-                  </p>
-                  <h3 className="mt-2 font-serif text-xl text-white">
-                    {connection.displayName}
-                  </h3>
-                  <p className="mt-2 text-sm leading-6 text-slate-300">
-                    {connection.displayName} would like to connect with you.
-                  </p>
-                  <ConnectionResponse requestId={connection.id} />
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-slate-400">
-              You do not have any requests to review.
-            </p>
-          )}
-        </section>
-
         <section className="mt-10" aria-labelledby="activity-heading">
           <h2
             id="activity-heading"
@@ -212,6 +197,16 @@ export default async function ConnectedLivesPage() {
           >
             Lives Notifications
           </h2>
+          {notifications.some((notification) => !notification.readAt) && (
+            <form action={markLivesNotificationsRead} className="mt-5">
+              <button
+                type="submit"
+                className="min-h-11 rounded-full border border-[#D8A35B]/50 px-5 text-sm font-semibold text-[#f0c98e] transition hover:bg-[#D8A35B]/10"
+              >
+                Mark Notifications Read
+              </button>
+            </form>
+          )}
           {notifications.length ? (
             <ul className="mt-5 space-y-3">
               {notifications.map((notification) => (

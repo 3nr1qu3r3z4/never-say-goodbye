@@ -205,7 +205,7 @@ export default async function MyProfilePreviewPage() {
                 alt={`${displayName} profile`}
                 fill
                 unoptimized
-                sizes="(max-width: 640px) calc(100vw - 2rem), (max-width: 1280px) calc(100vw - 4rem), 1152px"
+                sizes="(max-width: 639px) calc(100vw - 2rem), (max-width: 736px) calc(100vw - 4rem), 672px"
                 className="object-cover object-center"
               />
             ) : (

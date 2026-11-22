@@ -24,7 +24,7 @@ const guides = [
       {
         question: "How do I complete my profile and choose visibility?",
         steps: [
-          "From My Legacy, open My Profile and choose View Profile, then Edit Profile Setup. Add the details and photo you want and save.",
+          "From My Legacy, open My Profile and choose View Profile, then Edit Profile Setup. Add the details and photo you want and save. When uploading a profile photo, drag and zoom to choose the square crop shown on your profile.",
           "Open My Profile → Legacy Controls™ to change profile visibility and the information you share. Save your changes.",
         ],
       },
@@ -49,7 +49,7 @@ const guides = [
         question: "How do I send or accept a request?",
         steps: [
           "Use Find People to search by name, open a profile, and choose Add To Connected Lives™.",
-          "To respond to a request, open Connected Lives™ and find Connected Lives™ Requests. Choose a relationship before accepting, or decline the request.",
+          "To respond to a request, open Connected Lives™ and find Pending Connection Requests at the top. Choose a relationship before accepting, or decline the request.",
         ],
       },
       {

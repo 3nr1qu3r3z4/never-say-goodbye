@@ -52,6 +52,47 @@ const basicDependencies = {
   "./visit-tracker": { default: () => null },
 };
 
+test("saved profile photo uses the same square framing in editor, preview and public profile", async () => {
+  const photo = "data:image/png;base64,c2F2ZWQtY3JvcA==";
+  const image = ({ src, alt, className }) => React.createElement("img", { src, alt, className });
+  const dependencies = { ...basicDependencies, "next/image": { default: image } };
+  const editor = loadModule("app/my-profile/profile-editor.tsx", {
+    ...dependencies,
+    react: React,
+    "@/app/actions/profile": { saveProfile: () => {}, saveProfilePhoto: () => {} },
+    "@/lib/convert-image": { isHeicFile: () => false, toSupportedImage: () => {} },
+  }).default;
+  const editorHtml = renderToStaticMarkup(React.createElement(editor, { ...profile, profilePhoto: photo }));
+  const editorFrame = editorHtml.match(/<div class="[^"]*aspect-square[^"]*">[\s\S]*?<\/div>/)?.[0];
+  assert.ok(editorFrame);
+
+  const sql = async (strings) => strings.join("").includes("FROM users AS u")
+    ? [{ ...profile, profilePhoto: photo, publicProfilePhoto: true }]
+    : [];
+  const preview = loadModule("app/my-profile/preview/page.tsx", {
+    ...dependencies,
+    "@/lib/auth": { requireUser: async () => ({ id: "person" }) },
+    "@/lib/db": { getSql: () => sql },
+  }).default;
+  const publicPage = loadModule("app/moment-maker/[id]/page.tsx", {
+    ...dependencies,
+    "next/navigation": { notFound: () => { throw new Error("not found"); } },
+    "@/lib/auth": { getCurrentUser: async () => ({ id: "viewer" }) },
+    "@/lib/db": { getSql: () => sql },
+    "./connection-request-button": { default: () => null },
+  }).default;
+  const previewHtml = renderToStaticMarkup(await preview());
+  const publicHtml = renderToStaticMarkup(await publicPage({ params: Promise.resolve({ id: "person" }) }));
+  for (const html of [previewHtml, publicHtml]) {
+    const frame = html.match(/<figure[^>]*>[\s\S]*?<\/figure>/)?.[0];
+    assert.ok(frame);
+    assert.match(frame, /class="[^"]*\baspect-square\b/);
+    assert.doesNotMatch(frame, /aspect-\[/);
+    assert.match(frame, /src="data:image\/png;base64,c2F2ZWQtY3JvcA=="[^>]*class="object-cover object-center"/);
+  }
+  assert.match(editorFrame, /src="data:image\/png;base64,c2F2ZWQtY3JvcA=="[^>]*class="object-cover object-center"/);
+});
+
 test("real Shared Moment cards pass author status to the actions menu", async () => {
   const sql = async (strings) => {
     const text = strings.join("");

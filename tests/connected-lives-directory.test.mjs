@@ -263,6 +263,54 @@ test("dashboard snapshot links available counts to their corresponding pages", a
   assert.match(snapshot, /<dt[^>]*>Personal Moments<\/dt><dd[^>]*>2<\/dd>/);
 });
 
+test("pending incoming requests are highlighted above the directory with visible actions", async () => {
+  const response = loadModule("app/connected-lives/connection-response.tsx", {
+    react: React,
+    "react/jsx-runtime": jsxRuntime,
+    "@/app/actions/connected-lives": { respondToConnectedLivesRequest: async () => ({}) },
+    "./relationship-options": { default: () => null },
+  }).default;
+  const rows = [
+    { id: "in-1", status: "pending", requesterId: "alice", recipientId: "owner", displayName: "Alice" },
+    { id: "in-2", status: "pending", requesterId: "bob", recipientId: "owner", displayName: "Bob" },
+    { id: "sent", status: "pending", requesterId: "owner", recipientId: "other", displayName: "Other" },
+    { id: "accepted", status: "accepted", requesterId: "owner", recipientId: "friend", displayName: "Friend" },
+  ];
+  const page = loadModule("app/connected-lives/page.tsx", {
+    "react/jsx-runtime": jsxRuntime,
+    "next/link": { default: ({ href, children }) => React.createElement("a", { href }, children) },
+    "@/lib/auth": { requireUser: async () => ({ id: "owner" }) },
+    "@/lib/db": { getSql: () => async (strings) => {
+      const query = strings.join("?");
+      if (query.includes("FROM connected_lives AS cl")) return rows;
+      if (query.includes("FROM notifications")) return [{ id: "notification", message: "New update", type: "request", readAt: null }];
+      return [];
+    } },
+    "@/lib/connected-lives": relationships,
+    "@/app/actions/connected-lives": { markLivesNotificationsRead: () => {} },
+    "./connection-response": { default: response },
+    "./directory": { default: ({ connections }) => React.createElement("section", { id: "directory" }, `Directory: ${connections.length} existing connections`) },
+  }).default;
+  const html = renderToStaticMarkup(await page());
+  const section = html.match(/<section[^>]*aria-labelledby="requests-heading"[\s\S]*?<\/section>/)?.[0];
+  assert.ok(section);
+  assert.match(section, /border-\[#D8A35B\]\/50/);
+  assert.match(section, /Pending Connection Requests<span[^>]*>2<\/span>/);
+  assert.match(section, /Alice[\s\S]*?name="requestId" value="in-1"[\s\S]*?>Accept<\/button>[\s\S]*?>Decline<\/button>/);
+  assert.match(section, /Bob[\s\S]*?name="requestId" value="in-2"[\s\S]*?>Accept<\/button>[\s\S]*?>Decline<\/button>/);
+  assert.doesNotMatch(section, /Other|Friend/);
+  assert.ok(html.indexOf("</h1>") < html.indexOf(section));
+  assert.ok(html.indexOf(section) < html.indexOf('id="directory"'));
+  assert.ok(html.indexOf('id="directory"') < html.indexOf('id="future-heading"'));
+  assert.ok(html.indexOf('id="directory"') < html.indexOf("Mark Notifications Read"));
+
+  rows.splice(0, 2);
+  const withoutIncoming = renderToStaticMarkup(await page());
+  assert.doesNotMatch(withoutIncoming, /requests-heading|Pending Connection Requests|You do not have any requests to review/);
+  assert.match(withoutIncoming, /Directory: 1 existing connections/);
+  assert.match(withoutIncoming, /Requests Sent/);
+});
+
 test("connected lives lists owned future-maker records with distinct routes", async () => {
   const futureMakers = [
     { id: "first", name: "First Person", relationship: "Grandchild", status: "awaiting-claim" },

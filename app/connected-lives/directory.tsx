@@ -46,7 +46,7 @@ export default function ConnectedLivesDirectory({ connections, viewerId }: {
 
   return (
     <section className="mt-10" aria-labelledby="connections-heading">
-      <h2 id="connections-heading" className="font-serif text-2xl text-white sm:text-3xl">Your Connections</h2>
+      <h2 id="connections-heading" className="font-serif text-2xl text-white sm:text-3xl">Connected Lives Directory</h2>
       <dl className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
         {statistics.map((statistic) => <div key={statistic.label} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
           <dd className="font-serif text-2xl text-[#f0c98e]">{statistic.value}</dd>

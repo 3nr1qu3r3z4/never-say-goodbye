@@ -136,7 +136,7 @@ export default async function MomentMakerProfilePage({
       <section className="px-4 pt-4 sm:px-8 sm:pt-8">
         <figure
           aria-label={`Moment Maker profile for ${profile.displayName}`}
-          className="relative mx-auto flex aspect-[16/10] w-full max-w-6xl items-end overflow-hidden rounded-[1.75rem] border border-[#D8A35B]/25 bg-gradient-to-br from-[#344255] via-[#172437] to-[#101827] shadow-2xl shadow-black/30 sm:aspect-[2/1] sm:rounded-[2rem]"
+          className="relative mx-auto flex aspect-square w-full max-w-[42rem] items-end overflow-hidden rounded-[1.75rem] border border-[#D8A35B]/25 bg-gradient-to-br from-[#344255] via-[#172437] to-[#101827] shadow-2xl shadow-black/30 sm:rounded-[2rem]"
         >
           {profile.publicProfilePhoto && profile.profilePhoto && (
             <Image
@@ -144,7 +144,7 @@ export default async function MomentMakerProfilePage({
               alt={`${profile.displayName} profile`}
               fill
               unoptimized
-              sizes="(max-width: 640px) calc(100vw - 2rem), 1152px"
+              sizes="(max-width: 639px) calc(100vw - 2rem), (max-width: 736px) calc(100vw - 4rem), 672px"
               className="object-cover object-center"
             />
           )}
