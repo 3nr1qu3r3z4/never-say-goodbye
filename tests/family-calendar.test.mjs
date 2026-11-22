@@ -126,7 +126,8 @@ test("calendar forms explain sync, privacy, and full-date requirements", () => {
   assert.match(sources, /visible to all members of this tree/);
   assert.match(sources, /accepted Connected Lives™ connection, both people in this tree, and both to share/);
   const shoutOut = renderToStaticMarkup(React.createElement(forms.BulletinForm, { treeId: "tree" }));
-  assert.match(shoutOut, /Share a quick note with your family \(300 characters maximum\)/);
+  assert.match(shoutOut, /What&#x27;s happening with the family today\?/);
+  assert.match(shoutOut, /<textarea[^>]*aria-describedby="shout-out-limit"[\s\S]*?<\/textarea>[\s\S]*?<p id="shout-out-limit"[^>]*>300 characters maximum<\/p>/);
   assert.match(shoutOut, />Share Shout-Out<\/button>/);
 });
 

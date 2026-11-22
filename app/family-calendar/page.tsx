@@ -124,7 +124,6 @@ export default async function FamilyCalendarPage({
                   {selected && (
                     <section id="bulletins" aria-labelledby="bulletin-heading" className="mt-6 scroll-mt-6 rounded-3xl border border-white/10 bg-white/[0.03] p-5 sm:p-6">
                       <h2 id="bulletin-heading" className="font-serif text-2xl text-white">❤️ Family Shout-Outs</h2>
-                      <p className="mt-2 text-sm text-slate-400">Share updates, appreciation, reminders, and encouragement with members of {selected.name}.</p>
                       <div className="mt-5"><BulletinForm key={selected.id} treeId={selected.id} /></div>
                       {bulletins.length ? (
                         <>

@@ -101,13 +101,14 @@ export function BulletinForm({ treeId }: { treeId: string }) {
   return (
     <ActionForm action={createFamilyBulletin} label="Share Shout-Out">
       <input type="hidden" name="treeId" value={treeId} />
-      <label className="block text-sm text-slate-200">
-        Share a quick note with your family (300 characters maximum)
-        <textarea name="message" required rows={3} className={fieldClass} onInput={(event) => {
+      <div>
+        <label htmlFor="shout-out-message" className="block text-sm text-slate-400">What&apos;s happening with the family today?</label>
+        <textarea id="shout-out-message" name="message" required rows={3} aria-describedby="shout-out-limit" className={fieldClass} onInput={(event) => {
           event.currentTarget.setCustomValidity(Array.from(event.currentTarget.value.trim()).length > 300
             ? "Enter no more than 300 characters." : "");
         }} />
-      </label>
+        <p id="shout-out-limit" className="mt-1 text-xs text-slate-400">300 characters maximum</p>
+      </div>
     </ActionForm>
   );
 }
