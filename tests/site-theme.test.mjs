@@ -97,6 +97,13 @@ test("appearance presents accessible selections and explains beta and future pla
   assert.match(html, /Available with Legacy Plus/);
   assert.match(html, /Available with Family Legacy/);
   assert.match(html, /future theme packs/);
+  for (const theme of themes.siteThemes) {
+    assert.ok(html.includes(theme.name));
+    assert.ok(!html.includes(theme.colors));
+    assert.ok(!html.includes(theme.description));
+  }
+  assert.equal((html.match(/>Preview<\/span>/g) ?? []).length, themes.siteThemes.length);
+  assert.match(html, /Currently selected/);
   assert.equal((html.match(/type="radio"/g) ?? []).length, themes.siteThemes.length);
   assert.equal((html.match(/checked=""/g) ?? []).length, 1);
   const ocean = html.match(/<input[^>]*value="ocean"[^>]*>/)?.[0];
