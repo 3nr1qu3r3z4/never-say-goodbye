@@ -29,6 +29,7 @@ function loadPage(relativePath, user = null, overrides = {}, globals = {}) {
     "@/app/actions/auth": { logoutAction: () => {} },
     "@/lib/membership-plans": planExports,
     "./weekly-moment-makers": { default: () => null },
+    "./homepage-video": { default: () => React.createElement("div", { "data-video-player": true }) },
     "./first-message": { default: () => null },
     "./protected-moment": { default: () => null },
     ...overrides,
@@ -200,8 +201,53 @@ test("signup lists all roadmap plans but allows only Free Legacy", () => {
 
 test("the homepage showcase link opens John's profile without the message fragment", () => {
   const html = renderPage(["app", "page.tsx"]);
-  assert.match(html, /<a href="\/profile-preview"[^>]*>See Sample Profile<\/a>/);
+  assert.match(html, /<a href="\/profile-preview"[^>]*>View Profile<\/a>/);
   assert.doesNotMatch(html, /profile-preview#first-message/);
+});
+
+test("the homepage places the promotional video before the consolidated Moment Makers section", () => {
+  const page = loadPage(["app", "page.tsx"], null, {
+    "next/image": { default: ({ src, alt }) => React.createElement("img", { src, alt }) },
+  });
+  const html = renderToStaticMarkup(React.createElement(page));
+  assert.match(html, /❤️ A Message For The Future/);
+  assert.match(html, /Imagine recording a message today that your child won&#x27;t open until they turn 18/);
+  assert.match(html, /data-video-player="true"/);
+  assert.match(html, /Cannot Open Until™<\/h3><p[^>]*>\(NSG Time Capsule\)/);
+  assert.match(html, /❤️ Meet Our Moment Makers™/);
+  assert.match(html, /Discover the stories, memories, and legacies being preserved by families in the Never Say Goodbye™ community/);
+  assert.match(html, /Featured Moment Maker[\s\S]*mature-man-portrait\.jpg[\s\S]*John Michael Doe[\s\S]*href="\/profile-preview"[\s\S]*Featured This Week/);
+  assert.ok(html.indexOf("A Message For The Future") < html.indexOf("Meet Our Moment Makers™"));
+  assert.doesNotMatch(html, />Moment Maker Profile<|>This Week&#x27;s Moment Makers™</);
+});
+
+test("promotional video offers a user-initiated player with native controls and no preload", () => {
+  const html = renderPage(["app", "homepage-video.tsx"]);
+  const video = html.match(/<video\b[^>]*>/)?.[0];
+  assert.ok(video);
+  assert.match(video, /controls=""/);
+  assert.match(video, /preload="none"/);
+  assert.doesNotMatch(video, /autoplay/i);
+  assert.match(html, /src="\/videos\/never-say-goodbye-ad\.mp4"/);
+  assert.match(html, /aria-label="Play A Message For The Future"/);
+});
+
+test("promotional video reports playback failures", async () => {
+  const updates = [];
+  const errors = [];
+  const player = loadPage(["app", "homepage-video.tsx"], null, {
+    react: {
+      useRef: () => ({ current: { play: async () => { throw new Error("Playback failed"); } } }),
+      useState: (initial) => [initial, (value) => updates.push(value)],
+    },
+  }, { console: { error: (...args) => errors.push(args) } });
+  const container = player().props.children[0];
+  const playButton = React.Children.toArray(container.props.children).find((child) =>
+    React.isValidElement(child) && child.type === "button");
+  assert.ok(playButton);
+  await playButton.props.onClick();
+  assert.ok(updates.includes("The video could not be played. Please try again."));
+  assert.equal(errors.length, 1);
 });
 
 test("How It Works keeps its existing cards and adds Stop Making Notes", () => {

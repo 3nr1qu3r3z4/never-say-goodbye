@@ -22,29 +22,21 @@ export default async function WeeklyMomentMakers() {
   } catch (error) {
     console.error("[weekly-moment-makers] Unable to load weekly profiles", error);
     return (
-      <section aria-labelledby="weekly-moment-makers-heading" className="mx-auto max-w-6xl px-6 py-20 sm:px-8">
-        <h2 id="weekly-moment-makers-heading" className="font-serif text-3xl text-white sm:text-4xl">This Week&apos;s Moment Makers™</h2>
-        <p className="mt-4 text-slate-400">Featured profiles are temporarily unavailable.</p>
-      </section>
+      <p className="mt-4 text-slate-400">Featured profiles are temporarily unavailable.</p>
     );
   }
 
   return (
-    <section aria-labelledby="weekly-moment-makers-heading" className="mx-auto max-w-6xl px-6 py-20 sm:px-8">
-      <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[color:var(--nsg-accent)]">Stories to discover</p>
-      <h2 id="weekly-moment-makers-heading" className="mt-3 font-serif text-3xl text-white sm:text-4xl">This Week&apos;s Moment Makers™</h2>
-      <p className="mt-4 max-w-3xl leading-7 text-slate-400">
-        Discover members who have chosen to share their profiles with the community.
-      </p>
+    <>
       {profiles.length === 0 ? (
-        <p className="mt-8 text-sm text-slate-400">No profiles are featured this week.</p>
+        <p className="mt-4 text-sm text-slate-400">No profiles are featured this week.</p>
       ) : (
-        <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <ul aria-labelledby="weekly-moment-makers-heading" tabIndex={0} className="mt-4 flex gap-4 overflow-x-auto pb-3 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]">
           {profiles.map((profile) => {
             const descriptors = [profile.descriptorOne, profile.descriptorTwo, profile.descriptorThree]
               .filter((descriptor) => descriptor.trim());
             return (
-              <li key={profile.id} className="rounded-2xl border border-[color:var(--nsg-accent)]/20 bg-white/[0.03] p-5 sm:p-6">
+              <li key={profile.id} className="w-64 shrink-0 rounded-2xl border border-[color:var(--nsg-accent)]/20 bg-white/[0.03] p-5 sm:p-6">
                 <div className="relative h-20 w-20 overflow-hidden rounded-full border border-[color:var(--nsg-accent)]/30 bg-slate-900">
                   {profile.profilePhoto ? (
                     <Image src={profile.profilePhoto} alt="" fill unoptimized sizes="80px" className="object-cover" />
@@ -55,7 +47,7 @@ export default async function WeeklyMomentMakers() {
                     </svg>
                   )}
                 </div>
-                <h3 className="mt-4 font-serif text-xl text-white">{profile.displayName}</h3>
+                <h4 className="mt-4 font-serif text-xl text-white">{profile.displayName}</h4>
                 {descriptors.length > 0 && <p className="mt-2 text-sm text-slate-300">{descriptors.join(" · ")}</p>}
                 {profile.location && <p className="mt-2 text-sm text-slate-400">{profile.location}</p>}
                 <Link
@@ -70,6 +62,6 @@ export default async function WeeklyMomentMakers() {
           })}
         </ul>
       )}
-    </section>
+    </>
   );
 }

@@ -21,6 +21,13 @@ grandfathering, quota accounting, and enforcement. Reminder notifications,
 scheduled deliveries, voice uploads, and other features marked Coming Soon
 also require implementation.
 
+## Homepage video
+
+The homepage plays the promotional video at
+`public/videos/never-say-goodbye-ad.mp4` with native playback controls. The file
+is loaded on playback rather than autoplaying. Replace that public asset when
+the video is updated. A caption track or transcript is not currently provided.
+
 ## Site appearance
 
 Apply migration 024 before deploying. Signed-in users can choose a curated

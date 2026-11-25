@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import WeeklyMomentMakers from "./weekly-moment-makers";
+import HomepageVideo from "./homepage-video";
 
 const howItWorks = [
   {
@@ -136,6 +137,23 @@ export default function Page() {
         </p>
       </section>
 
+      <section aria-labelledby="message-for-the-future" className="border-y border-[color:var(--nsg-border)]/10 bg-slate-950/30 px-6 py-16 text-center sm:px-8 sm:py-20">
+        <div className="mx-auto max-w-3xl">
+          <h2 id="message-for-the-future" className="font-serif text-3xl text-white sm:text-4xl">❤️ A Message For The Future</h2>
+          <p className="mx-auto mt-4 max-w-2xl leading-7 text-slate-300">
+            Imagine recording a message today that your child won&apos;t open until they turn 18.
+          </p>
+          <div className="mt-8">
+            <HomepageVideo />
+          </div>
+          <h3 className="mt-7 font-serif text-2xl text-white">Cannot Open Until™</h3>
+          <p className="mt-1 text-sm font-semibold text-[color:var(--nsg-accent-light)]">(NSG Time Capsule)</p>
+          <p className="mx-auto mt-3 max-w-2xl leading-7 text-slate-400">
+            Preserve messages, stories, videos, and memories for the moments that matter most.
+          </p>
+        </div>
+      </section>
+
       <section className="mx-auto max-w-7xl px-6 py-20 sm:px-8 sm:py-28">
         <div className="mx-auto max-w-2xl text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[color:var(--nsg-accent)]">
@@ -177,75 +195,44 @@ export default function Page() {
 
       <section
         id="legacy-profile"
-        className="border-y border-[color:var(--nsg-border)]/10 bg-slate-950/30 px-6 py-20 sm:px-8 sm:py-28"
+        aria-labelledby="meet-moment-makers"
+        className="border-y border-[color:var(--nsg-border)]/10 bg-slate-950/30 px-6 py-16 sm:px-8 sm:py-20"
       >
-        <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[1fr_0.9fr] lg:gap-20">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[color:var(--nsg-accent)]">
-              A life of moments
-            </p>
-            <h2 className="mt-4 font-serif text-3xl text-white sm:text-4xl">
-              Moment Maker Profile
+        <div className="mx-auto max-w-6xl">
+          <div className="max-w-3xl">
+            <h2 id="meet-moment-makers" className="font-serif text-3xl text-white sm:text-4xl">
+              ❤️ Meet Our Moment Makers™
             </h2>
-            <p className="mt-5 max-w-lg leading-7 text-slate-400">
-              Every life holds a thousand moments worth keeping close. A legacy
-              profile brings those moments together in one meaningful place.
+            <p className="mt-4 leading-7 text-slate-400">
+              Discover the stories, memories, and legacies being preserved by families in the Never Say Goodbye™ community.
             </p>
           </div>
 
-          <article className="relative overflow-hidden rounded-3xl border border-[color:var(--nsg-accent)]/30 bg-gradient-to-br from-slate-800/80 to-slate-900 p-7 shadow-2xl shadow-black/20 sm:p-10">
-            <div
-              aria-hidden="true"
-              className="absolute right-0 top-0 h-40 w-40 rounded-full bg-[color:var(--nsg-accent)]/10 blur-3xl"
-            />
-            <div className="relative">
-              <div className="mb-8 flex h-16 w-16 items-center justify-center rounded-full border border-[color:var(--nsg-accent)]/40 bg-[color:var(--nsg-accent)]/10 font-serif text-2xl text-[color:var(--nsg-accent)]">
-                J
-              </div>
-              <div aria-hidden="true" className="h-4" />
-              <h3 className="mt-2 font-serif text-3xl text-white">
-                John Michael Doe
-              </h3>
-              <p className="mt-3 text-sm tracking-wide text-slate-300">
-                Father <span className="text-[color:var(--nsg-accent)]">•</span> Veteran{" "}
-                <span className="text-[color:var(--nsg-accent)]">•</span> Musician
+          <h3 className="mt-10 font-serif text-2xl text-white">Featured Moment Maker</h3>
+          <article className="mt-4 flex flex-col gap-6 rounded-3xl border border-[color:var(--nsg-accent)]/30 bg-gradient-to-br from-slate-800/80 to-slate-900 p-6 sm:flex-row sm:items-center sm:p-8">
+            <div className="relative h-32 w-32 shrink-0 overflow-hidden rounded-2xl border border-[color:var(--nsg-accent)]/30">
+              <Image src="/mature-man-portrait.jpg" alt="Portrait of John Michael Doe" fill sizes="128px" className="object-cover object-[center_35%]" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--nsg-accent)]">Example profile</p>
+              <h4 className="mt-2 font-serif text-2xl text-white">John Michael Doe</h4>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300">
+                A veteran and lifelong musician, John finds joy in family dinners, old songs, and sharing the stories behind them.
               </p>
-              <div className="my-7 h-px bg-white/10" />
-              <dl className="grid gap-5 sm:grid-cols-2">
-                <div>
-                  <dt className="text-xs uppercase tracking-[0.18em] text-slate-500">
-                    Born
-                  </dt>
-                  <dd className="mt-2 text-sm text-slate-200">
-                    San Diego, California
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-xs uppercase tracking-[0.18em] text-slate-500">
-                    Lives In
-                  </dt>
-                  <dd className="mt-2 text-sm text-slate-200">
-                    Nashville, Tennessee
-                  </dd>
-                </div>
-              </dl>
               <Link
                 href="/profile-preview"
-                className="mt-8 inline-flex w-full justify-center rounded-full border border-[color:var(--nsg-accent)]/50 px-6 py-4 text-sm font-medium text-[color:var(--nsg-accent-light)] transition hover:bg-[color:var(--nsg-accent)]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]"
+                className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full border border-[color:var(--nsg-accent)]/50 px-6 py-2 text-sm font-semibold text-[color:var(--nsg-accent-light)] transition hover:bg-[color:var(--nsg-accent)]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]"
               >
-                See Sample Profile
+                View Profile
               </Link>
-              <p className="mt-3 text-center text-xs leading-5 text-slate-400">
-                Explore John&apos;s example profile.
-              </p>
             </div>
           </article>
+          <h3 id="weekly-moment-makers-heading" className="mt-10 font-serif text-2xl text-white">Featured This Week</h3>
+          <Suspense fallback={<p className="mt-4 text-sm text-slate-400">Loading this week&apos;s Moment Makers™…</p>}>
+            <WeeklyMomentMakers />
+          </Suspense>
         </div>
       </section>
-
-      <Suspense fallback={<p className="mx-auto max-w-6xl px-6 py-10 text-sm text-slate-400">Loading this week&apos;s Moment Makers™…</p>}>
-        <WeeklyMomentMakers />
-      </Suspense>
 
       <section className="mx-auto max-w-7xl px-6 py-20 text-center sm:px-8 sm:py-28">
         <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[color:var(--nsg-accent)]">

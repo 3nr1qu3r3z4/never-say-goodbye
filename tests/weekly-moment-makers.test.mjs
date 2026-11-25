@@ -53,6 +53,7 @@ test("weekly cards display returned profile fields and link to the profile", asy
   assert.match(html, /Example City/);
   assert.match(html, /data:image\/png;base64,abc/);
   assert.match(html, /\/moment-maker\/member%20%2F1/);
+  assert.match(html, /<ul[^>]*aria-labelledby="weekly-moment-makers-heading"[^>]*tabindex="0"[^>]*class="[^"]*flex[^"]*overflow-x-auto/);
 });
 
 test("empty selections and database errors are distinguished", async () => {
