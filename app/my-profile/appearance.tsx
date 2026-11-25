@@ -25,11 +25,11 @@ export default function Appearance({ selectedTheme }: { selectedTheme: SiteTheme
                   <input type="radio" name="theme" value={theme.id} checked={selection === theme.id} onChange={() => setSelection(theme.id)} className="mt-1 h-4 w-4 shrink-0 accent-[color:var(--nsg-accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--nsg-accent)]" />
                   <span className="font-semibold text-white">{theme.icon} {theme.name}</span>
                 </span>
-                <span data-theme={theme.id} aria-hidden="true" className="mt-3 flex items-center gap-2 rounded-xl bg-[color:var(--nsg-background)] p-2">
+                <span data-theme={theme.id} aria-hidden="true" className="mt-3 flex max-w-full flex-wrap items-center gap-2 self-start rounded-xl bg-[color:var(--nsg-background)] p-2">
                   <span className="h-6 w-6 rounded-full bg-[color:var(--nsg-background)] ring-1 ring-white/40" />
                   <span className="h-6 w-6 rounded-full bg-[color:var(--nsg-accent)]" />
                   <span className="h-6 w-6 rounded-full bg-[color:var(--nsg-neutral)]" />
-                  <span className="ml-auto rounded-full bg-[color:var(--nsg-accent)] px-3 py-1 text-xs font-semibold text-[color:var(--nsg-background)]">Preview</span>
+                  <span className="rounded-full bg-[color:var(--nsg-accent)] px-3 py-1 text-xs font-semibold text-[color:var(--nsg-background)]">Preview</span>
                 </span>
                 <span className="mt-3 text-xs text-slate-300">
                   {selection === theme.id ? "Currently selected" : "Select theme"}
