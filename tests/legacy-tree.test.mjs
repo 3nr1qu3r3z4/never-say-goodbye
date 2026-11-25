@@ -37,6 +37,7 @@ function familyComponent(user, sql) {
     "@/lib/auth": { getCurrentUser: async () => user },
     "@/lib/db": { getSql: () => sql },
     "./family-member-form": { default: () => React.createElement("div", null, "Family management form") },
+    "./tree-milestones-panel": { default: ({ treeId }) => React.createElement("div", null, `Milestones for ${treeId}`) },
   }).default;
 }
 

@@ -4,6 +4,7 @@ import { createLegacyTree } from "@/app/actions/family-tree";
 import { getCurrentUser } from "@/lib/auth";
 import { getSql } from "@/lib/db";
 import FamilyMemberForm from "./family-member-form";
+import TreeMilestonesPanel from "./tree-milestones-panel";
 
 type FamilyTree = { id: string; name: string };
 type MomentMaker = { id: string; displayName: string };
@@ -12,6 +13,8 @@ type TreeMember = {
   treeId: string;
   displayName: string;
   relationship: string;
+  role: string;
+  allowAdmin: boolean;
 };
 type FutureMomentMaker = {
   id: string;
@@ -102,7 +105,7 @@ async function FamilyMembersForUser({ userId }: { userId: string }) {
       `,
       sql`
         SELECT u.id, ltm.tree_id AS "treeId", u.display_name AS "displayName",
-               ltm.relationship AS relationship
+               ltm.relationship AS relationship, ltm.role, ltm.allow_milestone_admin AS "allowAdmin"
         FROM legacy_tree_members AS ltm
         JOIN legacy_trees AS lt ON lt.id = ltm.tree_id
         JOIN users AS u ON u.id = ltm.user_id
@@ -184,6 +187,20 @@ async function FamilyMembersForUser({ userId }: { userId: string }) {
           const treeMembers = memberRows.filter((member) => member.treeId === tree.id);
           const treeFutureMakers = futureRows.filter((member) => member.treeId === tree.id);
           const treePlaceholders = placeholderRows.filter((member) => member.treeId === tree.id);
+          const ownMembership = treeMembers.find((member) => member.id === userId);
+          const isAdmin = ownMembership?.role === "owner" || ownMembership?.role === "admin";
+          const people = [
+            ...treeMembers.map((member) => ({
+              id: member.id, type: "user" as const, name: member.displayName,
+              canEdit: member.id === userId || Boolean(isAdmin && member.allowAdmin),
+            })),
+            ...treePlaceholders.map((member) => ({
+              id: member.id, type: "placeholder" as const, name: member.name, canEdit: isAdmin,
+            })),
+            ...treeFutureMakers.filter((member) => member.status !== "archived").map((member) => ({
+              id: member.id, type: "future" as const, name: member.name, canEdit: isAdmin,
+            })),
+          ];
           return (
             <section key={tree.id} id={`legacy-tree-item-${tree.id}`} aria-label={tree.name} className="scroll-mt-6">
               <div className="mx-auto max-w-lg rounded-2xl border border-[#D8A35B]/50 bg-[#D8A35B]/[0.08] px-5 py-5 text-center">
@@ -277,6 +294,7 @@ async function FamilyMembersForUser({ userId }: { userId: string }) {
                   <p className="mt-4 text-sm text-slate-400">Add family members to begin building this tree.</p>
                 )}
               </div>
+              <TreeMilestonesPanel treeId={tree.id} userId={userId} people={people} isAdmin={isAdmin} allowAdmin={ownMembership?.allowAdmin ?? false} />
             </section>
           );
         })}

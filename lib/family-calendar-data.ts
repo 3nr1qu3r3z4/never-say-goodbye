@@ -53,8 +53,7 @@ export async function getCalendarEvents(userId: string, treeId: string): Promise
       SELECT tree_id FROM legacy_tree_members
       WHERE user_id = ${userId} AND tree_id = ${treeId}
     ), imports AS (
-      SELECT access.tree_id FROM access
-      JOIN family_calendar_import_settings s ON s.tree_id = access.tree_id AND s.enabled
+      SELECT tree_id FROM access
     ), shared_connections AS (
       SELECT cl.id, cl.anniversary_date,
              a.display_name AS first_name, b.display_name AS second_name,
@@ -75,6 +74,7 @@ export async function getCalendarEvents(userId: string, treeId: string): Promise
     SELECT 'birthday:' || u.id, u.display_name || ' Birthday', u.birth_date::text, TRUE, 'Legacy Tree™'
     FROM imports JOIN legacy_tree_members m ON m.tree_id = imports.tree_id
     JOIN users u ON u.id = m.user_id WHERE u.share_birthday AND u.birth_date IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM family_tree_milestones tm WHERE tm.tree_id = imports.tree_id AND tm.user_id = u.id AND tm.kind = 'birthday')
     UNION ALL
     SELECT 'memorial:' || u.id, u.display_name || ' Memorial Date', u.memorial_date::text, TRUE, 'Legacy Tree™'
     FROM imports JOIN legacy_tree_members m ON m.tree_id = imports.tree_id
@@ -82,9 +82,15 @@ export async function getCalendarEvents(userId: string, treeId: string): Promise
     UNION ALL
     SELECT 'placeholder-birthday:' || p.id, p.name || ' Birthday', p.birth_date::text, TRUE, 'Family Placeholder'
     FROM family_placeholders p JOIN imports ON imports.tree_id = p.legacy_tree_id WHERE p.birth_date IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM family_tree_milestones tm WHERE tm.tree_id = imports.tree_id AND tm.placeholder_id = p.id AND tm.kind = 'birthday')
     UNION ALL
     SELECT 'placeholder-memorial:' || p.id, p.name || ' Memorial Date', p.memorial_date::text, TRUE, 'Family Placeholder'
     FROM family_placeholders p JOIN imports ON imports.tree_id = p.legacy_tree_id WHERE p.memorial_date IS NOT NULL
+    UNION ALL
+    SELECT 'honored-passing:' || p.id, p.name || ' Passing Date', h.passing_date::text, TRUE, 'Honored Life™'
+    FROM family_placeholders p JOIN imports ON imports.tree_id = p.legacy_tree_id
+    JOIN honored_lives h ON h.family_placeholder_id = p.id
+    WHERE h.passing_date IS NOT NULL AND p.memorial_date IS NULL
     UNION ALL
     SELECT 'future:' || f.id, f.name || ' Expected Birth', f.expected_birth_date::text, FALSE, 'Future Moment Maker™'
     FROM future_moment_makers f JOIN imports ON imports.tree_id = f.legacy_tree_id
@@ -116,6 +122,11 @@ export async function getEditableCalendarSources(userId: string, treeId: string)
     SELECT f.id, f.name, 'future', COALESCE(f.expected_birth_date::text, ''), '', FALSE, FALSE
     FROM future_moment_makers f JOIN access ON access.tree_id = f.legacy_tree_id
     WHERE f.status = 'awaiting-claim'
+    UNION ALL
+    SELECT u.id, u.display_name, 'user', COALESCE(u.birth_date::text, ''), '', FALSE, FALSE
+    FROM access JOIN legacy_tree_members member ON member.tree_id = access.tree_id
+    JOIN users u ON u.id = member.user_id
+    WHERE member.user_id <> ${userId} AND member.allow_milestone_admin AND u.share_birthday
     UNION ALL
     SELECT cl.id, a.display_name || ' & ' || b.display_name, 'connection',
            CASE WHEN a.share_anniversary AND b.share_anniversary

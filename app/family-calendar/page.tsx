@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
-import { getCalendarEvents, getCalendarSettings, getEditableCalendarSources, getFamilyBulletins } from "@/lib/family-calendar-data";
+import { getCalendarEvents, getCalendarSettings, getFamilyBulletins } from "@/lib/family-calendar-data";
+import { getTreeMilestones } from "@/lib/tree-milestones-data";
+import { milestoneDate } from "@/lib/tree-milestones";
 import { occurrences, validCalendarDate, type CalendarEvent } from "@/lib/family-calendar";
-import { BulletinForm, ImportDates, ManualEvent, ProfileDates, ReminderSettings, SourceDates } from "./calendar-forms";
+import { BulletinForm, ManualEvent, ReminderSettings } from "./calendar-forms";
 
 export const metadata: Metadata = {
   title: "Family Calendar™ | Never Say Goodbye",
@@ -19,8 +21,11 @@ const readable = (date: string, options: Intl.DateTimeFormatOptions) =>
 
 function eventIcon(id: string) {
   if (id.startsWith("birthday:") || id.startsWith("placeholder-birthday:")) return "🎂";
-  if (id.startsWith("memorial:") || id.startsWith("placeholder-memorial:")) return "🕊";
+  if (id.startsWith("memorial:") || id.startsWith("placeholder-memorial:") || id.startsWith("honored-passing:")) return "🕊";
   if (id.startsWith("anniversary:")) return "❤️";
+  if (id.startsWith("tree-birthday:")) return "🎂";
+  if (id.startsWith("tree-anniversary:") || id.startsWith("tree-wedding:")) return "💍";
+  if (id.startsWith("tree-graduation:")) return "🎓";
   if (id.startsWith("future:") || id.startsWith("milestone:")) return "✨";
   return "📅";
 }
@@ -45,7 +50,7 @@ export default async function FamilyCalendarPage({
 }) {
   const user = await requireUser();
   const params = await searchParams;
-  const { profile, reminders, trees } = await getCalendarSettings(user.id);
+  const { reminders, trees } = await getCalendarSettings(user.id);
   const selected = params.tree ? trees.find((tree) => tree.id === params.tree) : trees[0];
   if (params.tree && !selected) notFound();
   const view = params.view ?? "month";
@@ -62,15 +67,26 @@ export default async function FamilyCalendarPage({
       : base;
   const count = view === "month" ? 42 : view === "week" ? 7 : 90;
   const end = new Date(start.getTime() + (count - 1) * dayMs);
-  const [allEvents, sources, bulletins] = selected
+  const [legacyEvents, milestones, bulletins] = selected
     ? await Promise.all([
         getCalendarEvents(user.id, selected.id),
-        selected.role === "owner" || selected.role === "admin"
-          ? getEditableCalendarSources(user.id, selected.id)
-          : Promise.resolve([]),
+        getTreeMilestones(user.id, selected.id),
         getFamilyBulletins(user.id, selected.id),
       ])
     : [[], [], []];
+  const datedMilestones: CalendarEvent[] = milestones.flatMap((milestone) => {
+    if (milestone.month === null || milestone.day === null) return [];
+    const monthDay = `${String(milestone.month).padStart(2, "0")}-${String(milestone.day).padStart(2, "0")}`;
+    return [{
+      id: `tree-${milestone.kind}:${milestone.id}`,
+      title: `${milestone.personName} ${milestone.title}`,
+      date: milestone.year === null ? `--${monthDay}` : `${milestone.year}-${monthDay}`,
+      repeatsYearly: milestone.repeatsYearly,
+      source: "Legacy Tree™",
+    }];
+  });
+  const partialMilestones = milestones.filter((milestone) => milestone.month === null || milestone.day === null);
+  const allEvents = [...legacyEvents, ...datedMilestones];
   const events = occurrences(allEvents, dateText(start), dateText(end));
   const link = (nextView: string, date = anchor) => {
     const query = new URLSearchParams({ view: nextView, date });
@@ -92,7 +108,7 @@ export default async function FamilyCalendarPage({
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">A place for family</p>
           <h1 className="mt-3 font-serif text-4xl text-white sm:text-5xl">Family Calendar™</h1>
           <p className="mt-4 max-w-2xl leading-7 text-slate-300">Remember the dates and milestones that bring your family together.</p>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400">For member birthdays and memorial dates: add dates → choose what to share → join the same Legacy Tree™ → enable calendar sync.</p>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400">Family milestones are managed in your Legacy Tree™ and appear here automatically when shared with this tree.</p>
         </header>
         <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
           <section aria-label="Family calendar" className="min-w-0 rounded-3xl border border-white/10 bg-white/[0.03] p-4 sm:p-6">
@@ -160,17 +176,19 @@ export default async function FamilyCalendarPage({
                     })}
                   </div>
                 )}
-                {!allEvents.length && <p className="mt-6 rounded-xl border border-[#D8A35B]/20 p-4 text-sm leading-6 text-slate-300">Your Family Calendar is waiting for family dates. Birthdays and memorial dates from tree members and placeholders, anniversaries between eligible Connected Lives™, and expected births of Future Moment Makers™ in this tree can appear when their full dates and required sharing permissions are set. Enable Family Date Sync below or add a family event.</p>}
-                <ImportDates treeId={selected.id} />
-                <p className="mt-2 text-xs leading-5 text-slate-400">Sync is ongoing, not a one-time copy. Eligible dates update with current sharing and tree membership and are visible to all members of this tree.</p>
+                {partialMilestones.length > 0 && <section className="mt-6 rounded-xl border border-white/10 p-4">
+                  <h3 className="font-serif text-lg text-white">Milestones without an exact day</h3>
+                  <p className="mt-1 text-xs text-slate-400">These are not placed on a calendar day until the date is known.</p>
+                  <ul className="mt-3 space-y-2 text-sm text-slate-200">{partialMilestones.map((milestone) => <li key={milestone.id}>{milestone.personName} {milestone.title} · {milestoneDate(milestone)}</li>)}</ul>
+                </section>}
+                {!allEvents.length && !partialMilestones.length && <p className="mt-6 rounded-xl border border-[#D8A35B]/20 p-4 text-sm leading-6 text-slate-300">Your Family Calendar is waiting for family dates. Add milestones in your Legacy Tree™ or add a family event here.</p>}
+                <p className="mt-5 text-sm text-slate-400">Manage milestones and sharing in <Link href="/legacy-tree" className="text-[#f0c98e] underline">Legacy Tree™</Link>.</p>
               </>
             )}
           </section>
           <aside aria-label="Calendar settings" className="space-y-4">
             {selected && <ManualEvent treeId={selected.id} />}
             <ReminderSettings reminders={reminders} />
-            <ProfileDates profile={profile} />
-            {selected && (selected.role === "owner" || selected.role === "admin") && <SourceDates treeId={selected.id} records={sources} />}
           </aside>
         </div>
       </div>

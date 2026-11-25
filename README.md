@@ -106,7 +106,9 @@ create a local data directory or write account data to the app filesystem.
      then
      `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/021_moment_videos.sql`
      then
-     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/022_family_bulletins.sql`.
+     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/022_family_bulletins.sql`
+     then
+     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/023_tree_milestones.sql`.
    - In Bash, export `DATABASE_URL` and run
      `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/001_initial_schema.sql`
      then
@@ -150,7 +152,9 @@ create a local data directory or write account data to the app filesystem.
      then
      `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/021_moment_videos.sql`
      then
-     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/022_family_bulletins.sql`.
+     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/022_family_bulletins.sql`
+     then
+     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/023_tree_milestones.sql`.
    - In the Neon Console, open the SQL Editor for the intended database. Run
      [`db/migrations/001_initial_schema.sql`](./db/migrations/001_initial_schema.sql)
      first, then run
@@ -175,6 +179,7 @@ create a local data directory or write account data to the app filesystem.
      then [`db/migrations/020_honored_lives.sql`](./db/migrations/020_honored_lives.sql)
      then [`db/migrations/021_moment_videos.sql`](./db/migrations/021_moment_videos.sql)
      then [`db/migrations/022_family_bulletins.sql`](./db/migrations/022_family_bulletins.sql)
+     then [`db/migrations/023_tree_milestones.sql`](./db/migrations/023_tree_milestones.sql)
      in order.
 3. Set `DATABASE_URL` to the same pooled connection string in local
    `.env.local` and in Vercel Project Settings → Environment Variables for each
@@ -207,7 +212,7 @@ WHERE table_schema = 'public'
     'legacy_successors', 'legacy_frame_interests', 'password_reset_tokens',
     'account_recovery_attempts', 'weekly_moment_maker_settings',
     'weekly_moment_maker_weeks', 'weekly_moment_maker_selections',
-    'family_relationship_milestones', 'family_calendar_events', 'family_bulletins',
+    'family_relationship_milestones', 'family_tree_milestones', 'family_calendar_events', 'family_bulletins',
     'family_calendar_import_settings', 'family_calendar_reminders',
     'connected_lives_person_tags', 'account_status_history', 'profile_visits',
     'email_preferences', 'site_analytics_visitors',
@@ -226,7 +231,7 @@ WHERE version IN (
   '013_weekly_moment_makers', '014_family_calendar',
   '015_connected_lives_directory', '016_account_status', '017_profile_visits',
   '018_email_preferences', '019_site_analytics', '020_honored_lives',
-  '021_moment_videos', '022_family_bulletins'
+  '021_moment_videos', '022_family_bulletins', '023_tree_milestones'
 )
 ORDER BY version;
 
@@ -357,23 +362,39 @@ Tree owners and administrators can honor an existing Family Placeholder or
 create a new one. The name, relationship and birth date belong to the
 placeholder; the passing date, short story and optional photo belong to its
 Honored Life. Selecting an existing placeholder can update its details and
-its birth date may appear on the tree calendar when imports are enabled.
-Passing dates are not automatically imported as memorial dates. All tree
+its birth and passing dates may appear on the tree calendar. All tree
 members can see the record; it is not publicly searchable. V1 has no editing,
 contributor or user-account memorialization workflow. Removing the underlying
 placeholder also removes its Honored Life under the existing cascade rules.
 
-Migration 014 must be applied before deploying Family Calendar™. Tree members
-can create shared manual events and enable live imports; only owners and admins
-can manage shared placeholder, future maker, and eligible connection dates.
+Apply migration 023 before deploying Legacy Tree™ or Family Calendar™. Milestones
+are managed within each tree and automatically shown to its current members
+in the calendar; manual calendar events remain separate. Saving a new milestone
+shares it with that tree. Account holders manage their own milestones and can
+explicitly allow that tree's owners and admins to manage them. Owners and admins
+can also manage placeholders, Honored Lives, and Future Moment Makers. Revoking
+editing permission stops future edits by administrators but does not unshare
+milestones already saved; the account holder can remove them.
+
+Existing full birthdays, memorial dates and relationship milestones remain in
+their original records and are managed from Legacy Tree. A previously saved
+full birthday must be managed there instead of creating a second birthday.
+Month-and-day birthdays can omit the year, and month/year or undated milestones
+are shown separately in the calendar without inventing a day. Birthdays and
+anniversaries with a day repeat yearly; other dated milestones can optionally
+repeat. February 29 recurs only in leap years. Personal milestone records are
+tree-specific; leaving a tree hides that member's milestones there until they
+rejoin. Deleting the underlying person or tree removes the associated milestones.
+
+Existing date sharing preferences still apply: only owners and admins can
+manage shared placeholder, future maker, and eligible connection dates.
 Account holders choose whether to share their own full birthday and memorial
 date with tree members. Both participants must opt in to share an anniversary
 or relationship milestone, and both must remain members of the selected tree
-with an accepted connection. Imports are evaluated on each request, so revoked
-consent and removed membership take effect immediately. Year-only dates are not
-imported, expected births are one-time events, and February 29 yearly events
-appear only in leap years. Reminder settings are saved for future integration;
-no reminder notifications are sent.
+with an accepted connection. These dates are evaluated on each request, so
+revoked sharing and removed membership take effect immediately. Expected births
+are one-time events. Reminder settings are saved for future integration; no
+reminder notifications are sent.
 
 Migration 015 must be applied before deploying the Connected Lives™ directory.
 Existing relationship types and connection dates are not backfilled. New

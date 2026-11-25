@@ -178,6 +178,7 @@ test("linked story query stays author-only and withholds protected content", asy
     "@/lib/auth": { getCurrentUser: async () => ({ id: "author" }) },
     "@/lib/db": { getSql: () => sql },
     "./family-member-form": { default: () => null },
+    "./tree-milestones-panel": { default: () => null },
   });
   const userSection = await components.default();
   await userSection.type(userSection.props);

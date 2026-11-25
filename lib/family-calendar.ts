@@ -21,8 +21,9 @@ export function occurrences(events: CalendarEvent[], start: string, end: string)
     }
     const dates: CalendarEvent[] = [];
     for (let year = firstYear; year <= lastYear; year++) {
-      if (year < Number(event.date.slice(0, 4))) continue;
-      const date = `${String(year).padStart(4, "0")}${event.date.slice(4)}`;
+      if (!event.date.startsWith("--") && year < Number(event.date.slice(0, 4))) continue;
+      const monthDay = event.date.startsWith("--") ? event.date.slice(2) : event.date.slice(5);
+      const date = `${String(year).padStart(4, "0")}-${monthDay}`;
       if (validCalendarDate(date) && date >= start && date <= end) {
         dates.push({ ...event, date });
       }

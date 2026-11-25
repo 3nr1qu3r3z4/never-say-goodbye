@@ -43,10 +43,17 @@ export async function saveCalendarProfile(
       share_memorial_date = ${form.get("shareMemorialDate") === "on"},
       share_relationship_milestones = ${form.get("shareMilestones") === "on"},
       updated_at = ${new Date().toISOString()}
-    WHERE id = ${user.id} RETURNING id
+    WHERE id = ${user.id}
+      AND (${birthDate}::date IS NOT DISTINCT FROM birth_date OR NOT EXISTS (
+        SELECT 1 FROM family_tree_milestones m
+        JOIN legacy_tree_members member ON member.tree_id = m.tree_id AND member.user_id = m.user_id
+        WHERE m.user_id = ${user.id} AND m.kind = 'birthday'
+      ))
+    RETURNING id
   `;
-  if (rows.length === 0) return { error: "Your account is no longer available." };
+  if (rows.length === 0) return { error: "Your account is unavailable or a birthday is already saved as a tree milestone. Remove that milestone before changing your full birthday." };
   revalidatePath("/family-calendar");
+  revalidatePath("/legacy-tree");
   return { success: "Your family date preferences have been saved." };
 }
 
@@ -151,6 +158,9 @@ export async function saveTreeSourceDate(
       UPDATE family_placeholders AS fp SET birth_date = ${first}::date,
         memorial_date = ${second}::date, updated_at = ${new Date().toISOString()}
       WHERE fp.id = ${sourceId} AND fp.legacy_tree_id = ${treeId}
+        AND (${first}::date IS NOT DISTINCT FROM fp.birth_date OR NOT EXISTS (
+          SELECT 1 FROM family_tree_milestones m WHERE m.tree_id = fp.legacy_tree_id AND m.placeholder_id = fp.id AND m.kind = 'birthday'
+        ))
         AND (${first}::date IS NULL OR fp.birth_year IS NULL OR EXTRACT(YEAR FROM ${first}::date) = fp.birth_year)
         AND (${second}::date IS NULL OR fp.death_year IS NULL OR EXTRACT(YEAR FROM ${second}::date) = fp.death_year)
         AND (${first}::date IS NULL OR fp.death_year IS NULL OR EXTRACT(YEAR FROM ${first}::date) <= fp.death_year)
@@ -163,6 +173,25 @@ export async function saveTreeSourceDate(
         AND EXISTS (SELECT 1 FROM legacy_tree_members AS admin WHERE admin.tree_id = fp.legacy_tree_id
           AND admin.user_id = ${user.id} AND admin.role IN ('owner', 'admin'))
       RETURNING fp.id
+    `;
+  } else if (sourceType === "user") {
+    rows = await sql`
+      UPDATE users AS target SET birth_date = ${first}::date, updated_at = ${new Date().toISOString()}
+      WHERE target.id = ${sourceId} AND target.share_birthday
+        AND (${first}::date IS NULL OR target.birth_year IS NULL OR EXTRACT(YEAR FROM ${first}::date) = target.birth_year)
+        AND (${first}::date IS NULL OR target.memorial_date IS NULL OR ${first}::date <= target.memorial_date)
+        AND (${first}::date IS NOT DISTINCT FROM target.birth_date OR NOT EXISTS (
+          SELECT 1 FROM family_tree_milestones m
+          JOIN legacy_tree_members member ON member.tree_id = m.tree_id AND member.user_id = m.user_id
+          WHERE m.user_id = target.id AND m.kind = 'birthday'
+        ))
+        AND EXISTS (
+          SELECT 1 FROM legacy_tree_members admin
+          JOIN legacy_tree_members member ON member.tree_id = admin.tree_id AND member.user_id = target.id
+          WHERE admin.tree_id = ${treeId} AND admin.user_id = ${user.id}
+            AND admin.role IN ('owner', 'admin') AND member.allow_milestone_admin
+        )
+      RETURNING target.id
     `;
   } else if (sourceType === "future") {
     rows = await sql`
@@ -191,6 +220,7 @@ export async function saveTreeSourceDate(
   }
   if (rows.length === 0) return { error: "This record cannot be updated. Check access, consent, and any recorded years." };
   revalidatePath("/family-calendar");
+  revalidatePath("/legacy-tree");
   return { success: "Family dates saved." };
 }
 
@@ -221,5 +251,6 @@ export async function addRelationshipMilestone(
   `;
   if (rows.length === 0) return { error: "Both members must share milestones, and you must be a tree owner or admin." };
   revalidatePath("/family-calendar");
+  revalidatePath("/legacy-tree");
   return { success: "Relationship milestone added." };
 }

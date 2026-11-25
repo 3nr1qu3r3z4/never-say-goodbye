@@ -37,7 +37,7 @@ export type CalendarProfile = {
 };
 export type Reminders = { dayOf: boolean; oneDay: boolean; oneWeek: boolean; oneMonth: boolean };
 export type SourceRecord = {
-  id: string; name: string; type: "placeholder" | "future" | "connection";
+  id: string; name: string; type: "placeholder" | "future" | "connection" | "user";
   firstDate: string; secondDate: string; canAnniversary: boolean; canMilestones: boolean;
 };
 
@@ -117,7 +117,7 @@ export function SourceDates({ treeId, records }: { treeId: string; records: Sour
   return (
     <details id="family-dates" className="scroll-mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
       <summary className="cursor-pointer font-serif text-xl text-white">Manage Family Dates</summary>
-      <p className="my-4 text-sm leading-6 text-slate-400">Tree owners and admins can add full dates to family placeholders and Future Moment Makers™. A birth year alone cannot appear on the calendar. Synced dates are visible to all members of this tree. Anniversaries and relationship milestones require an accepted Connected Lives™ connection, both people in this tree, and both to share the relevant dates.</p>
+      <p className="my-4 text-sm leading-6 text-slate-400">Tree owners and admins can add full dates to family placeholders and Future Moment Makers™, and manage shared account birthdays when the account holder has granted editing permission. Account birthday changes apply across trees. A birth year alone cannot appear on a calendar day. These dates are visible to all members of this tree. Anniversaries and relationship milestones require an accepted Connected Lives™ connection, both people in this tree, and both to share the relevant dates.</p>
       {!records.length && <p className="text-sm text-slate-400">No editable family records are available in this tree yet.</p>}
       <div className="space-y-5">
         {records.map((record) => (
@@ -129,7 +129,7 @@ export function SourceDates({ treeId, records }: { treeId: string; records: Sour
                 <input type="hidden" name="sourceId" value={record.id} />
                 <input type="hidden" name="sourceType" value={record.type} />
                 <label className="block text-sm text-slate-200">
-                  {record.type === "placeholder" ? "Birthday" : record.type === "future" ? "Expected Birth Date" : "Anniversary Date"}
+                  {record.type === "placeholder" || record.type === "user" ? "Birthday" : record.type === "future" ? "Expected Birth Date" : "Anniversary Date"}
                   <input type="date" name="firstDate" defaultValue={record.firstDate} className={fieldClass} />
                 </label>
                 {record.type === "placeholder" && <label className="block text-sm text-slate-200">Memorial Date <input type="date" name="secondDate" defaultValue={record.secondDate} className={fieldClass} /></label>}
