@@ -9,9 +9,9 @@ function ProfileCards({ profiles }: { profiles: NavigationProfile[] }) {
         <li key={profile.id}>
           <Link
             href={`/moment-maker/${encodeURIComponent(profile.id)}`}
-            className="flex h-full items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition hover:border-[#D8A35B]/40 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
+            className="flex h-full items-center gap-4 rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-4 transition hover:border-[color:var(--nsg-accent)]/40 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]"
           >
-            <span className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#D8A35B]/30 bg-slate-900 font-serif text-lg text-[#f0c98e]">
+            <span className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[color:var(--nsg-accent)]/30 bg-slate-900 font-serif text-lg text-[color:var(--nsg-accent-light)]">
               {profile.profilePhoto ? (
                 <Image src={profile.profilePhoto} alt="" fill unoptimized sizes="56px" className="object-cover" />
               ) : (

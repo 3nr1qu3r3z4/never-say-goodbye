@@ -95,16 +95,16 @@ const sections = [
 
 export default function AboutPage() {
   return (
-    <main className="min-h-screen bg-[#0F172A] px-6 py-12 text-slate-100 sm:px-8 sm:py-16">
+    <main className="min-h-screen bg-[color:var(--nsg-background)] px-6 py-12 text-slate-100 sm:px-8 sm:py-16">
       <article className="mx-auto max-w-3xl">
         <Link
           href="/"
-          className="text-sm text-slate-400 underline decoration-white/20 underline-offset-4 transition hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
+          className="text-sm text-slate-400 underline decoration-white/20 underline-offset-4 transition hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]"
         >
           Never Say Goodbye
         </Link>
 
-        <header className="mt-10 border-b border-white/10 pb-8">
+        <header className="mt-10 border-b border-[color:var(--nsg-border)]/10 pb-8">
           <h1 className="font-serif text-3xl leading-tight text-white sm:text-4xl">
             Built for Family.
             <br />

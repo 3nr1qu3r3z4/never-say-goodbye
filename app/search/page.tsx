@@ -77,11 +77,11 @@ export default async function SearchPage({
     ].filter(Boolean);
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#0F172A] text-slate-100">
+    <main className="min-h-screen overflow-hidden bg-[color:var(--nsg-background)] text-slate-100">
       <section className="relative isolate px-6 py-16 sm:px-8 sm:py-24">
         <div
           aria-hidden="true"
-          className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_50%_0%,rgba(216,163,91,0.12),transparent_58%)]"
+          className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_50%_0%,color-mix(in_srgb,var(--nsg-accent)_12%,transparent),transparent_58%)]"
         />
         <div className="mx-auto max-w-5xl">
           <header className="mt-4 text-center sm:mt-8">
@@ -110,13 +110,13 @@ export default async function SearchPage({
                   {profiles.map((profile) => (
                     <li
                       key={profile.id}
-                      className="rounded-2xl border border-[#D8A35B]/20 bg-white/[0.03] transition hover:border-[#D8A35B]/50 hover:bg-white/[0.05]"
+                      className="rounded-2xl border border-[color:var(--nsg-accent)]/20 bg-white/[0.03] transition hover:border-[color:var(--nsg-accent)]/50 hover:bg-white/[0.05]"
                     >
                       <Link
                         href={`/moment-maker/${encodeURIComponent(profile.id)}`}
-                        className="flex gap-4 rounded-2xl p-5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D8A35B] sm:p-6"
+                        className="flex gap-4 rounded-2xl p-5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--nsg-accent)] sm:p-6"
                       >
-                        <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-full border border-[#D8A35B]/30 bg-slate-900">
+                        <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-full border border-[color:var(--nsg-accent)]/30 bg-slate-900">
                           {profile.profilePhoto ? (
                             <Image
                               src={profile.profilePhoto}
@@ -131,7 +131,7 @@ export default async function SearchPage({
                               aria-hidden="true"
                               viewBox="0 0 160 160"
                               fill="none"
-                              className="absolute inset-0 m-auto h-16 w-16 text-[#D8A35B]/30"
+                              className="absolute inset-0 m-auto h-16 w-16 text-[color:var(--nsg-accent)]/30"
                             >
                               <circle cx="80" cy="52" r="30" fill="currentColor" />
                               <path
@@ -142,7 +142,7 @@ export default async function SearchPage({
                           )}
                         </div>
                         <div className="min-w-0">
-                          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#D8A35B]">
+                          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--nsg-accent)]">
                             Moment Maker
                           </p>
                           <h3 className="mt-1 font-serif text-xl text-white">
@@ -163,7 +163,7 @@ export default async function SearchPage({
                               {profile.bio}
                             </p>
                           )}
-                          <span className="mt-4 inline-flex text-sm font-semibold text-[#f0c98e]">
+                          <span className="mt-4 inline-flex text-sm font-semibold text-[color:var(--nsg-accent-light)]">
                             View Profile →
                           </span>
                         </div>
@@ -172,7 +172,7 @@ export default async function SearchPage({
                   ))}
                 </ul>
               ) : (
-                <p className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-6 text-slate-300">
+                <p className="mt-6 rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-6 text-slate-300">
                   No Moment Makers found.
                 </p>
               )}

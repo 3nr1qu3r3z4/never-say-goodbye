@@ -12,8 +12,8 @@ import {
   type CalendarActionState,
 } from "@/app/actions/family-calendar";
 
-const fieldClass = "mt-2 min-h-11 w-full rounded-xl border border-white/10 bg-slate-950/50 px-4 text-sm text-white";
-const buttonClass = "mt-4 inline-flex min-h-11 items-center justify-center rounded-full border border-[#D8A35B]/60 px-6 py-2 text-sm font-semibold text-[#f0c98e] hover:bg-[#D8A35B]/10 disabled:opacity-60";
+const fieldClass = "mt-2 min-h-11 w-full rounded-xl border border-[color:var(--nsg-border)]/10 bg-slate-950/50 px-4 text-sm text-white";
+const buttonClass = "mt-4 inline-flex min-h-11 items-center justify-center rounded-full border border-[color:var(--nsg-accent)]/60 px-6 py-2 text-sm font-semibold text-[color:var(--nsg-accent-light)] hover:bg-[color:var(--nsg-accent)]/10 disabled:opacity-60";
 
 type Action = (state: CalendarActionState, form: FormData) => Promise<CalendarActionState>;
 
@@ -23,7 +23,7 @@ function ActionForm({ action, children, label }: { action: Action; children: Rea
     <form action={formAction} className="space-y-3">
       {children}
       <button type="submit" disabled={pending} className={buttonClass}>{pending ? "Saving…" : label}</button>
-      <p role="status" aria-live="polite" className={`text-sm ${state.error ? "text-rose-300" : "text-[#f0c98e]"}`}>
+      <p role="status" aria-live="polite" className={`text-sm ${state.error ? "text-rose-300" : "text-[color:var(--nsg-accent-light)]"}`}>
         {state.error ?? state.success ?? ""}
       </p>
     </form>
@@ -42,12 +42,12 @@ export type SourceRecord = {
 };
 
 function Checkbox({ name, label, checked }: { name: string; label: string; checked?: boolean }) {
-  return <label className="flex items-center gap-3 text-sm text-slate-200"><input name={name} type="checkbox" defaultChecked={checked} className="h-4 w-4 accent-[#D8A35B]" />{label}</label>;
+  return <label className="flex items-center gap-3 text-sm text-slate-200"><input name={name} type="checkbox" defaultChecked={checked} className="h-4 w-4 accent-[color:var(--nsg-accent)]" />{label}</label>;
 }
 
 export function ProfileDates({ profile }: { profile: CalendarProfile }) {
   return (
-    <details className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+    <details className="rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5">
       <summary className="cursor-pointer font-serif text-xl text-white">My Family Dates &amp; Sharing</summary>
       <p className="my-4 text-sm leading-6 text-slate-400">Your full birthday and memorial date are private until you choose to share them with your tree members. A birth year alone cannot appear on the calendar; a full date is required. Anniversaries and relationship milestones require both connected people to share and belong to the same tree.</p>
       <ActionForm action={saveCalendarProfile} label="Save My Dates">
@@ -65,7 +65,7 @@ export function ProfileDates({ profile }: { profile: CalendarProfile }) {
 
 export function ReminderSettings({ reminders }: { reminders: Reminders }) {
   return (
-    <details className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+    <details className="rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5">
       <summary className="cursor-pointer font-serif text-xl text-white">🔔 Reminder Settings</summary>
       <p className="my-4 text-sm text-slate-400">Preferences are saved for future reminders. Notifications are not sent yet.</p>
       <ActionForm action={saveCalendarReminders} label="Save Reminder Settings">
@@ -84,7 +84,7 @@ export function ImportDates({ treeId }: { treeId: string }) {
 
 export function ManualEvent({ treeId }: { treeId: string }) {
   return (
-    <details className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+    <details className="rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5">
       <summary className="cursor-pointer font-serif text-xl text-white">Add Family Event</summary>
       <p className="my-4 text-sm text-slate-400">This event is visible to members of the selected Legacy Tree™.</p>
       <ActionForm action={createCalendarEvent} label="Add Event">
@@ -115,13 +115,13 @@ export function BulletinForm({ treeId }: { treeId: string }) {
 
 export function SourceDates({ treeId, records }: { treeId: string; records: SourceRecord[] }) {
   return (
-    <details id="family-dates" className="scroll-mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+    <details id="family-dates" className="scroll-mt-6 rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5">
       <summary className="cursor-pointer font-serif text-xl text-white">Manage Family Dates</summary>
       <p className="my-4 text-sm leading-6 text-slate-400">Tree owners and admins can add full dates to family placeholders and Future Moment Makers™, and manage shared account birthdays when the account holder has granted editing permission. Account birthday changes apply across trees. A birth year alone cannot appear on a calendar day. These dates are visible to all members of this tree. Anniversaries and relationship milestones require an accepted Connected Lives™ connection, both people in this tree, and both to share the relevant dates.</p>
       {!records.length && <p className="text-sm text-slate-400">No editable family records are available in this tree yet.</p>}
       <div className="space-y-5">
         {records.map((record) => (
-          <div key={`${record.type}-${record.id}`} className="rounded-xl border border-white/10 p-4">
+          <div key={`${record.type}-${record.id}`} className="rounded-xl border border-[color:var(--nsg-border)]/10 p-4">
             <h3 className="font-serif text-lg text-white">{record.name}</h3>
             {(record.type !== "connection" || record.canAnniversary) && (
               <ActionForm action={saveTreeSourceDate} label="Save Dates">
@@ -136,7 +136,7 @@ export function SourceDates({ treeId, records }: { treeId: string; records: Sour
               </ActionForm>
             )}
             {record.type === "connection" && record.canMilestones && (
-              <div className="mt-4 border-t border-white/10 pt-4">
+              <div className="mt-4 border-t border-[color:var(--nsg-border)]/10 pt-4">
                 <ActionForm action={addRelationshipMilestone} label="Add Relationship Milestone">
                   <input type="hidden" name="treeId" value={treeId} />
                   <input type="hidden" name="sourceId" value={record.id} />

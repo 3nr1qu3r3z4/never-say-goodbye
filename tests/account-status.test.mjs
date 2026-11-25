@@ -23,6 +23,7 @@ function loadProfilePage(sql) {
     "@/lib/auth": { requireUser: async () => ({ id: "owner", displayName: "Owner" }) },
     "@/lib/db": { getSql: () => sql },
     "./profile-editor": { default: () => null },
+    "./appearance": { default: () => null },
   };
   const exports = {};
   vm.runInNewContext(compiled, {

@@ -65,7 +65,7 @@ test("homepage hero preserves guest actions and removes the signed-in duplicate"
   assert.match(guest, /href="\/search"[^>]*>Find A Moment Maker<\/a>/);
   const signedIn = await renderHero({ id: "viewer" });
   assert.doesNotMatch(signedIn, /My Legacy|href="\/dashboard"|Create Your Legacy/);
-  assert.match(signedIn, /href="\/search"[^>]*bg-\[#D8A35B\][^>]*>Find A Moment Maker<\/a>/);
+  assert.match(signedIn, /href="\/search"[^>]*bg-\[color:var\(--nsg-accent\)\][^>]*>Find A Moment Maker<\/a>/);
 });
 
 test("signed-in primary navigation retains My Legacy and Sign Out", async () => {
@@ -121,6 +121,7 @@ test("the shared layout provides Help Center in footer navigation", () => {
     "next/font/google": { Geist: () => ({ variable: "sans" }), Geist_Mono: () => ({ variable: "mono" }) },
     "./site-navigation": { default: () => null },
     "./site-visit-tracker": { default: () => null },
+    "./current-theme": { default: () => null },
     "./globals.css": {},
   });
   const html = renderToStaticMarkup(React.createElement(layout, null, React.createElement("main", null, "Page content")));

@@ -33,9 +33,9 @@ type LegacyControlSettings = {
 };
 
 const cardClassName =
-  "rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-7";
+  "rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5 sm:p-7";
 const optionClassName =
-  "flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-4 text-sm text-white transition hover:border-[#D8A35B]/30";
+  "flex cursor-pointer items-start gap-3 rounded-xl border border-[color:var(--nsg-border)]/10 bg-white/[0.02] p-4 text-sm text-white transition hover:border-[color:var(--nsg-accent)]/30";
 
 function ToggleSetting({
   id,
@@ -53,7 +53,7 @@ function ToggleSetting({
   return (
     <label
       htmlFor={id}
-      className="flex cursor-pointer items-center justify-between gap-5 rounded-xl border border-white/10 bg-white/[0.02] p-4 transition hover:border-[#D8A35B]/30"
+      className="flex cursor-pointer items-center justify-between gap-5 rounded-xl border border-[color:var(--nsg-border)]/10 bg-white/[0.02] p-4 transition hover:border-[color:var(--nsg-accent)]/30"
     >
       <span>
         <span className="block text-sm font-medium text-white">{title}</span>
@@ -71,8 +71,8 @@ function ToggleSetting({
           defaultChecked={defaultChecked}
           className="peer sr-only"
         />
-        <span className="h-6 w-11 rounded-full border border-white/20 bg-slate-800 transition peer-checked:border-[#D8A35B]/70 peer-checked:bg-[#D8A35B]/30 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[#D8A35B]" />
-        <span className="pointer-events-none absolute left-1 top-1 h-4 w-4 rounded-full bg-slate-400 transition peer-checked:translate-x-5 peer-checked:bg-[#f0c98e]" />
+        <span className="h-6 w-11 rounded-full border border-[color:var(--nsg-border)]/20 bg-slate-800 transition peer-checked:border-[color:var(--nsg-accent)]/70 peer-checked:bg-[color:var(--nsg-accent)]/30 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[color:var(--nsg-accent)]" />
+        <span className="pointer-events-none absolute left-1 top-1 h-4 w-4 rounded-full bg-slate-400 transition peer-checked:translate-x-5 peer-checked:bg-[color:var(--nsg-accent-light)]" />
       </span>
     </label>
   );
@@ -110,10 +110,10 @@ export default async function LegacyControlsPage({
   const { saved } = await searchParams;
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#0F172A] text-slate-100">
+    <main className="relative min-h-screen overflow-hidden bg-[color:var(--nsg-background)] text-slate-100">
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(216,163,91,0.12),transparent_58%)]"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,color-mix(in_srgb,var(--nsg-accent)_12%,transparent),transparent_58%)]"
       />
 
       <form
@@ -122,13 +122,13 @@ export default async function LegacyControlsPage({
       >
         <Link
           href="/dashboard"
-          className="text-xs font-medium uppercase tracking-[0.2em] text-slate-400 transition hover:text-[#f0c98e] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
+          className="text-xs font-medium uppercase tracking-[0.2em] text-slate-400 transition hover:text-[color:var(--nsg-accent-light)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]"
         >
           My Legacy
         </Link>
 
         <header className="mx-auto mt-12 max-w-2xl text-center sm:mt-16">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[color:var(--nsg-accent)]">
             Your story, your choices
           </p>
           <h1 className="mt-4 font-serif text-4xl leading-tight tracking-tight text-white sm:text-5xl">
@@ -140,7 +140,7 @@ export default async function LegacyControlsPage({
         </header>
 
         <div className="mx-auto mt-10 max-w-3xl space-y-5 sm:mt-12">
-          <p className="rounded-xl border border-[#D8A35B]/20 bg-[#D8A35B]/[0.05] px-4 py-3 text-sm leading-6 text-slate-400">
+          <p className="rounded-xl border border-[color:var(--nsg-accent)]/20 bg-[color:var(--nsg-accent)]/[0.05] px-4 py-3 text-sm leading-6 text-slate-400">
             Your visibility and contribution choices are saved to your Moment Maker account.
           </p>
           {saved === "1" && (
@@ -148,7 +148,7 @@ export default async function LegacyControlsPage({
           )}
 
           <section aria-labelledby="discoverability-heading" className={cardClassName}>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#D8A35B]">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--nsg-accent)]">
               Can people find me?
             </p>
             <h2
@@ -162,7 +162,7 @@ export default async function LegacyControlsPage({
             </p>
 
             <fieldset className="mt-5 space-y-3">
-              <legend className="mb-3 text-sm font-semibold text-[#f0c98e]">
+              <legend className="mb-3 text-sm font-semibold text-[color:var(--nsg-accent-light)]">
                 Profile Visibility
               </legend>
               <label className={optionClassName}>
@@ -171,7 +171,7 @@ export default async function LegacyControlsPage({
                   name="discoverability"
                   value="private"
                   defaultChecked={settings?.discoverability === "private"}
-                  className="mt-0.5 h-4 w-4 shrink-0 accent-[#D8A35B] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D8A35B]"
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-[color:var(--nsg-accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--nsg-accent)]"
                 />
                 <span>
                   <span className="block font-medium">Private</span>
@@ -186,7 +186,7 @@ export default async function LegacyControlsPage({
                   name="discoverability"
                   value="searchable"
                   defaultChecked={settings?.discoverability === "searchable"}
-                  className="mt-0.5 h-4 w-4 shrink-0 accent-[#D8A35B] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D8A35B]"
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-[color:var(--nsg-accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--nsg-accent)]"
                 />
                 <span>
                   <span className="block font-medium">Searchable Only</span>
@@ -202,7 +202,7 @@ export default async function LegacyControlsPage({
                   name="discoverability"
                   value="public"
                   defaultChecked={settings?.discoverability === "public"}
-                  className="mt-0.5 h-4 w-4 shrink-0 accent-[#D8A35B] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D8A35B]"
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-[color:var(--nsg-accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--nsg-accent)]"
                 />
                 <span>
                   <span className="block font-medium">Public</span>
@@ -226,7 +226,7 @@ export default async function LegacyControlsPage({
           </section>
 
           <section aria-labelledby="public-access-heading" className={cardClassName}>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#D8A35B]">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--nsg-accent)]">
               What can people see?
             </p>
             <h2
@@ -308,7 +308,7 @@ export default async function LegacyControlsPage({
             aria-labelledby="family-contributors-heading"
             className={cardClassName}
           >
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#D8A35B]">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--nsg-accent)]">
               Who can contribute?
             </p>
             <h2
@@ -322,7 +322,7 @@ export default async function LegacyControlsPage({
             </p>
 
             <fieldset className="mt-5 space-y-3">
-              <legend className="mb-3 text-sm font-semibold text-[#f0c98e]">
+              <legend className="mb-3 text-sm font-semibold text-[color:var(--nsg-accent-light)]">
                 Who can make changes to my Legacy Tree™?
               </legend>
               <label className={optionClassName}>
@@ -331,7 +331,7 @@ export default async function LegacyControlsPage({
                   name="treeParticipation"
                   value="owner"
                   defaultChecked={settings?.treeParticipation === "owner"}
-                  className="mt-0.5 h-4 w-4 shrink-0 accent-[#D8A35B] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D8A35B]"
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-[color:var(--nsg-accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--nsg-accent)]"
                 />
                 <span>
                   <span className="block font-medium">Only Me</span>
@@ -350,7 +350,7 @@ export default async function LegacyControlsPage({
                   name="treeParticipation"
                   value="approved-contributors"
                   defaultChecked={settings?.treeParticipation === "approved-contributors"}
-                  className="mt-0.5 h-4 w-4 shrink-0 accent-[#D8A35B] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D8A35B]"
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-[color:var(--nsg-accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--nsg-accent)]"
                 />
                 <span>
                   <span className="block font-medium">Approved Contributors</span>
@@ -366,7 +366,7 @@ export default async function LegacyControlsPage({
                   name="treeParticipation"
                   value="connected-lives"
                   defaultChecked={settings?.treeParticipation === "connected-lives"}
-                  className="mt-0.5 h-4 w-4 shrink-0 accent-[#D8A35B] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D8A35B]"
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-[color:var(--nsg-accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--nsg-accent)]"
                 />
                 <span>
                   <span className="block font-medium">Connected Lives™</span>
@@ -378,7 +378,7 @@ export default async function LegacyControlsPage({
               </label>
             </fieldset>
 
-            <div className="mt-7 border-t border-white/10 pt-5">
+            <div className="mt-7 border-t border-[color:var(--nsg-border)]/10 pt-5">
               <h3 className="font-serif text-lg text-white">
                 Future Moment Makers™
               </h3>
@@ -404,7 +404,7 @@ export default async function LegacyControlsPage({
               </div>
             </div>
 
-            <div className="mt-7 rounded-xl border border-[#D8A35B]/25 bg-white/[0.02] p-4 sm:p-5">
+            <div className="mt-7 rounded-xl border border-[color:var(--nsg-accent)]/25 bg-white/[0.02] p-4 sm:p-5">
               <h3 className="font-serif text-lg text-white">
                 🤝 Merge Moment Makers™
               </h3>
@@ -414,7 +414,7 @@ export default async function LegacyControlsPage({
               </p>
               <button
                 type="button"
-                className="mt-4 inline-flex min-h-11 items-center justify-center rounded-full border border-[#D8A35B]/60 px-5 py-2.5 text-sm font-semibold text-[#f0c98e] transition hover:border-[#D8A35B] hover:bg-[#D8A35B]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
+                className="mt-4 inline-flex min-h-11 items-center justify-center rounded-full border border-[color:var(--nsg-accent)]/60 px-5 py-2.5 text-sm font-semibold text-[color:var(--nsg-accent-light)] transition hover:border-[color:var(--nsg-accent)] hover:bg-[color:var(--nsg-accent)]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]"
               >
                 Merge Legacy Trees
               </button>
@@ -423,14 +423,14 @@ export default async function LegacyControlsPage({
 
           <button
             type="submit"
-            className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[#D8A35B] px-7 py-3 text-sm font-semibold text-[#0F172A] shadow-lg shadow-[#D8A35B]/10 transition hover:bg-[#e6b66f] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
+            className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[color:var(--nsg-accent)] px-7 py-3 text-sm font-semibold text-[color:var(--nsg-background)] shadow-lg shadow-[color:var(--nsg-accent)]/10 transition hover:bg-[color:var(--nsg-accent-hover)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]"
           >
             Save Legacy Controls™
           </button>
 
           <section
             aria-labelledby="profile-preview-heading"
-            className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-center sm:p-7"
+            className="rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5 text-center sm:p-7"
           >
             <h2
               id="profile-preview-heading"
@@ -443,7 +443,7 @@ export default async function LegacyControlsPage({
             </p>
             <Link
               href="/my-profile/preview"
-              className="mt-5 inline-flex min-h-12 items-center justify-center rounded-full border border-[#D8A35B]/60 px-6 py-3 text-sm font-semibold text-[#f0c98e] transition hover:border-[#D8A35B] hover:bg-[#D8A35B]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
+              className="mt-5 inline-flex min-h-12 items-center justify-center rounded-full border border-[color:var(--nsg-accent)]/60 px-6 py-3 text-sm font-semibold text-[color:var(--nsg-accent-light)] transition hover:border-[color:var(--nsg-accent)] hover:bg-[color:var(--nsg-accent)]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]"
             >
               Preview My Profile
             </Link>

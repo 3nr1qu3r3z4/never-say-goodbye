@@ -188,11 +188,11 @@ export default async function MyProfilePreviewPage() {
         : "Private";
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#0F172A] text-slate-100">
+    <main className="min-h-screen overflow-hidden bg-[color:var(--nsg-background)] text-slate-100">
       <div className="px-4 pt-4 sm:px-8 sm:pt-8">
         <figure
           aria-label={`Moment Maker profile for ${displayName}`}
-          className="relative mx-auto flex aspect-square w-full max-w-[42rem] items-end overflow-hidden rounded-[1.75rem] border border-[#D8A35B]/25 bg-gradient-to-br from-[#344255] via-[#172437] to-[#101827] shadow-2xl shadow-black/30 sm:rounded-[2rem]"
+          className="relative mx-auto flex aspect-square w-full max-w-[42rem] items-end overflow-hidden rounded-[1.75rem] border border-[color:var(--nsg-accent)]/25 bg-gradient-to-br from-[#344255] via-[#172437] to-[#101827] shadow-2xl shadow-black/30 sm:rounded-[2rem]"
         >
           {isPubliclyVisible && profile.publicProfilePhoto && (
             profile.profilePhoto ? (
@@ -209,7 +209,7 @@ export default async function MyProfilePreviewPage() {
                 aria-hidden="true"
                 viewBox="0 0 160 160"
                 fill="none"
-                className="absolute left-1/2 top-1/2 h-48 w-48 -translate-x-1/2 -translate-y-1/2 text-[#D8A35B]/20 sm:h-56 sm:w-56"
+                className="absolute left-1/2 top-1/2 h-48 w-48 -translate-x-1/2 -translate-y-1/2 text-[color:var(--nsg-accent)]/20 sm:h-56 sm:w-56"
               >
                 <circle cx="80" cy="52" r="30" fill="currentColor" />
                 <path
@@ -221,13 +221,13 @@ export default async function MyProfilePreviewPage() {
           )}
           <div
             aria-hidden="true"
-            className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_45%,rgba(216,163,91,0.2),transparent_58%)]"
+            className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_45%,color-mix(in_srgb,var(--nsg-accent)_20%,transparent),transparent_58%)]"
           />
           <div
             aria-hidden="true"
-            className="absolute inset-0 bg-gradient-to-t from-[#0F172A] via-transparent to-[#0F172A]/10"
+            className="absolute inset-0 bg-gradient-to-t from-[color:var(--nsg-background)] via-transparent to-[color:var(--nsg-background)]/10"
           />
-          <span className="relative p-5 text-[0.65rem] font-medium uppercase tracking-[0.24em] text-[#f0c98e]/80 sm:p-8">
+          <span className="relative p-5 text-[0.65rem] font-medium uppercase tracking-[0.24em] text-[color:var(--nsg-accent-light)]/80 sm:p-8">
             My Moments
           </span>
         </figure>
@@ -235,10 +235,10 @@ export default async function MyProfilePreviewPage() {
         <div className="mx-auto max-w-4xl px-2 pb-12 pt-8 text-center sm:pb-16 sm:pt-10">
           {isPubliclyVisible ? (
             <>
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[color:var(--nsg-accent)]">
                 Moment Maker
               </p>
-              <p className="mt-3 inline-flex rounded-full border border-[#D8A35B]/30 bg-[#D8A35B]/[0.08] px-3 py-1 text-xs font-medium text-[#f0c98e]">
+              <p className="mt-3 inline-flex rounded-full border border-[color:var(--nsg-accent)]/30 bg-[color:var(--nsg-accent)]/[0.08] px-3 py-1 text-xs font-medium text-[color:var(--nsg-accent-light)]">
                 Profile visibility: {discoverabilityLabel}
               </p>
               <h1 className="mt-3 font-serif text-4xl tracking-tight text-white sm:text-5xl md:text-6xl">
@@ -251,7 +251,7 @@ export default async function MyProfilePreviewPage() {
                       {index > 0 && (
                         <span
                           aria-hidden="true"
-                          className="px-2 text-[#D8A35B]"
+                          className="px-2 text-[color:var(--nsg-accent)]"
                         >
                           •
                         </span>
@@ -266,7 +266,7 @@ export default async function MyProfilePreviewPage() {
                 location={profile.publicLocation ? profile.location : null}
               />
               {profile.personalMotto && (
-                <p className="mt-4 font-serif text-lg italic text-[#f0c98e]">
+                <p className="mt-4 font-serif text-lg italic text-[color:var(--nsg-accent-light)]">
                   “{profile.personalMotto}”
                 </p>
               )}
@@ -277,7 +277,7 @@ export default async function MyProfilePreviewPage() {
               )}
             </>
           ) : (
-            <p className="mx-auto max-w-xl rounded-2xl border border-[#D8A35B]/25 bg-white/[0.03] p-6 leading-7 text-slate-300">
+            <p className="mx-auto max-w-xl rounded-2xl border border-[color:var(--nsg-accent)]/25 bg-white/[0.03] p-6 leading-7 text-slate-300">
               Your profile is private. Only approved connections can find it.
             </p>
           )}
@@ -285,9 +285,9 @@ export default async function MyProfilePreviewPage() {
       </div>
 
       {sharedMoments.length > 0 && (
-        <section className="border-y border-white/10 bg-slate-950/30 px-6 py-16 sm:px-8 sm:py-20">
+        <section className="border-y border-[color:var(--nsg-border)]/10 bg-slate-950/30 px-6 py-16 sm:px-8 sm:py-20">
           <div className="mx-auto max-w-6xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[color:var(--nsg-accent)]">
               Stories in your own words
             </p>
             <h2 className="mt-3 font-serif text-3xl text-white sm:text-4xl">
@@ -303,7 +303,7 @@ export default async function MyProfilePreviewPage() {
       {personalMoments.length > 0 && (
         <section className="px-6 py-16 sm:px-8 sm:py-20">
           <div className="mx-auto max-w-6xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[color:var(--nsg-accent)]">
               Saved for the right moment
             </p>
             <h2 className="mt-3 font-serif text-3xl text-white sm:text-4xl">
@@ -313,9 +313,9 @@ export default async function MyProfilePreviewPage() {
               {personalMoments.map((moment) => (
                 <article
                   key={moment.id}
-                  className="rounded-2xl border border-[#D8A35B]/20 bg-white/[0.03] p-6"
+                  className="rounded-2xl border border-[color:var(--nsg-accent)]/20 bg-white/[0.03] p-6"
                 >
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#D8A35B]">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--nsg-accent)]">
                     Private Moment
                   </p>
                   <h3 className="mt-3 font-serif text-xl text-white">
@@ -329,9 +329,9 @@ export default async function MyProfilePreviewPage() {
       )}
 
       {connectedLives.length > 0 && (
-        <section className="border-y border-white/10 bg-slate-950/30 px-6 py-16 sm:px-8 sm:py-20">
+        <section className="border-y border-[color:var(--nsg-border)]/10 bg-slate-950/30 px-6 py-16 sm:px-8 sm:py-20">
           <div className="mx-auto max-w-6xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[color:var(--nsg-accent)]">
               Always connected
             </p>
             <h2 className="mt-3 font-serif text-3xl text-white sm:text-4xl">
@@ -341,7 +341,7 @@ export default async function MyProfilePreviewPage() {
               {connectedLives.map((connection) => (
                 <article
                   key={connection.id}
-                  className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6"
+                  className="rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5 sm:p-6"
                 >
                   <h3 className="font-serif text-lg text-white">
                     {connection.displayName}
@@ -366,7 +366,7 @@ export default async function MyProfilePreviewPage() {
               {visibleLegacyTrees.map((tree) => (
                 <article
                   key={tree.id}
-                  className="rounded-2xl border border-white/10 bg-white/[0.03] p-6"
+                  className="rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-6"
                 >
                   <h3 className="font-serif text-xl text-white">{tree.name}</h3>
                 </article>
@@ -377,7 +377,7 @@ export default async function MyProfilePreviewPage() {
       )}
 
       {visibleFutureMomentMakers.length > 0 && (
-        <section className="border-y border-white/10 bg-slate-950/30 px-6 py-16 sm:px-8 sm:py-20">
+        <section className="border-y border-[color:var(--nsg-border)]/10 bg-slate-950/30 px-6 py-16 sm:px-8 sm:py-20">
           <div className="mx-auto max-w-6xl">
             <h2 className="font-serif text-3xl text-white sm:text-4xl">
               Future Moment Makers™
@@ -386,7 +386,7 @@ export default async function MyProfilePreviewPage() {
               {visibleFutureMomentMakers.map((maker) => (
                 <article
                   key={maker.id}
-                  className="rounded-2xl border border-white/10 bg-white/[0.03] p-6"
+                  className="rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-6"
                 >
                   <h3 className="font-serif text-xl text-white">{maker.name}</h3>
                   <p className="mt-1 text-sm text-slate-400">
@@ -399,8 +399,8 @@ export default async function MyProfilePreviewPage() {
         </section>
       )}
 
-      <footer className="border-t border-white/10 px-6 py-8 text-center">
-        <p className="font-serif text-lg text-white"><Link href="/" className="focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]">Never Say Goodbye</Link></p>
+      <footer className="border-t border-[color:var(--nsg-border)]/10 px-6 py-8 text-center">
+        <p className="font-serif text-lg text-white"><Link href="/" className="focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]">Never Say Goodbye</Link></p>
         <p className="mt-4 text-xs tracking-wide text-slate-500">
           NeverSayGoodbye.life
         </p>

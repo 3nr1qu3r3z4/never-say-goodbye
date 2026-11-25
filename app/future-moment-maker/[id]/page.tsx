@@ -51,11 +51,11 @@ export default async function FutureMomentMakerRecord({
     : new Intl.DateTimeFormat("en-US", { dateStyle: "long", timeZone: "UTC" }).format(createdDate);
 
   return (
-    <main className="min-h-screen bg-[#0F172A] px-4 py-12 text-slate-100 sm:px-8 sm:py-16">
+    <main className="min-h-screen bg-[color:var(--nsg-background)] px-4 py-12 text-slate-100 sm:px-8 sm:py-16">
       <div className="mx-auto max-w-4xl">
-        <Link href="/connected-lives" className="text-sm font-semibold text-[#f0c98e] hover:underline">← Connected Lives™</Link>
+        <Link href="/connected-lives" className="text-sm font-semibold text-[color:var(--nsg-accent-light)] hover:underline">← Connected Lives™</Link>
         <header className="mt-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">Future Moment Maker™</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[color:var(--nsg-accent)]">Future Moment Maker™</p>
           <h1 className="mt-3 break-words font-serif text-4xl text-white sm:text-5xl">{record.name}</h1>
           <p className="mt-4 text-slate-400">A place reserved for a story still to come.</p>
         </header>
@@ -65,17 +65,17 @@ export default async function FutureMomentMakerRecord({
             ["Status", record.status === "awaiting-claim" ? "Awaiting Claim" : record.status === "claimed" ? "Claimed" : record.status === "archived" ? "Archived" : record.status],
             ["Created", created],
             ["Related Family Tree", record.treeName ?? "Not available"],
-          ].map(([label, value]) => <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+          ].map(([label, value]) => <div key={label} className="rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5">
             <dt className="text-xs uppercase tracking-wide text-slate-400">{label}</dt>
             <dd className="mt-2 break-words font-serif text-lg text-white">{value}</dd>
           </div>)}
         </dl>
         <section className="mt-10" aria-labelledby="related-moments-heading">
           <h2 id="related-moments-heading" className="font-serif text-2xl text-white">Related Legacy Moments</h2>
-          {related.length ? <ul className="mt-4 space-y-3">{related.map((moment) => <li key={moment.id} className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+          {related.length ? <ul className="mt-4 space-y-3">{related.map((moment) => <li key={moment.id} className="rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5">
             <p className="break-words font-serif text-lg text-white">{moment.title}</p>
             <p className="mt-2 text-sm text-slate-400">{moment.kind.replaceAll("-", " ")}</p>
-          </li>)}</ul> : <p className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm text-slate-400">No legacy moments are associated with this record yet.</p>}
+          </li>)}</ul> : <p className="mt-4 rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5 text-sm text-slate-400">No legacy moments are associated with this record yet.</p>}
         </section>
       </div>
     </main>

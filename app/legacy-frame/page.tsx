@@ -20,16 +20,16 @@ const frameContents = [
 
 export default function LegacyFramePage() {
   return (
-    <main className="overflow-hidden bg-[#0F172A] text-slate-100">
-      <header className="relative border-b border-white/10 px-6 py-10 sm:px-8 sm:py-14">
+    <main className="overflow-hidden bg-[color:var(--nsg-background)] text-slate-100">
+      <header className="relative border-b border-[color:var(--nsg-border)]/10 px-6 py-10 sm:px-8 sm:py-14">
         <div
           aria-hidden="true"
-          className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(216,163,91,0.12),transparent_65%)]"
+          className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,color-mix(in_srgb,var(--nsg-accent)_12%,transparent),transparent_65%)]"
         />
         <div className="relative mx-auto max-w-6xl">
           <Link
             href="/"
-            className="text-xs font-medium uppercase tracking-[0.2em] text-slate-400 transition hover:text-[#f0c98e] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
+            className="text-xs font-medium uppercase tracking-[0.2em] text-slate-400 transition hover:text-[color:var(--nsg-accent-light)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]"
           >
             Never Say Goodbye
           </Link>
@@ -40,7 +40,7 @@ export default function LegacyFramePage() {
         <Link
           href="/legacy-frame"
           aria-label="Explore Legacy Frame™"
-          className="group mx-auto block w-full max-w-md rounded-3xl border border-[#D8A35B]/30 bg-white/[0.03] p-3 shadow-2xl shadow-black/30 transition hover:border-[#D8A35B]/60 hover:shadow-[#D8A35B]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
+          className="group mx-auto block w-full max-w-md rounded-3xl border border-[color:var(--nsg-accent)]/30 bg-white/[0.03] p-3 shadow-2xl shadow-black/30 transition hover:border-[color:var(--nsg-accent)]/60 hover:shadow-[color:var(--nsg-accent)]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]"
         >
           <div className="relative aspect-[4/5] overflow-hidden rounded-2xl">
             <Image
@@ -55,7 +55,7 @@ export default function LegacyFramePage() {
         </Link>
 
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[color:var(--nsg-accent)]">
             Legacy Frame™
           </p>
           <h1 className="mt-4 font-serif text-4xl leading-tight tracking-tight text-white sm:text-5xl md:text-6xl">
@@ -65,7 +65,7 @@ export default function LegacyFramePage() {
             Display your favorite moments, photos, videos, and voice messages
             from the people who matter most.
           </p>
-          <p className="mt-5 font-serif text-xl leading-relaxed text-[#f0c98e]">
+          <p className="mt-5 font-serif text-xl leading-relaxed text-[color:var(--nsg-accent-light)]">
             Always connected.
             <br />
             Always close.
@@ -75,7 +75,7 @@ export default function LegacyFramePage() {
 
       <section className="mx-auto max-w-6xl px-6 py-16 sm:px-8 sm:py-24">
         <div className="mx-auto max-w-2xl text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[color:var(--nsg-accent)]">
             A home for the moments you share
           </p>
           <h2 className="mt-4 font-serif text-3xl text-white sm:text-4xl">
@@ -86,7 +86,7 @@ export default function LegacyFramePage() {
           {frameContents.map((item) => (
             <li
               key={item.label}
-              className="flex min-h-20 items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition hover:border-[#D8A35B]/35"
+              className="flex min-h-20 items-center gap-4 rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5 transition hover:border-[color:var(--nsg-accent)]/35"
             >
               <span aria-hidden="true" className="text-2xl">
                 {item.icon}
@@ -99,11 +99,11 @@ export default function LegacyFramePage() {
 
       <section
         id="availability"
-        className="border-y border-[#D8A35B]/15 bg-gradient-to-br from-slate-900/80 to-slate-950 px-6 py-16 sm:px-8 sm:py-24"
+        className="border-y border-[color:var(--nsg-accent)]/15 bg-gradient-to-br from-slate-900/80 to-slate-950 px-6 py-16 sm:px-8 sm:py-24"
       >
         <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-[1fr_auto]">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[color:var(--nsg-accent)]">
               Availability
             </p>
             <h2 className="mt-4 font-serif text-3xl text-white sm:text-4xl">
@@ -117,8 +117,8 @@ export default function LegacyFramePage() {
         </div>
       </section>
 
-      <footer className="border-t border-white/10 px-6 py-8 text-center sm:px-8">
-        <p className="font-serif text-lg text-white"><Link href="/" className="focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]">Never Say Goodbye</Link></p>
+      <footer className="border-t border-[color:var(--nsg-border)]/10 px-6 py-8 text-center sm:px-8">
+        <p className="font-serif text-lg text-white"><Link href="/" className="focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]">Never Say Goodbye</Link></p>
         <p className="mt-2 text-sm text-slate-400">Connection Beyond Goodbye</p>
         <p className="mt-4 text-xs tracking-wide text-slate-500">
           NeverSayGoodbye.life

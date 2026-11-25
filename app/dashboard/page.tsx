@@ -26,11 +26,11 @@ type DashboardAction = {
 );
 
 const actionCardClassName =
-  "group rounded-2xl border border-white/10 bg-white/[0.03] transition duration-200 hover:-translate-y-1 hover:border-[#D8A35B]/40 hover:bg-white/[0.06] hover:shadow-lg hover:shadow-[#D8A35B]/10";
+  "group rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] transition duration-200 hover:-translate-y-1 hover:border-[color:var(--nsg-accent)]/40 hover:bg-white/[0.06] hover:shadow-lg hover:shadow-[color:var(--nsg-accent)]/10";
 const actionFocusClassName =
-  "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]";
+  "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]";
 const notificationActionClassName =
-  "flex min-h-14 w-full items-center justify-center gap-3 rounded-xl border border-[#D8A35B]/70 bg-[#D8A35B]/10 px-5 py-3 text-center font-semibold text-[#f0c98e] shadow-lg shadow-[#D8A35B]/10 transition hover:-translate-y-0.5 hover:border-[#D8A35B] hover:bg-[#D8A35B]/15 hover:shadow-[#D8A35B]/20 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]";
+  "flex min-h-14 w-full items-center justify-center gap-3 rounded-xl border border-[color:var(--nsg-accent)]/70 bg-[color:var(--nsg-accent)]/10 px-5 py-3 text-center font-semibold text-[color:var(--nsg-accent-light)] shadow-lg shadow-[color:var(--nsg-accent)]/10 transition hover:-translate-y-0.5 hover:border-[color:var(--nsg-accent)] hover:bg-[color:var(--nsg-accent)]/15 hover:shadow-[color:var(--nsg-accent)]/20 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]";
 
 export default async function DashboardPage() {
   const user = await requireUser();
@@ -109,15 +109,15 @@ export default async function DashboardPage() {
   ];
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#0F172A] text-slate-100">
-      <header className="relative border-b border-white/10 px-6 py-10 sm:px-8 sm:py-14">
+    <main className="min-h-screen overflow-hidden bg-[color:var(--nsg-background)] text-slate-100">
+      <header className="relative border-b border-[color:var(--nsg-border)]/10 px-6 py-10 sm:px-8 sm:py-14">
         <div
           aria-hidden="true"
-          className="absolute inset-x-0 top-0 h-72 bg-[radial-gradient(ellipse_at_50%_0%,rgba(216,163,91,0.12),transparent_68%)]"
+          className="absolute inset-x-0 top-0 h-72 bg-[radial-gradient(ellipse_at_50%_0%,color-mix(in_srgb,var(--nsg-accent)_12%,transparent),transparent_68%)]"
         />
         <div className="relative mx-auto flex max-w-6xl flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[color:var(--nsg-accent)]">
               Never Say Goodbye
             </p>
             <h1 className="mt-3 font-serif text-4xl tracking-tight text-white sm:text-5xl">
@@ -133,7 +133,7 @@ export default async function DashboardPage() {
 
           <section
             aria-labelledby="moments-in-the-making-heading"
-            className="w-full max-w-md rounded-2xl border border-[#D8A35B]/30 bg-white/[0.04] p-5 shadow-xl shadow-black/20 backdrop-blur-xl sm:p-6"
+            className="w-full max-w-md rounded-2xl border border-[color:var(--nsg-accent)]/30 bg-white/[0.04] p-5 shadow-xl shadow-black/20 backdrop-blur-xl sm:p-6"
           >
             <div className="flex items-start justify-between gap-4">
               <h2
@@ -144,7 +144,7 @@ export default async function DashboardPage() {
               </h2>
               <span
                 aria-hidden="true"
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#D8A35B]/25 bg-[#D8A35B]/10 text-lg"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[color:var(--nsg-accent)]/25 bg-[color:var(--nsg-accent)]/10 text-lg"
               >
                 ❤️
               </span>
@@ -158,7 +158,7 @@ export default async function DashboardPage() {
                         <span aria-hidden="true" className="text-xl">❤️</span>
                         <div className="min-w-0">
                           <p className="break-words text-sm leading-5 text-slate-300">New family shout-out from <span className="font-semibold text-white">{activity.authorName}</span></p>
-                          <Link href={`/family-calendar?tree=${encodeURIComponent(activity.treeId)}#bulletin-${encodeURIComponent(activity.id)}`} className={`mt-1 inline-flex min-h-11 items-center text-sm font-semibold text-[#f0c98e] hover:underline ${actionFocusClassName}`}>
+                          <Link href={`/family-calendar?tree=${encodeURIComponent(activity.treeId)}#bulletin-${encodeURIComponent(activity.id)}`} className={`mt-1 inline-flex min-h-11 items-center text-sm font-semibold text-[color:var(--nsg-accent-light)] hover:underline ${actionFocusClassName}`}>
                             View Shout-Out
                           </Link>
                         </div>
@@ -186,7 +186,7 @@ export default async function DashboardPage() {
                         <a
                           href={`/moments/${encodeURIComponent(activity.id)}`}
                           aria-label={`View ${activity.authorName}'s moment`}
-                          className={`mt-1 inline-flex min-h-11 items-center text-sm font-semibold text-[#f0c98e] hover:underline ${actionFocusClassName}`}
+                          className={`mt-1 inline-flex min-h-11 items-center text-sm font-semibold text-[color:var(--nsg-accent-light)] hover:underline ${actionFocusClassName}`}
                         >
                           View Moment
                         </a>
@@ -202,7 +202,7 @@ export default async function DashboardPage() {
               </div>
             )}
             {(data.counts.newLivesRequests > 0 || data.counts.unreadLivesNotifications > 0) && (
-              <Link href="/connected-lives" className={`mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-[#f0c98e] hover:underline ${actionFocusClassName}`}>
+              <Link href="/connected-lives" className={`mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-[color:var(--nsg-accent-light)] hover:underline ${actionFocusClassName}`}>
                 {data.counts.newLivesRequests > 0
                   ? `${data.counts.newLivesRequests} ${data.counts.newLivesRequests === 1 ? "New Request" : "New Requests"}`
                   : `${data.counts.unreadLivesNotifications} ${data.counts.unreadLivesNotifications === 1 ? "New Update" : "New Updates"}`}
@@ -244,7 +244,7 @@ export default async function DashboardPage() {
                     </span>
                     {action.items && <span aria-hidden="true">▼</span>}
                   </span>
-                  <h3 className="mt-3 font-serif text-xl text-white transition group-hover:text-[#f0c98e]">
+                  <h3 className="mt-3 font-serif text-xl text-white transition group-hover:text-[color:var(--nsg-accent-light)]">
                     {action.title}
                   </h3>
                   <p className="mt-2 text-sm leading-6 text-slate-400">
@@ -257,20 +257,20 @@ export default async function DashboardPage() {
                   <summary className={`flex min-h-36 cursor-pointer list-none flex-col rounded-2xl p-5 ${actionFocusClassName} [&::-webkit-details-marker]:hidden`}>
                     {content}
                   </summary>
-                  <ul className="border-t border-white/10 p-2">
+                  <ul className="border-t border-[color:var(--nsg-border)]/10 p-2">
                     {action.items.map((item) => (
                       <li key={item.href}>
                         {item.href === "/moments" ? (
                           <a
                             href={item.href}
-                            className={`flex min-h-11 items-center rounded-lg px-3 text-sm text-slate-200 transition hover:bg-white/5 hover:text-[#f0c98e] ${actionFocusClassName}`}
+                            className={`flex min-h-11 items-center rounded-lg px-3 text-sm text-slate-200 transition hover:bg-white/5 hover:text-[color:var(--nsg-accent-light)] ${actionFocusClassName}`}
                           >
                             {item.label}
                           </a>
                         ) : (
                           <Link
                             href={item.href}
-                            className={`flex min-h-11 items-center rounded-lg px-3 text-sm text-slate-200 transition hover:bg-white/5 hover:text-[#f0c98e] ${actionFocusClassName}`}
+                            className={`flex min-h-11 items-center rounded-lg px-3 text-sm text-slate-200 transition hover:bg-white/5 hover:text-[color:var(--nsg-accent-light)] ${actionFocusClassName}`}
                           >
                             {item.label}
                           </Link>
@@ -301,13 +301,13 @@ export default async function DashboardPage() {
             id="legacy-search"
             type="search"
             placeholder="Search moments, people, messages, trees, future moment makers, and drafts..."
-            className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4 text-sm text-white placeholder:text-slate-500 focus:border-[#D8A35B]/50 focus:outline-none focus:ring-2 focus:ring-[#D8A35B]/20"
+            className="w-full rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] px-5 py-4 text-sm text-white placeholder:text-slate-500 focus:border-[color:var(--nsg-accent)]/50 focus:outline-none focus:ring-2 focus:ring-[color:var(--nsg-accent)]/20"
           />
         </section>
 
         <section aria-labelledby="summary-heading">
           <div className="mb-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[color:var(--nsg-accent)]">
               Your story, at a glance
             </p>
             <h2
@@ -321,15 +321,15 @@ export default async function DashboardPage() {
             {statistics.map((statistic) => (
               <div
                 key={statistic.label}
-                className={`relative flex flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6 ${
-                  statistic.href ? "group transition hover:border-[#D8A35B]/40 hover:bg-white/[0.06]" : ""
+                className={`relative flex flex-col rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5 sm:p-6 ${
+                  statistic.href ? "group transition hover:border-[color:var(--nsg-accent)]/40 hover:bg-white/[0.06]" : ""
                 }`}
               >
                 <dt className="order-2 mt-2 text-sm leading-5 text-slate-400">
                   {statistic.label}
                   {statistic.href && (
                     <>
-                      <span aria-hidden="true" className="ml-2 inline-block text-[#f0c98e] transition group-hover:translate-x-1">→</span>
+                      <span aria-hidden="true" className="ml-2 inline-block text-[color:var(--nsg-accent-light)] transition group-hover:translate-x-1">→</span>
                       <Link
                         href={statistic.href}
                         aria-label={`View ${statistic.label}, ${statistic.value}`}
@@ -338,7 +338,7 @@ export default async function DashboardPage() {
                     </>
                   )}
                 </dt>
-                <dd className="order-1 font-serif text-3xl text-[#f0c98e] sm:text-4xl">
+                <dd className="order-1 font-serif text-3xl text-[color:var(--nsg-accent-light)] sm:text-4xl">
                   {statistic.value}
                 </dd>
               </div>
@@ -348,7 +348,7 @@ export default async function DashboardPage() {
 
         <section aria-labelledby="activity-heading">
           <div className="mb-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[color:var(--nsg-accent)]">
               The story keeps growing
             </p>
             <h2
@@ -358,7 +358,7 @@ export default async function DashboardPage() {
               Recent Activity
             </h2>
           </div>
-          <ol className="divide-y divide-white/10 rounded-2xl border border-white/10 bg-white/[0.03] px-5 sm:px-7">
+          <ol className="divide-y divide-white/10 rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] px-5 sm:px-7">
             {data.recentActivity.length > 0 ? data.recentActivity.map((activity) => (
               <li
                 key={activity.id}
@@ -366,7 +366,7 @@ export default async function DashboardPage() {
               >
                 <span
                   aria-hidden="true"
-                  className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[#D8A35B] shadow-[0_0_10px_rgba(216,163,91,0.45)]"
+                  className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[color:var(--nsg-accent)] shadow-[0_0_10px_color-mix(in_srgb,var(--nsg-accent)_45%,transparent)]"
                 />
                 <p className="text-sm leading-6 text-slate-300">
                   <span className="text-slate-500">{activity.action}:</span>{" "}
@@ -382,9 +382,9 @@ export default async function DashboardPage() {
         </section>
 
         <section aria-labelledby="successor-heading">
-          <div className="flex flex-col gap-5 rounded-2xl border border-white/10 bg-white/[0.03] p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
+          <div className="flex flex-col gap-5 rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[color:var(--nsg-accent)]">
                 Planning for the future
               </p>
               <h2
@@ -399,7 +399,7 @@ export default async function DashboardPage() {
             </div>
             <button
               type="button"
-              className="inline-flex self-start rounded-full border border-[#D8A35B]/60 px-6 py-3 text-sm font-semibold text-[#f0c98e] transition hover:border-[#D8A35B] hover:bg-[#D8A35B]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B] sm:self-auto"
+              className="inline-flex self-start rounded-full border border-[color:var(--nsg-accent)]/60 px-6 py-3 text-sm font-semibold text-[color:var(--nsg-accent-light)] transition hover:border-[color:var(--nsg-accent)] hover:bg-[color:var(--nsg-accent)]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)] sm:self-auto"
             >
               Assign Successor
             </button>
@@ -407,7 +407,7 @@ export default async function DashboardPage() {
         </section>
       </div>
 
-      <footer className="border-t border-white/10 px-6 py-8 text-center sm:px-8">
+      <footer className="border-t border-[color:var(--nsg-border)]/10 px-6 py-8 text-center sm:px-8">
         <p className="font-serif text-lg leading-relaxed text-white">
           Build it today.
           <br />

@@ -11,8 +11,8 @@ export type MilestonePerson = {
   canEdit: boolean;
 };
 
-const fieldClass = "mt-1 min-h-11 w-full rounded-xl border border-white/10 bg-slate-950 px-3 text-sm text-white";
-const buttonClass = "mt-3 min-h-11 rounded-full border border-[#D8A35B]/60 px-5 text-sm font-semibold text-[#f0c98e] disabled:opacity-60";
+const fieldClass = "mt-1 min-h-11 w-full rounded-xl border border-[color:var(--nsg-border)]/10 bg-slate-950 px-3 text-sm text-white";
+const buttonClass = "mt-3 min-h-11 rounded-full border border-[color:var(--nsg-accent)]/60 px-5 text-sm font-semibold text-[color:var(--nsg-accent-light)] disabled:opacity-60";
 
 function ActionForm({ action, children, label, confirmRemoval }: {
   action: (state: MilestoneState, form: FormData) => Promise<MilestoneState>;
@@ -27,19 +27,19 @@ function ActionForm({ action, children, label, confirmRemoval }: {
     }}>
       {children}
       <button type="submit" disabled={pending} className={buttonClass}>{pending ? "Saving…" : label}</button>
-      <p role="status" aria-live="polite" className={`text-sm ${state.error ? "text-rose-300" : "text-[#f0c98e]"}`}>{state.error ?? state.success ?? ""}</p>
+      <p role="status" aria-live="polite" className={`text-sm ${state.error ? "text-rose-300" : "text-[color:var(--nsg-accent-light)]"}`}>{state.error ?? state.success ?? ""}</p>
     </form>
   );
 }
 
 export function AdminConsent({ treeId, allowed }: { treeId: string; allowed: boolean }) {
   return (
-    <details className="mt-4 rounded-xl border border-white/10 p-4">
+    <details className="mt-4 rounded-xl border border-[color:var(--nsg-border)]/10 p-4">
       <summary className="cursor-pointer text-sm font-semibold text-white">My milestone editing permission</summary>
       <p className="mt-3 text-sm text-slate-400">You control your milestones. Allowing tree owners and admins to manage them also lets them share those milestones with this tree. You can revoke editing permission here.</p>
       <ActionForm action={saveMilestoneAdminConsent} label="Save Permission">
         <input type="hidden" name="treeId" value={treeId} />
-        <label className="flex items-start gap-2 text-sm text-slate-200"><input name="allow" type="checkbox" defaultChecked={allowed} className="mt-1 accent-[#D8A35B]" />Allow this tree&apos;s owners and admins to manage my milestones</label>
+        <label className="flex items-start gap-2 text-sm text-slate-200"><input name="allow" type="checkbox" defaultChecked={allowed} className="mt-1 accent-[color:var(--nsg-accent)]" />Allow this tree&apos;s owners and admins to manage my milestones</label>
       </ActionForm>
     </details>
   );
@@ -76,7 +76,7 @@ export function MilestoneForm({ treeId, person, milestone }: {
         <label className="block text-sm text-slate-200">Day<input type="number" name="day" min="1" max="31" defaultValue={milestone?.day ?? ""} className={fieldClass} /></label>
         <label className="block text-sm text-slate-200">Year<input type="number" name="year" min="1000" max="9999" defaultValue={milestone?.year ?? ""} className={fieldClass} /></label>
       </div>
-      <label className="flex items-start gap-2 text-sm text-slate-200"><input name="repeatsYearly" type="checkbox" defaultChecked={milestone?.repeatsYearly ?? false} className="mt-1 accent-[#D8A35B]" />Repeat yearly (birthdays and anniversaries repeat when month and day are known)</label>
+      <label className="flex items-start gap-2 text-sm text-slate-200"><input name="repeatsYearly" type="checkbox" defaultChecked={milestone?.repeatsYearly ?? false} className="mt-1 accent-[color:var(--nsg-accent)]" />Repeat yearly (birthdays and anniversaries repeat when month and day are known)</label>
       <p className="text-xs text-slate-400">Saving shares this milestone with members of this Legacy Tree™.</p>
     </ActionForm>
   );

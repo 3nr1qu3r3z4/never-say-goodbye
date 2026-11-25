@@ -69,14 +69,14 @@ export default function MomentActionsMenu({
         <summary
           ref={summaryRef}
           aria-label={`Actions for ${title}`}
-          className="flex h-11 w-11 cursor-pointer list-none items-center justify-center rounded-full text-2xl text-slate-200 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D8A35B] [&::-webkit-details-marker]:hidden"
+          className="flex h-11 w-11 cursor-pointer list-none items-center justify-center rounded-full text-2xl text-slate-200 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--nsg-accent)] [&::-webkit-details-marker]:hidden"
         >
           <span aria-hidden="true">⋮</span>
         </summary>
-        <div className="absolute right-0 mt-1 w-52 rounded-xl border border-white/15 bg-slate-900 p-1 shadow-xl">
+        <div className="absolute right-0 mt-1 w-52 rounded-xl border border-[color:var(--nsg-border)]/15 bg-slate-900 p-1 shadow-xl">
           <a
             href={`/moments/${encodeURIComponent(momentId)}`}
-            className="block rounded-lg px-4 py-3 text-sm text-slate-100 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-[#D8A35B]"
+            className="block rounded-lg px-4 py-3 text-sm text-slate-100 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-[color:var(--nsg-accent)]"
           >
             View Moment
           </a>
@@ -96,7 +96,7 @@ export default function MomentActionsMenu({
                   if (menuRef.current) menuRef.current.open = false;
                   dialogRef.current?.showModal();
                 }}
-                className="block w-full rounded-lg px-4 py-3 text-left text-sm text-rose-300 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-[#D8A35B]"
+                className="block w-full rounded-lg px-4 py-3 text-left text-sm text-rose-300 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-[color:var(--nsg-accent)]"
               >
                 Delete Moment
               </button>
@@ -113,7 +113,7 @@ export default function MomentActionsMenu({
             if (pending) event.preventDefault();
           }}
           onClose={() => summaryRef.current?.focus()}
-          className="fixed inset-0 m-auto w-[calc(100vw-2rem)] max-w-md rounded-2xl border border-[#D8A35B]/30 bg-[#0F172A] p-6 text-slate-100 shadow-2xl backdrop:bg-slate-950/80"
+          className="fixed inset-0 m-auto w-[calc(100vw-2rem)] max-w-md rounded-2xl border border-[color:var(--nsg-accent)]/30 bg-[color:var(--nsg-background)] p-6 text-slate-100 shadow-2xl backdrop:bg-slate-950/80"
         >
           <h2 id={titleId} className="font-serif text-2xl text-white">Delete Moment?</h2>
           <p id={messageId} className="mt-4 text-sm leading-6 text-slate-300">
@@ -125,7 +125,7 @@ export default function MomentActionsMenu({
               type="button"
               disabled={pending}
               onClick={() => dialogRef.current?.close()}
-              className="min-h-11 rounded-full border border-white/15 px-5 text-sm font-semibold text-slate-300 disabled:opacity-50"
+              className="min-h-11 rounded-full border border-[color:var(--nsg-border)]/15 px-5 text-sm font-semibold text-slate-300 disabled:opacity-50"
             >
               Cancel
             </button>

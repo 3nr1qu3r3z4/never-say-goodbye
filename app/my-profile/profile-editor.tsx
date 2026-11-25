@@ -277,7 +277,7 @@ type ProfileEditorProps = {
 };
 
 const inputClassName =
-  "mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-slate-950/50 px-4 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-[#D8A35B]/70 focus:ring-2 focus:ring-[#D8A35B]/20";
+  "mt-2 min-h-12 w-full rounded-xl border border-[color:var(--nsg-border)]/10 bg-slate-950/50 px-4 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-[color:var(--nsg-accent)]/70 focus:ring-2 focus:ring-[color:var(--nsg-accent)]/20";
 
 export default function ProfileEditor({
   displayName,
@@ -628,7 +628,7 @@ export default function ProfileEditor({
         <p className="mt-2 text-sm leading-6 text-slate-400">
           Choose a photo that helps your family recognize you.
         </p>
-        <div className="group relative mx-auto mt-5 aspect-square w-full max-w-[32rem] overflow-hidden rounded-2xl border border-[#D8A35B]/30 bg-gradient-to-br from-[#344255] via-[#172437] to-[#101827]">
+        <div className="group relative mx-auto mt-5 aspect-square w-full max-w-[32rem] overflow-hidden rounded-2xl border border-[color:var(--nsg-accent)]/30 bg-gradient-to-br from-[#344255] via-[#172437] to-[#101827]">
           {preview ? (
             <NextImage
               src={preview}
@@ -643,7 +643,7 @@ export default function ProfileEditor({
               aria-hidden="true"
               viewBox="0 0 160 160"
               fill="none"
-              className="absolute left-1/2 top-1/2 h-48 w-48 -translate-x-1/2 -translate-y-1/2 text-[#D8A35B]/25 sm:h-56 sm:w-56"
+              className="absolute left-1/2 top-1/2 h-48 w-48 -translate-x-1/2 -translate-y-1/2 text-[color:var(--nsg-accent)]/25 sm:h-56 sm:w-56"
             >
               <circle cx="80" cy="52" r="30" fill="currentColor" />
               <path
@@ -654,7 +654,7 @@ export default function ProfileEditor({
           )}
           <div
             aria-hidden="true"
-            className="absolute inset-0 bg-gradient-to-t from-[#0F172A]/80 via-transparent to-transparent"
+            className="absolute inset-0 bg-gradient-to-t from-[color:var(--nsg-background)]/80 via-transparent to-transparent"
           />
           <button
             type="button"
@@ -662,7 +662,7 @@ export default function ProfileEditor({
             aria-label="Upload Profile Photo"
             title="Upload Profile Photo"
             disabled={isPhotoPreparing || isPhotoSaving}
-            className="absolute bottom-4 left-1/2 z-10 flex h-12 w-12 -translate-x-1/2 items-center justify-center rounded-full border border-[#D8A35B] bg-[#0F172A]/90 text-[#f0c98e] shadow-lg shadow-black/40 backdrop-blur transition hover:scale-105 hover:bg-[#D8A35B] hover:text-[#0F172A] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B] disabled:cursor-wait disabled:opacity-70 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+            className="absolute bottom-4 left-1/2 z-10 flex h-12 w-12 -translate-x-1/2 items-center justify-center rounded-full border border-[color:var(--nsg-accent)] bg-[color:var(--nsg-background)]/90 text-[color:var(--nsg-accent-light)] shadow-lg shadow-black/40 backdrop-blur transition hover:scale-105 hover:bg-[color:var(--nsg-accent)] hover:text-[color:var(--nsg-background)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)] disabled:cursor-wait disabled:opacity-70 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
           >
             <svg
               aria-hidden="true"
@@ -679,7 +679,7 @@ export default function ProfileEditor({
               />
               <circle cx="12" cy="13.5" r="3.25" />
             </svg>
-            <span className="pointer-events-none absolute bottom-full mb-3 whitespace-nowrap rounded-lg border border-[#D8A35B]/30 bg-[#0F172A] px-3 py-2 text-xs font-medium text-white opacity-0 shadow-xl transition group-hover:opacity-100 group-focus-visible:opacity-100">
+            <span className="pointer-events-none absolute bottom-full mb-3 whitespace-nowrap rounded-lg border border-[color:var(--nsg-accent)]/30 bg-[color:var(--nsg-background)] px-3 py-2 text-xs font-medium text-white opacity-0 shadow-xl transition group-hover:opacity-100 group-focus-visible:opacity-100">
               {isPhotoPreparing ? "Preparing Photo…" : "Upload Profile Photo"}
             </span>
           </button>
@@ -752,7 +752,7 @@ export default function ProfileEditor({
                   maxLength={40}
                   placeholder={descriptor.label}
                   aria-label={descriptor.label}
-                  className={`${inputClassName} mt-0 rounded-full border-[#D8A35B]/25 bg-[#D8A35B]/[0.06] text-center font-serif text-base placeholder:font-sans placeholder:text-slate-500`}
+                  className={`${inputClassName} mt-0 rounded-full border-[color:var(--nsg-accent)]/25 bg-[color:var(--nsg-accent)]/[0.06] text-center font-serif text-base placeholder:font-sans placeholder:text-slate-500`}
                 />
               </div>
             ))}
@@ -817,7 +817,7 @@ export default function ProfileEditor({
         {error && <p className="text-sm text-red-200">{error}</p>}
         {message && (
         <p
-          className={`text-sm text-[#f0c98e] transition-opacity duration-500 ${
+          className={`text-sm text-[color:var(--nsg-accent-light)] transition-opacity duration-500 ${
             messageVisible ? "opacity-100" : "opacity-0"
           }`}
         >
@@ -826,17 +826,17 @@ export default function ProfileEditor({
         )}
       </div>
 
-      <div className="flex flex-col gap-3 border-t border-white/10 pt-6 sm:flex-row">
+      <div className="flex flex-col gap-3 border-t border-[color:var(--nsg-border)]/10 pt-6 sm:flex-row">
         <button
           type="submit"
           disabled={isSaving}
-          className="inline-flex min-h-12 flex-1 items-center justify-center rounded-full bg-[#D8A35B] px-7 py-3 text-sm font-semibold text-[#0F172A] shadow-lg shadow-[#D8A35B]/10 transition hover:bg-[#e6b66f] disabled:cursor-wait disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
+          className="inline-flex min-h-12 flex-1 items-center justify-center rounded-full bg-[color:var(--nsg-accent)] px-7 py-3 text-sm font-semibold text-[color:var(--nsg-background)] shadow-lg shadow-[color:var(--nsg-accent)]/10 transition hover:bg-[color:var(--nsg-accent-hover)] disabled:cursor-wait disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]"
         >
           {isSaving ? "Saving…" : "Save Profile"}
         </button>
         <Link
           href="/my-profile/preview"
-          className="inline-flex min-h-12 flex-1 items-center justify-center rounded-full border border-[#D8A35B]/60 px-7 py-3 text-sm font-semibold text-[#f0c98e] transition hover:border-[#D8A35B] hover:bg-[#D8A35B]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
+          className="inline-flex min-h-12 flex-1 items-center justify-center rounded-full border border-[color:var(--nsg-accent)]/60 px-7 py-3 text-sm font-semibold text-[color:var(--nsg-accent-light)] transition hover:border-[color:var(--nsg-accent)] hover:bg-[color:var(--nsg-accent)]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]"
         >
           Preview My Profile
         </Link>
@@ -854,11 +854,11 @@ export default function ProfileEditor({
             role="dialog"
             aria-modal="true"
             aria-labelledby="photo-editor-title"
-            className="my-auto w-full max-w-2xl rounded-3xl border border-[#D8A35B]/25 bg-[#0F172A] p-5 shadow-2xl shadow-black/50 sm:p-8"
+            className="my-auto w-full max-w-2xl rounded-3xl border border-[color:var(--nsg-accent)]/25 bg-[color:var(--nsg-background)] p-5 shadow-2xl shadow-black/50 sm:p-8"
           >
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#D8A35B]">
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--nsg-accent)]">
                   Profile Photo
                 </p>
                 <h2
@@ -875,7 +875,7 @@ export default function ProfileEditor({
                 type="button"
                 onClick={cancelPhotoEdit}
                 aria-label="Cancel photo editing"
-                className="rounded-full border border-white/10 px-3 py-2 text-slate-300 transition hover:border-[#D8A35B]/50 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D8A35B]"
+                className="rounded-full border border-[color:var(--nsg-border)]/10 px-3 py-2 text-slate-300 transition hover:border-[color:var(--nsg-accent)]/50 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--nsg-accent)]"
               >
                 ✕
               </button>
@@ -888,7 +888,7 @@ export default function ProfileEditor({
                 </p>
                 <div
                   ref={cropFrame}
-                  className="relative mx-auto aspect-square w-full max-w-[26rem] touch-none cursor-grab overflow-hidden rounded-xl border border-[#D8A35B]/50 bg-slate-950 active:cursor-grabbing"
+                  className="relative mx-auto aspect-square w-full max-w-[26rem] touch-none cursor-grab overflow-hidden rounded-xl border border-[color:var(--nsg-accent)]/50 bg-slate-950 active:cursor-grabbing"
                   onPointerDown={handlePointerDown}
                   onPointerMove={handlePointerMove}
                   onPointerUp={() => {
@@ -917,7 +917,7 @@ export default function ProfileEditor({
                 </div>
               </div>
               <div className="flex items-center gap-4 sm:flex-col">
-                <div className="h-28 w-28 shrink-0 overflow-hidden rounded-xl border border-[#D8A35B]/40">
+                <div className="h-28 w-28 shrink-0 overflow-hidden rounded-xl border border-[color:var(--nsg-accent)]/40">
                   <div
                     className="relative aspect-square touch-none overflow-hidden"
                     aria-label="Square crop result preview"
@@ -960,7 +960,7 @@ export default function ProfileEditor({
                     onChange={(event) =>
                       handleZoomChange(Number(event.currentTarget.value))
                     }
-                    className="mt-3 w-full accent-[#D8A35B]"
+                    className="mt-3 w-full accent-[color:var(--nsg-accent)]"
                     aria-label="Zoom profile photo"
                   />
                   <span className="mt-1 flex justify-between text-xs text-slate-500">
@@ -986,7 +986,7 @@ export default function ProfileEditor({
                   setOffset({ x: 0, y: 0 });
                 }}
                 disabled={isPhotoSaving}
-                className="min-h-11 rounded-full border border-white/15 px-5 py-2.5 text-sm font-semibold text-slate-300 transition hover:border-[#D8A35B]/50 hover:text-white disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
+                className="min-h-11 rounded-full border border-[color:var(--nsg-border)]/15 px-5 py-2.5 text-sm font-semibold text-slate-300 transition hover:border-[color:var(--nsg-accent)]/50 hover:text-white disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]"
               >
                 Reset
               </button>
@@ -995,7 +995,7 @@ export default function ProfileEditor({
                   type="button"
                   onClick={cancelPhotoEdit}
                   disabled={isPhotoSaving}
-                  className="min-h-11 rounded-full border border-[#D8A35B]/50 px-5 py-2.5 text-sm font-semibold text-[#f0c98e] transition hover:bg-[#D8A35B]/10 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
+                  className="min-h-11 rounded-full border border-[color:var(--nsg-accent)]/50 px-5 py-2.5 text-sm font-semibold text-[color:var(--nsg-accent-light)] transition hover:bg-[color:var(--nsg-accent)]/10 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]"
                 >
                   Cancel
                 </button>
@@ -1003,7 +1003,7 @@ export default function ProfileEditor({
                   type="button"
                   onClick={handleSaveCroppedPhoto}
                   disabled={isPhotoSaving}
-                  className="min-h-11 rounded-full bg-[#D8A35B] px-6 py-2.5 text-sm font-semibold text-[#0F172A] transition hover:bg-[#e6b66f] disabled:cursor-wait disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
+                  className="min-h-11 rounded-full bg-[color:var(--nsg-accent)] px-6 py-2.5 text-sm font-semibold text-[color:var(--nsg-background)] transition hover:bg-[color:var(--nsg-accent-hover)] disabled:cursor-wait disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]"
                 >
                   {isPhotoSaving ? "Saving…" : "Save Photo"}
                 </button>

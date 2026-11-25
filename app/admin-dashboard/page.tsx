@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 };
 export const instant = false;
 
-const cardClass = "rounded-2xl border border-white/10 bg-white/[0.03] p-5";
+const cardClass = "rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5";
 
 function Stat({ label, value }: { label: string; value: string | number }) {
   return <div className={cardClass}><dt className="text-sm text-slate-400">{label}</dt><dd className="mt-2 font-serif text-3xl text-white">{typeof value === "number" ? value.toLocaleString("en-US") : value}</dd></div>;
@@ -22,10 +22,10 @@ export default async function AdminDashboardPage() {
     : "Unavailable";
 
   return (
-    <main className="min-h-screen bg-[#0F172A] px-5 py-10 text-slate-100 sm:px-8 sm:py-14">
+    <main className="min-h-screen bg-[color:var(--nsg-background)] px-5 py-10 text-slate-100 sm:px-8 sm:py-14">
       <div className="mx-auto max-w-6xl space-y-10">
         <header>
-          <Link href="/dashboard" className="text-sm text-[#f0c98e] hover:underline">← My Legacy</Link>
+          <Link href="/dashboard" className="text-sm text-[color:var(--nsg-accent-light)] hover:underline">← My Legacy</Link>
           <h1 className="mt-5 font-serif text-4xl text-white">Admin Dashboard</h1>
           <p className="mt-3 text-slate-400">A read-only view of platform health.</p>
         </header>
@@ -88,7 +88,7 @@ export default async function AdminDashboardPage() {
             <div className="mt-4 overflow-x-auto">
               <table className="w-full min-w-[36rem] text-left text-sm">
                 <thead className="text-slate-400"><tr><th className="p-2">Name</th><th className="p-2">Email</th><th className="p-2">Join Date (UTC)</th><th className="p-2">Profile</th></tr></thead>
-                <tbody>{signups.map((signup) => <tr key={`${signup.email}-${signup.createdAt}`} className="border-t border-white/10"><td className="p-2">{signup.name}</td><td className="p-2">{signup.email}</td><td className="p-2">{signup.createdAt.slice(0, 10)}</td><td className="p-2">{signup.complete ? "Complete" : "Incomplete"}</td></tr>)}</tbody>
+                <tbody>{signups.map((signup) => <tr key={`${signup.email}-${signup.createdAt}`} className="border-t border-[color:var(--nsg-border)]/10"><td className="p-2">{signup.name}</td><td className="p-2">{signup.email}</td><td className="p-2">{signup.createdAt.slice(0, 10)}</td><td className="p-2">{signup.complete ? "Complete" : "Incomplete"}</td></tr>)}</tbody>
               </table>
             </div>
           )}

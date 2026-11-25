@@ -21,6 +21,15 @@ grandfathering, quota accounting, and enforcement. Reminder notifications,
 scheduled deliveries, voice uploads, and other features marked Coming Soon
 also require implementation.
 
+## Site appearance
+
+Apply migration 024 before deploying. Signed-in users can choose a curated
+site theme under My Profile → Appearance. The preference is stored on the
+user account and follows it across devices; guests use Classic NSG. All six
+themes are available during beta. Plan labels describe future access only and
+do not enforce membership. Future theme packs and paid entitlement enforcement
+are not implemented.
+
 ## Shared Moments
 
 Signed-in members can view their own Shared Moments and moments addressed to
@@ -126,7 +135,9 @@ create a local data directory or write account data to the app filesystem.
      then
      `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/022_family_bulletins.sql`
      then
-     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/023_tree_milestones.sql`.
+     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/023_tree_milestones.sql`
+     then
+     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/024_site_theme.sql`.
    - In Bash, export `DATABASE_URL` and run
      `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/001_initial_schema.sql`
      then
@@ -172,7 +183,9 @@ create a local data directory or write account data to the app filesystem.
      then
      `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/022_family_bulletins.sql`
      then
-     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/023_tree_milestones.sql`.
+     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/023_tree_milestones.sql`
+     then
+     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/024_site_theme.sql`.
    - In the Neon Console, open the SQL Editor for the intended database. Run
      [`db/migrations/001_initial_schema.sql`](./db/migrations/001_initial_schema.sql)
      first, then run
@@ -198,6 +211,7 @@ create a local data directory or write account data to the app filesystem.
      then [`db/migrations/021_moment_videos.sql`](./db/migrations/021_moment_videos.sql)
      then [`db/migrations/022_family_bulletins.sql`](./db/migrations/022_family_bulletins.sql)
      then [`db/migrations/023_tree_milestones.sql`](./db/migrations/023_tree_milestones.sql)
+     then [`db/migrations/024_site_theme.sql`](./db/migrations/024_site_theme.sql)
      in order.
 3. Set `DATABASE_URL` to the same pooled connection string in local
    `.env.local` and in Vercel Project Settings → Environment Variables for each
@@ -249,7 +263,8 @@ WHERE version IN (
   '013_weekly_moment_makers', '014_family_calendar',
   '015_connected_lives_directory', '016_account_status', '017_profile_visits',
   '018_email_preferences', '019_site_analytics', '020_honored_lives',
-  '021_moment_videos', '022_family_bulletins', '023_tree_milestones'
+  '021_moment_videos', '022_family_bulletins', '023_tree_milestones',
+  '024_site_theme'
 )
 ORDER BY version;
 
@@ -258,7 +273,7 @@ FROM information_schema.columns
 WHERE table_schema = 'public'
   AND table_name = 'users'
   AND column_name IN (
-    'username', 'account_status', 'profile_photo_data', 'bio', 'birthplace', 'location', 'personal_motto',
+    'username', 'account_status', 'site_theme', 'profile_photo_data', 'bio', 'birthplace', 'location', 'personal_motto',
     'descriptor_one', 'descriptor_two', 'descriptor_three',
     'public_profile_photo', 'public_profile_bio', 'public_birthplace',
     'public_location', 'public_shared_moments',

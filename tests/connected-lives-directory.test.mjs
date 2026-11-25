@@ -294,7 +294,7 @@ test("pending incoming requests are highlighted above the directory with visible
   const html = renderToStaticMarkup(await page());
   const section = html.match(/<section[^>]*aria-labelledby="requests-heading"[\s\S]*?<\/section>/)?.[0];
   assert.ok(section);
-  assert.match(section, /border-\[#D8A35B\]\/50/);
+  assert.match(section, /border-\[color:var\(--nsg-accent\)\]\/50/);
   assert.match(section, /Pending Connection Requests<span[^>]*>2<\/span>/);
   assert.match(section, /Alice[\s\S]*?name="requestId" value="in-1"[\s\S]*?>Accept<\/button>[\s\S]*?>Decline<\/button>/);
   assert.match(section, /Bob[\s\S]*?name="requestId" value="in-2"[\s\S]*?>Accept<\/button>[\s\S]*?>Decline<\/button>/);

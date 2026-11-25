@@ -46,11 +46,11 @@ export default function SearchForm({
       action="/search"
       method="get"
       onSubmit={handleSubmit}
-      className="mt-10 rounded-3xl border border-white/10 bg-white/[0.03] p-5 shadow-2xl shadow-black/20 sm:mt-12 sm:p-8"
+      className="mt-10 rounded-3xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5 shadow-2xl shadow-black/20 sm:mt-12 sm:p-8"
     >
       <label
         htmlFor="search-name"
-        className="text-xs font-semibold uppercase tracking-[0.2em] text-[#D8A35B]"
+        className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--nsg-accent)]"
       >
         Name
       </label>
@@ -65,12 +65,12 @@ export default function SearchForm({
           autoComplete="name"
           maxLength={100}
           required
-          className="min-h-14 min-w-0 flex-1 rounded-full border border-white/15 bg-slate-950/60 px-5 text-base text-white outline-none transition placeholder:text-slate-500 focus:border-[#D8A35B]/70 focus:ring-2 focus:ring-[#D8A35B]/20"
+          className="min-h-14 min-w-0 flex-1 rounded-full border border-[color:var(--nsg-border)]/15 bg-slate-950/60 px-5 text-base text-white outline-none transition placeholder:text-slate-500 focus:border-[color:var(--nsg-accent)]/70 focus:ring-2 focus:ring-[color:var(--nsg-accent)]/20"
         />
         <button
           type="submit"
           disabled={isPending || !name.trim()}
-          className="min-h-14 rounded-full bg-[#D8A35B] px-8 text-sm font-semibold tracking-wide text-[#0F172A] transition hover:bg-[#e6b66f] disabled:cursor-wait disabled:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
+          className="min-h-14 rounded-full bg-[color:var(--nsg-accent)] px-8 text-sm font-semibold tracking-wide text-[color:var(--nsg-background)] transition hover:bg-[color:var(--nsg-accent-hover)] disabled:cursor-wait disabled:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]"
         >
           {isPending ? "Searching…" : "Search"}
         </button>
@@ -95,7 +95,7 @@ export default function SearchForm({
               value={birthYear}
               onChange={(event) => setBirthYear(event.currentTarget.value)}
               placeholder="e.g. 1955"
-              className="min-h-12 w-full rounded-xl border border-white/10 bg-slate-950/50 px-4 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-[#D8A35B]/60"
+              className="min-h-12 w-full rounded-xl border border-[color:var(--nsg-border)]/10 bg-slate-950/50 px-4 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-[color:var(--nsg-accent)]/60"
             />
           </div>
           <div>
@@ -115,7 +115,7 @@ export default function SearchForm({
               }
               placeholder="City or region"
               maxLength={100}
-              className="min-h-12 w-full rounded-xl border border-white/10 bg-slate-950/50 px-4 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-[#D8A35B]/60"
+              className="min-h-12 w-full rounded-xl border border-[color:var(--nsg-border)]/10 bg-slate-950/50 px-4 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-[color:var(--nsg-accent)]/60"
             />
           </div>
           <div>
@@ -133,7 +133,7 @@ export default function SearchForm({
               onChange={(event) => setHomeLocation(event.currentTarget.value)}
               placeholder="City or region"
               maxLength={100}
-              className="min-h-12 w-full rounded-xl border border-white/10 bg-slate-950/50 px-4 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-[#D8A35B]/60"
+              className="min-h-12 w-full rounded-xl border border-[color:var(--nsg-border)]/10 bg-slate-950/50 px-4 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-[color:var(--nsg-accent)]/60"
             />
           </div>
         </div>

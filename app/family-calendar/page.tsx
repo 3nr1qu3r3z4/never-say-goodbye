@@ -34,7 +34,7 @@ function EventList({ events }: { events: CalendarEvent[] }) {
   return (
     <ul className="space-y-2">
       {events.map((event) => (
-        <li key={`${event.id}-${event.date}`} className="rounded-lg border border-[#D8A35B]/20 bg-[#D8A35B]/[0.07] p-2 text-sm text-slate-100">
+        <li key={`${event.id}-${event.date}`} className="rounded-lg border border-[color:var(--nsg-accent)]/20 bg-[color:var(--nsg-accent)]/[0.07] p-2 text-sm text-slate-100">
           <span className="block break-words"><span aria-hidden="true">{eventIcon(event.id)} </span>{event.title}</span>
           <span className="block text-xs text-slate-400">Source: {event.source}</span>
         </li>
@@ -101,44 +101,44 @@ export default async function FamilyCalendarPage({
     : new Date(base.getTime() + (view === "week" ? 7 : 90) * dayMs);
 
   return (
-    <main className="min-h-screen bg-[#0F172A] px-4 py-12 text-slate-100 sm:px-8 sm:py-16">
+    <main className="min-h-screen bg-[color:var(--nsg-background)] px-4 py-12 text-slate-100 sm:px-8 sm:py-16">
       <div className="mx-auto max-w-7xl">
-        <Link href="/dashboard" className="text-sm font-semibold text-[#f0c98e] hover:underline">← My Legacy</Link>
+        <Link href="/dashboard" className="text-sm font-semibold text-[color:var(--nsg-accent-light)] hover:underline">← My Legacy</Link>
         <header className="mt-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">A place for family</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[color:var(--nsg-accent)]">A place for family</p>
           <h1 className="mt-3 font-serif text-4xl text-white sm:text-5xl">Family Calendar™</h1>
           <p className="mt-4 max-w-2xl leading-7 text-slate-300">Remember the dates and milestones that bring your family together.</p>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400">Family milestones are managed in your Legacy Tree™ and appear here automatically when shared with this tree.</p>
         </header>
         <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
-          <section aria-label="Family calendar" className="min-w-0 rounded-3xl border border-white/10 bg-white/[0.03] p-4 sm:p-6">
+          <section aria-label="Family calendar" className="min-w-0 rounded-3xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-4 sm:p-6">
             {!selected ? (
-              <p className="text-slate-300">Create or join a Legacy Tree™ to see its family calendar. <Link href="/legacy-tree" className="text-[#f0c98e] underline">Explore Legacy Tree™</Link></p>
+              <p className="text-slate-300">Create or join a Legacy Tree™ to see its family calendar. <Link href="/legacy-tree" className="text-[color:var(--nsg-accent-light)] underline">Explore Legacy Tree™</Link></p>
             ) : (
               <>
                 <form action="/family-calendar" className="mb-5">
                   <label htmlFor="tree" className="block text-sm text-slate-300">Family tree</label>
                   <div className="mt-2 flex flex-wrap gap-2">
-                    <select id="tree" name="tree" defaultValue={selected.id} className="min-h-11 max-w-full rounded-xl border border-white/10 bg-slate-950 px-3 text-white">
+                    <select id="tree" name="tree" defaultValue={selected.id} className="min-h-11 max-w-full rounded-xl border border-[color:var(--nsg-border)]/10 bg-slate-950 px-3 text-white">
                       {trees.map((tree) => <option key={tree.id} value={tree.id}>{tree.name}</option>)}
                     </select>
                     <input type="hidden" name="view" value={view} /><input type="hidden" name="date" value={anchor} />
-                    <button className="min-h-11 rounded-xl border border-white/20 px-4 text-sm">View Calendar</button>
+                    <button className="min-h-11 rounded-xl border border-[color:var(--nsg-border)]/20 px-4 text-sm">View Calendar</button>
                   </div>
                 </form>
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div className="flex flex-wrap gap-2" aria-label="Calendar views">
                     {["month", "week", "agenda"].map((item) => (
-                      <Link key={item} href={link(item)} aria-current={view === item ? "page" : undefined} className={`rounded-full border px-4 py-2 text-sm capitalize ${view === item ? "border-[#D8A35B] bg-[#D8A35B]/15 text-[#f0c98e]" : "border-white/10 text-slate-300"}`}>{item}</Link>
+                      <Link key={item} href={link(item)} aria-current={view === item ? "page" : undefined} className={`rounded-full border px-4 py-2 text-sm capitalize ${view === item ? "border-[color:var(--nsg-accent)] bg-[color:var(--nsg-accent)]/15 text-[color:var(--nsg-accent-light)]" : "border-[color:var(--nsg-border)]/10 text-slate-300"}`}>{item}</Link>
                     ))}
                   </div>
-                  <div className="flex gap-4 text-sm text-[#f0c98e]">
+                  <div className="flex gap-4 text-sm text-[color:var(--nsg-accent-light)]">
                     {previous.getUTCFullYear() >= 1000 && <Link href={link(view, dateText(previous))}>← Previous</Link>}
                     <Link href={link(view, dateText(new Date()))}>Today</Link>
                     {next.getUTCFullYear() <= 9998 && <Link href={link(view, dateText(next))}>Next →</Link>}
                   </div>
                   {selected && (
-                    <section id="bulletins" aria-labelledby="bulletin-heading" className="mt-6 scroll-mt-6 rounded-3xl border border-white/10 bg-white/[0.03] p-5 sm:p-6">
+                    <section id="bulletins" aria-labelledby="bulletin-heading" className="mt-6 scroll-mt-6 rounded-3xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5 sm:p-6">
                       <h2 id="bulletin-heading" className="font-serif text-2xl text-white">❤️ Family Shout-Outs</h2>
                       <div className="mt-5"><BulletinForm key={selected.id} treeId={selected.id} /></div>
                       {bulletins.length ? (
@@ -146,7 +146,7 @@ export default async function FamilyCalendarPage({
                           <h3 className="mt-5 font-serif text-lg text-white">Recent Family Shout-Outs</h3>
                           <ol className="mt-3 space-y-3">
                             {bulletins.map((bulletin) => (
-                              <li id={`bulletin-${bulletin.id}`} key={bulletin.id} className="scroll-mt-6 rounded-xl border border-white/10 p-4">
+                              <li id={`bulletin-${bulletin.id}`} key={bulletin.id} className="scroll-mt-6 rounded-xl border border-[color:var(--nsg-border)]/10 p-4">
                                 <p className="font-semibold text-white">{bulletin.authorName}</p>
                                 <time dateTime={bulletin.createdAt} className="mt-1 block text-xs text-slate-400">
                                   {new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" }).format(new Date(bulletin.createdAt))} UTC
@@ -164,25 +164,25 @@ export default async function FamilyCalendarPage({
                   {view === "month" ? readable(anchor, { month: "long", year: "numeric" }) : `${readable(dateText(start), { month: "short", day: "numeric", year: "numeric" })} – ${readable(dateText(end), { month: "short", day: "numeric", year: "numeric" })}`}
                 </h2>
                 {view === "agenda" ? (
-                  events.length ? <div className="space-y-5">{Array.from(new Set(events.map((event) => event.date))).map((date) => <div key={date}><h3 className="mb-2 font-semibold text-[#f0c98e]">{readable(date, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}</h3><EventList events={events.filter((event) => event.date === date)} /></div>)}</div> : <p className="text-sm text-slate-400">No events in this period.</p>
+                  events.length ? <div className="space-y-5">{Array.from(new Set(events.map((event) => event.date))).map((date) => <div key={date}><h3 className="mb-2 font-semibold text-[color:var(--nsg-accent-light)]">{readable(date, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}</h3><EventList events={events.filter((event) => event.date === date)} /></div>)}</div> : <p className="text-sm text-slate-400">No events in this period.</p>
                 ) : (
                   <div className="grid gap-2 sm:grid-cols-7">
                     {Array.from({ length: count }, (_, index) => {
                       const date = dateText(new Date(start.getTime() + index * dayMs));
-                      return <div key={date} className={`min-w-0 rounded-xl border border-white/10 p-2 ${date.slice(0, 7) !== anchor.slice(0, 7) && view === "month" ? "opacity-60" : ""}`}>
+                      return <div key={date} className={`min-w-0 rounded-xl border border-[color:var(--nsg-border)]/10 p-2 ${date.slice(0, 7) !== anchor.slice(0, 7) && view === "month" ? "opacity-60" : ""}`}>
                         <h3 className="mb-2 text-xs font-semibold text-slate-300"><time dateTime={date}>{readable(date, { weekday: "short", month: "short", day: "numeric" })}</time></h3>
                         <EventList events={events.filter((event) => event.date === date)} />
                       </div>;
                     })}
                   </div>
                 )}
-                {partialMilestones.length > 0 && <section className="mt-6 rounded-xl border border-white/10 p-4">
+                {partialMilestones.length > 0 && <section className="mt-6 rounded-xl border border-[color:var(--nsg-border)]/10 p-4">
                   <h3 className="font-serif text-lg text-white">Milestones without an exact day</h3>
                   <p className="mt-1 text-xs text-slate-400">These are not placed on a calendar day until the date is known.</p>
                   <ul className="mt-3 space-y-2 text-sm text-slate-200">{partialMilestones.map((milestone) => <li key={milestone.id}>{milestone.personName} {milestone.title} · {milestoneDate(milestone)}</li>)}</ul>
                 </section>}
-                {!allEvents.length && !partialMilestones.length && <p className="mt-6 rounded-xl border border-[#D8A35B]/20 p-4 text-sm leading-6 text-slate-300">Your Family Calendar is waiting for family dates. Add milestones in your Legacy Tree™ or add a family event here.</p>}
-                <p className="mt-5 text-sm text-slate-400">Manage milestones and sharing in <Link href="/legacy-tree" className="text-[#f0c98e] underline">Legacy Tree™</Link>.</p>
+                {!allEvents.length && !partialMilestones.length && <p className="mt-6 rounded-xl border border-[color:var(--nsg-accent)]/20 p-4 text-sm leading-6 text-slate-300">Your Family Calendar is waiting for family dates. Add milestones in your Legacy Tree™ or add a family event here.</p>}
+                <p className="mt-5 text-sm text-slate-400">Manage milestones and sharing in <Link href="/legacy-tree" className="text-[color:var(--nsg-accent-light)] underline">Legacy Tree™</Link>.</p>
               </>
             )}
           </section>

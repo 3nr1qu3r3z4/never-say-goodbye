@@ -13,7 +13,7 @@ export default function SignupWelcome() {
   return (
     <section
       aria-labelledby="signup-welcome-heading"
-      className="mx-auto mt-8 flex max-w-6xl flex-col gap-5 rounded-2xl border border-[#D8A35B]/30 bg-white/[0.04] px-6 py-5 shadow-lg shadow-black/10 sm:mx-8 sm:flex-row sm:items-center sm:justify-between sm:px-7"
+      className="mx-auto mt-8 flex max-w-6xl flex-col gap-5 rounded-2xl border border-[color:var(--nsg-accent)]/30 bg-white/[0.04] px-6 py-5 shadow-lg shadow-black/10 sm:mx-8 sm:flex-row sm:items-center sm:justify-between sm:px-7"
     >
       <div>
         <h2
@@ -28,7 +28,7 @@ export default function SignupWelcome() {
       </div>
       <Link
         href="#moment-making-menu"
-        className="inline-flex min-h-12 items-center justify-center self-start rounded-full bg-[#D8A35B] px-6 py-3 text-sm font-semibold text-[#0F172A] transition hover:bg-[#e6b66f] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B] sm:self-auto"
+        className="inline-flex min-h-12 items-center justify-center self-start rounded-full bg-[color:var(--nsg-accent)] px-6 py-3 text-sm font-semibold text-[color:var(--nsg-background)] transition hover:bg-[color:var(--nsg-accent-hover)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)] sm:self-auto"
       >
         ➕ Create A Moment
       </Link>

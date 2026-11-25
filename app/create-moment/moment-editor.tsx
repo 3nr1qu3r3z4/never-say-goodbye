@@ -86,11 +86,11 @@ const config: Record<
 };
 
 const fieldClassName =
-  "mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-slate-950/50 px-4 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-[#D8A35B]/70 focus:ring-2 focus:ring-[#D8A35B]/20";
+  "mt-2 min-h-12 w-full rounded-xl border border-[color:var(--nsg-border)]/10 bg-slate-950/50 px-4 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-[color:var(--nsg-accent)]/70 focus:ring-2 focus:ring-[color:var(--nsg-accent)]/20";
 const sectionClassName =
-  "rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-7";
+  "rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5 sm:p-7";
 const secondaryButtonClassName =
-  "inline-flex min-h-12 items-center justify-center rounded-full border border-[#D8A35B]/60 px-6 py-3 text-sm font-semibold text-[#f0c98e] transition hover:border-[#D8A35B] hover:bg-[#D8A35B]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]";
+  "inline-flex min-h-12 items-center justify-center rounded-full border border-[color:var(--nsg-accent)]/60 px-6 py-3 text-sm font-semibold text-[color:var(--nsg-accent-light)] transition hover:border-[color:var(--nsg-accent)] hover:bg-[color:var(--nsg-accent)]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]";
 
 export default function MomentEditor({ kind }: { kind: MomentKind }) {
   const router = useRouter();
@@ -301,20 +301,20 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
     "Connections Only";
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#0F172A] text-slate-100">
+    <main className="relative min-h-screen overflow-hidden bg-[color:var(--nsg-background)] text-slate-100">
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(216,163,91,0.12),transparent_58%)]"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,color-mix(in_srgb,var(--nsg-accent)_12%,transparent),transparent_58%)]"
       />
       <div className="relative mx-auto max-w-5xl px-5 py-8 sm:px-8 sm:py-12">
         <Link
           href="/create-moment"
-          className="text-xs font-medium uppercase tracking-[0.2em] text-slate-400 transition hover:text-[#f0c98e] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
+          className="text-xs font-medium uppercase tracking-[0.2em] text-slate-400 transition hover:text-[color:var(--nsg-accent-light)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]"
         >
           ← All Moment Types
         </Link>
         <header className="mx-auto mt-10 max-w-2xl text-center sm:mt-14">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[color:var(--nsg-accent)]">
             {momentConfig.icon} A story worth keeping
           </p>
           <h1 className="mt-4 font-serif text-4xl leading-tight tracking-tight text-white sm:text-5xl">
@@ -387,7 +387,7 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
               {contentOptions.map((option) => (
                 <label
                   key={option.value}
-                  className="flex cursor-pointer items-center gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-4 text-sm text-white transition hover:border-[#D8A35B]/35 has-[:checked]:border-[#D8A35B]/60 has-[:checked]:bg-[#D8A35B]/[0.06]"
+                  className="flex cursor-pointer items-center gap-3 rounded-xl border border-[color:var(--nsg-border)]/10 bg-white/[0.02] p-4 text-sm text-white transition hover:border-[color:var(--nsg-accent)]/35 has-[:checked]:border-[color:var(--nsg-accent)]/60 has-[:checked]:bg-[color:var(--nsg-accent)]/[0.06]"
                 >
                   <input
                     type="checkbox"
@@ -396,7 +396,7 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
                       (option.value === "video" && (isVideoUploading ||
                         (kind !== "shared" && !draft.content.includes("video"))))}
                     onChange={() => toggleContent(option.value)}
-                    className="h-4 w-4 shrink-0 accent-[#D8A35B] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D8A35B]"
+                    className="h-4 w-4 shrink-0 accent-[color:var(--nsg-accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--nsg-accent)]"
                   />
                   <span aria-hidden="true" className="text-xl">
                     {option.icon}
@@ -435,7 +435,7 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
                     onChange={(event) =>
                       void handleMediaSelection(option, event.currentTarget)
                     }
-                    className="mt-2 block w-full cursor-pointer rounded-xl border border-white/10 bg-slate-950/50 text-sm text-slate-300 file:mr-4 file:min-h-12 file:border-0 file:bg-[#D8A35B]/15 file:px-4 file:font-medium file:text-[#f0c98e] hover:file:bg-[#D8A35B]/25"
+                    className="mt-2 block w-full cursor-pointer rounded-xl border border-[color:var(--nsg-border)]/10 bg-slate-950/50 text-sm text-slate-300 file:mr-4 file:min-h-12 file:border-0 file:bg-[color:var(--nsg-accent)]/15 file:px-4 file:font-medium file:text-[color:var(--nsg-accent-light)] hover:file:bg-[color:var(--nsg-accent)]/25"
                   />
                   {draft.attachmentNames[option.value] && (
                     <p className="mt-2 text-xs text-slate-400">
@@ -513,7 +513,7 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
                   {audiences.map((audience) => (
                     <label
                       key={audience.value}
-                      className="flex cursor-pointer items-center gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-4 text-sm text-white transition hover:border-[#D8A35B]/30"
+                      className="flex cursor-pointer items-center gap-3 rounded-xl border border-[color:var(--nsg-border)]/10 bg-white/[0.02] p-4 text-sm text-white transition hover:border-[color:var(--nsg-accent)]/30"
                     >
                       <input
                         type="radio"
@@ -521,7 +521,7 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
                         value={audience.value}
                         checked={draft.audience === audience.value}
                         onChange={() => updateDraft("audience", audience.value)}
-                        className="h-4 w-4 accent-[#D8A35B]"
+                        className="h-4 w-4 accent-[color:var(--nsg-accent)]"
                       />
                       {audience.label}
                     </label>
@@ -536,14 +536,14 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
                   This Personal Moment stays protected. You may add an access
                   code as another layer of care.
                 </p>
-                <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-4">
+                <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-xl border border-[color:var(--nsg-border)]/10 bg-white/[0.02] p-4">
                   <input
                     type="checkbox"
                     checked={draft.accessCodeRequired}
                     onChange={(event) =>
                       updateDraft("accessCodeRequired", event.target.checked)
                     }
-                    className="mt-1 h-4 w-4 shrink-0 accent-[#D8A35B]"
+                    className="mt-1 h-4 w-4 shrink-0 accent-[color:var(--nsg-accent)]"
                   />
                   <span className="text-sm font-medium text-white">
                     Require Access Code
@@ -587,14 +587,14 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
                   ].map((choice) => (
                     <label
                       key={choice.value}
-                      className="flex cursor-pointer items-center gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-4 text-sm text-white"
+                      className="flex cursor-pointer items-center gap-3 rounded-xl border border-[color:var(--nsg-border)]/10 bg-white/[0.02] p-4 text-sm text-white"
                     >
                       <input
                         type="radio"
                         name="release-kind"
                         checked={draft.releaseKind === choice.value}
                         onChange={() => updateDraft("releaseKind", choice.value)}
-                        className="h-4 w-4 accent-[#D8A35B]"
+                        className="h-4 w-4 accent-[color:var(--nsg-accent)]"
                       />
                       {choice.label}
                     </label>
@@ -686,21 +686,21 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
                     />
                   </div>
                 </div>
-                <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-4">
+                <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-xl border border-[color:var(--nsg-border)]/10 bg-white/[0.02] p-4">
                   <input
                     type="checkbox"
                     checked={draft.createRecipient}
                     onChange={(event) =>
                       updateDraft("createRecipient", event.target.checked)
                     }
-                    className="mt-1 h-4 w-4 shrink-0 accent-[#D8A35B]"
+                    className="mt-1 h-4 w-4 shrink-0 accent-[color:var(--nsg-accent)]"
                   />
                   <span className="text-sm text-white">
                     This person does not have an account yet
                   </span>
                 </label>
                 {draft.createRecipient && (
-                  <p className="mt-3 rounded-xl border border-[#D8A35B]/20 bg-[#D8A35B]/[0.05] p-4 text-sm leading-6 text-slate-300">
+                  <p className="mt-3 rounded-xl border border-[color:var(--nsg-accent)]/20 bg-[color:var(--nsg-accent)]/[0.05] p-4 text-sm leading-6 text-slate-300">
                     A Future Moment Maker™ profile will hold a place for their
                     story until they are ready to claim it.
                   </p>
@@ -765,7 +765,7 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
             <p
               role="status"
               aria-live="polite"
-              className="mt-4 min-h-6 text-sm text-[#f0c98e]"
+              className="mt-4 min-h-6 text-sm text-[color:var(--nsg-accent-light)]"
             >
               {statusMessage}
             </p>
@@ -774,7 +774,7 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
           <button
             type="submit"
             disabled={!isReady || isSaving || isPhotoPreparing || isVideoUploading}
-            className="min-h-14 w-full rounded-full bg-[#D8A35B] px-8 py-4 text-sm font-semibold tracking-wide text-[#0F172A] shadow-lg shadow-[#D8A35B]/10 transition hover:bg-[#e6b66f] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B] sm:text-base"
+            className="min-h-14 w-full rounded-full bg-[color:var(--nsg-accent)] px-8 py-4 text-sm font-semibold tracking-wide text-[color:var(--nsg-background)] shadow-lg shadow-[color:var(--nsg-accent)]/10 transition hover:bg-[color:var(--nsg-accent-hover)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)] sm:text-base"
           >
             {isSaving ? "Saving..." : "Publish Moment"}
           </button>
@@ -800,11 +800,11 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
             role="dialog"
             aria-modal="true"
             aria-labelledby="moment-preview-heading"
-            className="my-auto w-full max-w-2xl rounded-3xl border border-[#D8A35B]/30 bg-[#0F172A] p-6 shadow-2xl shadow-black/50 sm:p-9"
+            className="my-auto w-full max-w-2xl rounded-3xl border border-[color:var(--nsg-accent)]/30 bg-[color:var(--nsg-background)] p-6 shadow-2xl shadow-black/50 sm:p-9"
           >
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#D8A35B]">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--nsg-accent)]">
                   {momentConfig.icon} {momentConfig.title}
                 </p>
                 <h2
@@ -818,17 +818,17 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
                 type="button"
                 aria-label="Close preview"
                 onClick={() => setIsPreviewOpen(false)}
-                className="rounded-full border border-white/10 px-3 py-1 text-xl text-slate-300 transition hover:border-[#D8A35B]/40 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D8A35B]"
+                className="rounded-full border border-[color:var(--nsg-border)]/10 px-3 py-1 text-xl text-slate-300 transition hover:border-[color:var(--nsg-accent)]/40 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--nsg-accent)]"
               >
                 ×
               </button>
             </div>
-            <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-7">
+            <div className="mt-6 rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5 sm:p-7">
               <p className="whitespace-pre-wrap leading-7 text-slate-300">
                 {draft.story || "Your story will appear here."}
               </p>
               {draft.content.includes("written") && draft.writtenMessage && (
-                <p className="mt-5 whitespace-pre-wrap border-l-2 border-[#D8A35B]/50 pl-4 font-serif leading-7 text-white">
+                <p className="mt-5 whitespace-pre-wrap border-l-2 border-[color:var(--nsg-accent)]/50 pl-4 font-serif leading-7 text-white">
                   {draft.writtenMessage}
                 </p>
               )}
@@ -845,7 +845,7 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
                     return (
                       <span
                         key={contentType}
-                        className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-slate-300"
+                        className="rounded-full border border-[color:var(--nsg-border)]/10 bg-white/[0.04] px-3 py-1.5 text-xs text-slate-300"
                       >
                         {content?.icon} {fileName || content?.label}
                       </span>
@@ -854,9 +854,9 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
                 </div>
               )}
               {draft.tags.trim() && (
-                <p className="mt-5 text-sm text-[#f0c98e]">{draft.tags}</p>
+                <p className="mt-5 text-sm text-[color:var(--nsg-accent-light)]">{draft.tags}</p>
               )}
-              <p className="mt-6 border-t border-white/10 pt-4 text-xs text-slate-500">
+              <p className="mt-6 border-t border-[color:var(--nsg-border)]/10 pt-4 text-xs text-slate-500">
                 {kind === "shared" && `Shared with: ${audienceLabel}`}
                 {kind === "personal" &&
                   `Personal Moment${draft.accessCodeRequired ? " · Access code protected" : " · Private"}`}
@@ -916,7 +916,7 @@ function StepHeading({
     <div className="flex items-start gap-4">
       <span
         aria-hidden="true"
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#D8A35B]/35 bg-[#D8A35B]/10 text-xs font-semibold tracking-wide text-[#f0c98e]"
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[color:var(--nsg-accent)]/35 bg-[color:var(--nsg-accent)]/10 text-xs font-semibold tracking-wide text-[color:var(--nsg-accent-light)]"
       >
         {number}
       </span>

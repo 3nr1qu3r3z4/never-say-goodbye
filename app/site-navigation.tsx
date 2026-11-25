@@ -4,7 +4,7 @@ import { logoutAction } from "@/app/actions/auth";
 import { getCurrentUser } from "@/lib/auth";
 
 const interactionClassName =
-  "transition-colors hover:text-[#f0c98e] focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D8A35B]";
+  "transition-colors hover:text-[color:var(--nsg-accent-light)] focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--nsg-accent)]";
 const brandTypographyClassName = "font-serif font-normal text-base sm:text-lg";
 const linkClassName =
   `inline-flex min-h-11 cursor-pointer items-center px-3 text-slate-200 ${interactionClassName}`;
@@ -42,7 +42,7 @@ async function NavigationActions() {
         <summary className={`${linkClassName} cursor-pointer list-none font-medium text-sm`}>
           Menu
         </summary>
-        <div className="absolute right-0 top-full mt-2 w-max min-w-44 rounded-2xl border border-white/10 bg-[#111c31] p-2 shadow-xl">
+        <div className="absolute right-0 top-full mt-2 w-max min-w-44 rounded-2xl border border-[color:var(--nsg-border)]/10 bg-[color:var(--nsg-surface)] p-2 shadow-xl">
           {user ? (
             <>
               <Link
@@ -86,7 +86,7 @@ export default function SiteNavigation() {
   return (
     <nav
       aria-label="Main navigation"
-      className="relative z-40 border-b border-white/10 bg-[#0F172A] px-4 py-3 text-slate-100 sm:px-8"
+      className="relative z-40 border-b border-[color:var(--nsg-border)]/10 bg-[color:var(--nsg-background)] px-4 py-3 text-slate-100 sm:px-8"
     >
       <div className="mx-auto flex max-w-7xl items-center justify-between">
         <Link

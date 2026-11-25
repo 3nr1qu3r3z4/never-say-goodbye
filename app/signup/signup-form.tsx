@@ -7,7 +7,7 @@ import SearchabilityWarning from "@/app/searchability-warning";
 import { membershipPlans, membershipPrice } from "@/lib/membership-plans";
 
 const inputClassName =
-  "min-h-12 w-full rounded-xl border border-white/10 bg-slate-950/50 px-4 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-[#D8A35B]/70 focus:ring-2 focus:ring-[#D8A35B]/20";
+  "min-h-12 w-full rounded-xl border border-[color:var(--nsg-border)]/10 bg-slate-950/50 px-4 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-[color:var(--nsg-accent)]/70 focus:ring-2 focus:ring-[color:var(--nsg-accent)]/20";
 
 const displayOptions = [
   { value: "full-name", label: "Full Name" },
@@ -67,22 +67,22 @@ export default function SignupForm() {
         : accountName || "Your Name";
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#0F172A] text-slate-100">
+    <main className="relative min-h-screen overflow-hidden bg-[color:var(--nsg-background)] text-slate-100">
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(216,163,91,0.12),transparent_58%)]"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,color-mix(in_srgb,var(--nsg-accent)_12%,transparent),transparent_58%)]"
       />
 
       <div className="relative mx-auto max-w-5xl px-5 py-8 sm:px-8 sm:py-12">
         <Link
           href="/"
-          className="text-xs font-medium uppercase tracking-[0.2em] text-slate-400 transition hover:text-[#f0c98e] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
+          className="text-xs font-medium uppercase tracking-[0.2em] text-slate-400 transition hover:text-[color:var(--nsg-accent-light)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]"
         >
           Never Say Goodbye
         </Link>
 
         <header className="mx-auto mt-12 max-w-2xl text-center sm:mt-16">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[color:var(--nsg-accent)]">
             Your story, thoughtfully preserved
           </p>
           <h1 className="mt-4 font-serif text-4xl leading-tight tracking-tight text-white sm:text-5xl md:text-6xl">
@@ -96,11 +96,11 @@ export default function SignupForm() {
 
         <form
           action={formAction}
-          className="mx-auto mt-10 max-w-3xl space-y-8 rounded-3xl border border-white/10 bg-white/[0.03] p-5 shadow-2xl shadow-black/20 sm:mt-12 sm:space-y-10 sm:p-9"
+          className="mx-auto mt-10 max-w-3xl space-y-8 rounded-3xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5 shadow-2xl shadow-black/20 sm:mt-12 sm:space-y-10 sm:p-9"
         >
           <section aria-labelledby="account-heading">
             <div className="mb-5">
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#D8A35B]">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--nsg-accent)]">
                 Begin your story
               </p>
               <h2
@@ -208,7 +208,7 @@ export default function SignupForm() {
                     aria-label={showPassword ? "Hide Password" : "Show Password"}
                     aria-pressed={showPassword}
                     onClick={() => setShowPassword((visible) => !visible)}
-                    className="absolute inset-y-0 right-2 my-auto inline-flex h-10 w-10 items-center justify-center rounded-full text-slate-400 transition hover:bg-white/5 hover:text-[#f0c98e] focus-visible:outline-2 focus-visible:outline-[#D8A35B]"
+                    className="absolute inset-y-0 right-2 my-auto inline-flex h-10 w-10 items-center justify-center rounded-full text-slate-400 transition hover:bg-white/5 hover:text-[color:var(--nsg-accent-light)] focus-visible:outline-2 focus-visible:outline-[color:var(--nsg-accent)]"
                   >
                     <PasswordVisibilityIcon visible={showPassword} />
                   </button>
@@ -240,7 +240,7 @@ export default function SignupForm() {
                     onClick={() =>
                       setShowConfirmPassword((visible) => !visible)
                     }
-                    className="absolute inset-y-0 right-2 my-auto inline-flex h-10 w-10 items-center justify-center rounded-full text-slate-400 transition hover:bg-white/5 hover:text-[#f0c98e] focus-visible:outline-2 focus-visible:outline-[#D8A35B]"
+                    className="absolute inset-y-0 right-2 my-auto inline-flex h-10 w-10 items-center justify-center rounded-full text-slate-400 transition hover:bg-white/5 hover:text-[color:var(--nsg-accent-light)] focus-visible:outline-2 focus-visible:outline-[color:var(--nsg-accent)]"
                   >
                     <PasswordVisibilityIcon visible={showConfirmPassword} />
                   </button>
@@ -251,7 +251,7 @@ export default function SignupForm() {
 
           <section
             aria-labelledby="display-name-heading"
-            className="border-t border-white/10 pt-7"
+            className="border-t border-[color:var(--nsg-border)]/10 pt-7"
           >
             <h2
               id="display-name-heading"
@@ -264,7 +264,7 @@ export default function SignupForm() {
               {displayOptions.map((option) => (
                 <label
                   key={option.value}
-                  className="flex cursor-pointer items-center gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-4 text-sm text-slate-200 transition hover:border-[#D8A35B]/30"
+                  className="flex cursor-pointer items-center gap-3 rounded-xl border border-[color:var(--nsg-border)]/10 bg-white/[0.02] p-4 text-sm text-slate-200 transition hover:border-[color:var(--nsg-accent)]/30"
                 >
                   <input
                     type="radio"
@@ -272,7 +272,7 @@ export default function SignupForm() {
                     value={option.value}
                     checked={displayStyle === option.value}
                     onChange={() => setDisplayStyle(option.value)}
-                    className="h-4 w-4 shrink-0 accent-[#D8A35B] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D8A35B]"
+                    className="h-4 w-4 shrink-0 accent-[color:var(--nsg-accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--nsg-accent)]"
                   />
                   {option.label}
                 </label>
@@ -320,12 +320,12 @@ export default function SignupForm() {
             )}
             <div
               aria-live="polite"
-              className="mt-4 rounded-xl border border-[#D8A35B]/20 bg-[#D8A35B]/[0.05] p-4"
+              className="mt-4 rounded-xl border border-[color:var(--nsg-accent)]/20 bg-[color:var(--nsg-accent)]/[0.05] p-4"
             >
               <p className="text-sm text-slate-400">
                 Your profile will appear as:
               </p>
-              <p className="mt-1 font-serif text-xl text-[#f0c98e]">
+              <p className="mt-1 font-serif text-xl text-[color:var(--nsg-accent-light)]">
                 {profileName}
               </p>
             </div>
@@ -333,7 +333,7 @@ export default function SignupForm() {
 
           <section
             aria-labelledby="discoverability-heading"
-            className="border-t border-white/10 pt-7"
+            className="border-t border-[color:var(--nsg-border)]/10 pt-7"
           >
             <h2
               id="discoverability-heading"
@@ -350,7 +350,7 @@ export default function SignupForm() {
                   value="private"
                   checked={discoverability === "private"}
                   onChange={() => { setDiscoverability("private"); setShowSearchWarning(true); }}
-                  className="mt-0.5 h-4 w-4 shrink-0 accent-[#D8A35B] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D8A35B]"
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-[color:var(--nsg-accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--nsg-accent)]"
                 />
                 <span>
                   <span className="block font-medium">Private</span>
@@ -366,7 +366,7 @@ export default function SignupForm() {
                   value="searchable"
                   checked={discoverability === "searchable"}
                   onChange={() => setDiscoverability("searchable")}
-                  className="mt-0.5 h-4 w-4 shrink-0 accent-[#D8A35B] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D8A35B]"
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-[color:var(--nsg-accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--nsg-accent)]"
                 />
                 <span>
                   <span className="block font-medium">Searchable</span>
@@ -383,7 +383,7 @@ export default function SignupForm() {
                   value="public"
                   checked={discoverability === "public"}
                   onChange={() => setDiscoverability("public")}
-                  className="mt-0.5 h-4 w-4 shrink-0 accent-[#D8A35B] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D8A35B]"
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-[color:var(--nsg-accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--nsg-accent)]"
                 />
                 <span>
                   <span className="block font-medium">Public</span>
@@ -396,12 +396,12 @@ export default function SignupForm() {
             </fieldset>
             <SearchabilityWarning open={showSearchWarning} onChoose={(choice) => { setDiscoverability(choice); setShowSearchWarning(false); }} />
             <div className="mt-5">
-              <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-4">
+              <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[color:var(--nsg-border)]/10 bg-white/[0.02] p-4">
                 <input
                   type="checkbox"
                   name="featured"
                   defaultChecked
-                  className="mt-1 h-4 w-4 shrink-0 accent-[#D8A35B] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D8A35B]"
+                  className="mt-1 h-4 w-4 shrink-0 accent-[color:var(--nsg-accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--nsg-accent)]"
                 />
                 <span>
                   <span className="block text-sm font-medium text-white">
@@ -421,10 +421,10 @@ export default function SignupForm() {
 
           <section
             aria-labelledby="membership-heading"
-            className="border-t border-white/10 pt-7"
+            className="border-t border-[color:var(--nsg-border)]/10 pt-7"
           >
             <div className="mb-5">
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#D8A35B]">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[color:var(--nsg-accent)]">
                 Find the beginning that feels right
               </p>
               <h2
@@ -435,7 +435,7 @@ export default function SignupForm() {
               </h2>
               <p className="mt-3 text-sm leading-6 text-slate-400">
                 Free Legacy is available now. Paid plans are coming soon; beta access remains unchanged and plan limits are not enforced.{" "}
-                <Link href="/pricing" className="font-semibold text-[#f0c98e] underline underline-offset-4">Compare plans and planned features</Link>
+                <Link href="/pricing" className="font-semibold text-[color:var(--nsg-accent-light)] underline underline-offset-4">Compare plans and planned features</Link>
               </p>
             </div>
             <fieldset className="grid gap-4 md:grid-cols-2">
@@ -446,15 +446,15 @@ export default function SignupForm() {
                   aria-disabled={!plan.available || undefined}
                   className={`relative flex flex-col rounded-2xl border bg-slate-950/40 p-5 transition ${
                     plan.mostPopular
-                      ? "border-[#D8A35B]/70 shadow-lg shadow-[#D8A35B]/10"
-                      : "border-white/10"
-                  } ${selectedPlan === plan.id ? "bg-[#D8A35B]/[0.08]" : ""} ${
+                      ? "border-[color:var(--nsg-accent)]/70 shadow-lg shadow-[color:var(--nsg-accent)]/10"
+                      : "border-[color:var(--nsg-border)]/10"
+                  } ${selectedPlan === plan.id ? "bg-[color:var(--nsg-accent)]/[0.08]" : ""} ${
                     !plan.available ? "opacity-70" : ""
                   }`}
                 >
                   <div className="mb-3 flex flex-wrap gap-2">
-                    {plan.mostPopular && <span className="rounded-full bg-[#D8A35B]/15 px-3 py-1 text-xs font-semibold text-[#f0c98e]">⭐ Most Popular</span>}
-                    {!plan.available && <span className="rounded-full border border-white/15 px-3 py-1 text-xs font-semibold text-slate-300">Coming Soon</span>}
+                    {plan.mostPopular && <span className="rounded-full bg-[color:var(--nsg-accent)]/15 px-3 py-1 text-xs font-semibold text-[color:var(--nsg-accent-light)]">⭐ Most Popular</span>}
+                    {!plan.available && <span className="rounded-full border border-[color:var(--nsg-border)]/15 px-3 py-1 text-xs font-semibold text-slate-300">Coming Soon</span>}
                   </div>
                   <label
                     className={`flex items-center gap-3 ${
@@ -468,13 +468,13 @@ export default function SignupForm() {
                       checked={selectedPlan === plan.id}
                       onChange={() => setSelectedPlan(plan.id)}
                       disabled={!plan.available}
-                      className="h-4 w-4 accent-[#D8A35B] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D8A35B]"
+                      className="h-4 w-4 accent-[color:var(--nsg-accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--nsg-accent)]"
                     />
-                    <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[#D8A35B]">
+                    <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--nsg-accent)]">
                       {plan.name}
                     </span>
                   </label>
-                  <p className="mt-3 font-semibold text-[#f0c98e]">{membershipPrice(plan)}</p>
+                  <p className="mt-3 font-semibold text-[color:var(--nsg-accent-light)]">{membershipPrice(plan)}</p>
                   <p className="mt-3 flex-1 text-sm leading-6 text-slate-300">{plan.tagline}</p>
                   <button
                     type="button"
@@ -487,10 +487,10 @@ export default function SignupForm() {
                         .getElementById("terms-and-conditions")
                         ?.scrollIntoView({ behavior: "smooth", block: "center" });
                     }}
-                    className={`mt-5 min-h-11 w-full rounded-full border px-4 py-2.5 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B] disabled:cursor-not-allowed disabled:border-white/10 disabled:text-slate-500 disabled:hover:border-white/10 disabled:hover:text-slate-500 ${
+                    className={`mt-5 min-h-11 w-full rounded-full border px-4 py-2.5 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)] disabled:cursor-not-allowed disabled:border-[color:var(--nsg-border)]/10 disabled:text-slate-500 disabled:hover:border-[color:var(--nsg-border)]/10 disabled:hover:text-slate-500 ${
                       selectedPlan === plan.id
-                        ? "border-[#D8A35B] bg-[#D8A35B]/15 text-[#f0c98e]"
-                        : "border-white/15 text-slate-300 hover:border-[#D8A35B]/60 hover:text-[#f0c98e]"
+                        ? "border-[color:var(--nsg-accent)] bg-[color:var(--nsg-accent)]/15 text-[color:var(--nsg-accent-light)]"
+                        : "border-[color:var(--nsg-border)]/15 text-slate-300 hover:border-[color:var(--nsg-accent)]/60 hover:text-[color:var(--nsg-accent-light)]"
                     }`}
                   >
                     {plan.available ? "Start Free" : "Coming Soon"}
@@ -503,7 +503,7 @@ export default function SignupForm() {
           <section
             id="terms-and-conditions"
             aria-labelledby="agreements-heading"
-            className="scroll-mt-24 border-t border-white/10 pt-7"
+            className="scroll-mt-24 border-t border-[color:var(--nsg-border)]/10 pt-7"
           >
             <h2 id="agreements-heading" className="sr-only">
               Agreements
@@ -516,7 +516,7 @@ export default function SignupForm() {
                   required
                   checked={termsAccepted}
                   onChange={(event) => setTermsAccepted(event.target.checked)}
-                  className="mt-1 h-4 w-4 shrink-0 accent-[#D8A35B] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D8A35B]"
+                  className="mt-1 h-4 w-4 shrink-0 accent-[color:var(--nsg-accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--nsg-accent)]"
                 />
                 <span>I agree to the Terms and Conditions.</span>
               </label>
@@ -525,7 +525,7 @@ export default function SignupForm() {
                   type="checkbox"
                   name="visibilityAcknowledgment"
                   required
-                  className="mt-1 h-4 w-4 shrink-0 accent-[#D8A35B] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D8A35B]"
+                  className="mt-1 h-4 w-4 shrink-0 accent-[color:var(--nsg-accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--nsg-accent)]"
                 />
                 <span>
                   I understand that I control who can discover and view my
@@ -544,7 +544,7 @@ export default function SignupForm() {
             type="submit"
             disabled={isPending || !termsAccepted}
             aria-describedby="terms-requirement"
-            className="min-h-14 w-full rounded-full bg-[#D8A35B] px-8 py-4 text-sm font-semibold tracking-wide text-[#0F172A] shadow-lg shadow-[#D8A35B]/10 transition hover:bg-[#e6b66f] disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-300 disabled:shadow-none disabled:hover:bg-slate-700 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B] sm:text-base"
+            className="min-h-14 w-full rounded-full bg-[color:var(--nsg-accent)] px-8 py-4 text-sm font-semibold tracking-wide text-[color:var(--nsg-background)] shadow-lg shadow-[color:var(--nsg-accent)]/10 transition hover:bg-[color:var(--nsg-accent-hover)] disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-300 disabled:shadow-none disabled:hover:bg-slate-700 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)] sm:text-base"
           >
             {isPending ? "Creating your account..." : "Become A Moment Maker™"}
           </button>
@@ -559,7 +559,7 @@ export default function SignupForm() {
         </form>
 
         <footer className="py-10 text-center">
-          <p className="font-serif text-lg text-white"><Link href="/" className="focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]">Never Say Goodbye</Link></p>
+          <p className="font-serif text-lg text-white"><Link href="/" className="focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]">Never Say Goodbye</Link></p>
           <p className="mt-2 text-sm text-slate-500">
             Connection Beyond Goodbye
           </p>
@@ -567,7 +567,7 @@ export default function SignupForm() {
             Already a Moment Maker?{" "}
             <Link
               href="/login"
-              className="text-[#f0c98e] underline decoration-[#D8A35B]/40 underline-offset-4 hover:text-white"
+              className="text-[color:var(--nsg-accent-light)] underline decoration-[color:var(--nsg-accent)]/40 underline-offset-4 hover:text-white"
             >
               Sign in
             </Link>
@@ -579,4 +579,4 @@ export default function SignupForm() {
 }
 
 const optionClassName =
-  "flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-4 text-sm text-white transition hover:border-[#D8A35B]/30";
+  "flex cursor-pointer items-start gap-3 rounded-xl border border-[color:var(--nsg-border)]/10 bg-white/[0.02] p-4 text-sm text-white transition hover:border-[color:var(--nsg-accent)]/30";

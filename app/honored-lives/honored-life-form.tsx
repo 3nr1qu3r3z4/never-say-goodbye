@@ -16,7 +16,7 @@ export type Placeholder = {
   deathYear: number | null;
 };
 
-const fieldClass = "mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-slate-950/50 px-4 text-sm text-white outline-none focus:border-[#D8A35B]/70 focus:ring-2 focus:ring-[#D8A35B]/20";
+const fieldClass = "mt-2 min-h-12 w-full rounded-xl border border-[color:var(--nsg-border)]/10 bg-slate-950/50 px-4 text-sm text-white outline-none focus:border-[color:var(--nsg-accent)]/70 focus:ring-2 focus:ring-[color:var(--nsg-accent)]/20";
 
 async function preparePhoto(file: File): Promise<string> {
   if (file.size > 20 * 1024 * 1024) throw new Error("Choose an image smaller than 20 MB.");
@@ -108,18 +108,18 @@ export default function HonoredLifeForm({ trees, placeholders }: { trees: Tree[]
   }
 
   if (!trees.length) {
-    return <p className="mt-8 rounded-2xl border border-white/10 p-5 text-slate-300">A tree owner or administrator can create an Honored Life. <Link href="/legacy-tree" className="text-[#f0c98e] underline">Visit your Legacy Tree™</Link>.</p>;
+    return <p className="mt-8 rounded-2xl border border-[color:var(--nsg-border)]/10 p-5 text-slate-300">A tree owner or administrator can create an Honored Life. <Link href="/legacy-tree" className="text-[color:var(--nsg-accent-light)] underline">Visit your Legacy Tree™</Link>.</p>;
   }
   if (state.success && state.treeId) {
-    return <div className="mt-8 rounded-2xl border border-white/10 p-5">
-      <p role="status" className="text-[#f0c98e]">{state.success}</p>
-      <Link href={`/legacy-tree#legacy-tree-item-${encodeURIComponent(state.treeId)}`} className="mt-4 inline-block text-[#f0c98e] underline">View your Legacy Tree™</Link>
-      <p className="mt-3"><a href="/honored-lives" className="text-[#f0c98e] underline">Honor another life</a></p>
+    return <div className="mt-8 rounded-2xl border border-[color:var(--nsg-border)]/10 p-5">
+      <p role="status" className="text-[color:var(--nsg-accent-light)]">{state.success}</p>
+      <Link href={`/legacy-tree#legacy-tree-item-${encodeURIComponent(state.treeId)}`} className="mt-4 inline-block text-[color:var(--nsg-accent-light)] underline">View your Legacy Tree™</Link>
+      <p className="mt-3"><a href="/honored-lives" className="text-[color:var(--nsg-accent-light)] underline">Honor another life</a></p>
     </div>;
   }
 
   return (
-    <form action={action} className="mt-8 space-y-5 rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-7">
+    <form action={action} className="mt-8 space-y-5 rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5 sm:p-7">
       <label className="block text-sm font-medium">Legacy Tree™
         <select name="treeId" value={treeId} onChange={(event) => {
           setTreeId(event.target.value);
@@ -166,8 +166,8 @@ export default function HonoredLifeForm({ trees, placeholders }: { trees: Tree[]
       <p aria-live="polite" className={`text-sm ${photoError ? "text-rose-300" : "text-slate-400"}`}>
         {photoError || (preparing ? "Preparing photo…" : photo ? "Photo ready." : "Choose a photo up to 20 MB.")}
       </p>
-      {(photo || photoError || preparing) && <button type="button" className="text-sm text-[#f0c98e] underline" onClick={clearPhoto}>Remove photo</button>}
-      <button type="submit" disabled={pending || preparing || Boolean(photoError)} className="min-h-12 rounded-full bg-[#D8A35B] px-7 py-3 text-sm font-semibold text-[#0F172A] disabled:opacity-60">
+      {(photo || photoError || preparing) && <button type="button" className="text-sm text-[color:var(--nsg-accent-light)] underline" onClick={clearPhoto}>Remove photo</button>}
+      <button type="submit" disabled={pending || preparing || Boolean(photoError)} className="min-h-12 rounded-full bg-[color:var(--nsg-accent)] px-7 py-3 text-sm font-semibold text-[color:var(--nsg-background)] disabled:opacity-60">
         {pending ? "Saving…" : "Create Honored Life"}
       </button>
       {state.error && <p role="alert" className="text-sm text-rose-300">{state.error}</p>}

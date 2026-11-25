@@ -5,6 +5,7 @@ import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getSql } from "@/lib/db";
+import type { SiteTheme } from "@/lib/site-themes";
 
 const sessionCookieName = "nsg_session";
 const sessionDurationMs = 30 * 24 * 60 * 60 * 1000;
@@ -17,6 +18,7 @@ export type AuthenticatedUser = {
   lastName: string;
   displayName: string;
   membership: "free" | "tier-2" | "tier-3";
+  siteTheme: SiteTheme;
 };
 
 function hashToken(token: string) {
@@ -63,7 +65,8 @@ export const getCurrentUser = cache(async (): Promise<AuthenticatedUser | null> 
   const rows = (await sql`
     SELECT users.id, users.email, users.first_name AS "firstName",
            users.middle_name AS "middleName", users.last_name AS "lastName",
-           users.display_name AS "displayName", users.membership
+           users.display_name AS "displayName", users.membership,
+           users.site_theme AS "siteTheme"
     FROM sessions
     JOIN users ON users.id = sessions.user_id
     WHERE sessions.token_hash = ${hashToken(token)}

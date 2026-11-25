@@ -13,13 +13,13 @@ export default function ProfileLocations({
     <dl className="mt-4 space-y-3 text-sm">
       {birth && (
         <div>
-          <dt className="font-medium text-[#f0c98e]">Born In</dt>
+          <dt className="font-medium text-[color:var(--nsg-accent-light)]">Born In</dt>
           <dd className="mt-1 text-slate-300">{birth}</dd>
         </div>
       )}
       {current && (
         <div>
-          <dt className="font-medium text-[#f0c98e]">Lives In</dt>
+          <dt className="font-medium text-[color:var(--nsg-accent-light)]">Lives In</dt>
           <dd className="mt-1 text-slate-300">{current}</dd>
         </div>
       )}

@@ -5,26 +5,26 @@ import { useActionState } from "react";
 import { loginAction } from "@/app/actions/auth";
 
 const inputClassName =
-  "mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-slate-950/50 px-4 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-[#D8A35B]/70 focus:ring-2 focus:ring-[#D8A35B]/20";
+  "mt-2 min-h-12 w-full rounded-xl border border-[color:var(--nsg-border)]/10 bg-slate-950/50 px-4 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-[color:var(--nsg-accent)]/70 focus:ring-2 focus:ring-[color:var(--nsg-accent)]/20";
 
 export default function LoginForm() {
   const [formState, formAction, isPending] = useActionState(loginAction, {});
 
   return (
-    <main className="relative flex min-h-screen items-center overflow-hidden bg-[#0F172A] px-5 py-12 text-slate-100 sm:px-8">
+    <main className="relative flex min-h-screen items-center overflow-hidden bg-[color:var(--nsg-background)] px-5 py-12 text-slate-100 sm:px-8">
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(216,163,91,0.12),transparent_58%)]"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,color-mix(in_srgb,var(--nsg-accent)_12%,transparent),transparent_58%)]"
       />
       <div className="relative mx-auto w-full max-w-xl">
         <Link
           href="/"
-          className="text-xs font-medium uppercase tracking-[0.2em] text-slate-400 transition hover:text-[#f0c98e]"
+          className="text-xs font-medium uppercase tracking-[0.2em] text-slate-400 transition hover:text-[color:var(--nsg-accent-light)]"
         >
           Never Say Goodbye
         </Link>
-        <section className="mt-10 rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-2xl shadow-black/20 sm:mt-14 sm:p-10">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">
+        <section className="mt-10 rounded-3xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-6 shadow-2xl shadow-black/20 sm:mt-14 sm:p-10">
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[color:var(--nsg-accent)]">
             Welcome back
           </p>
           <h1 className="mt-3 font-serif text-3xl text-white sm:text-4xl">
@@ -76,17 +76,17 @@ export default function LoginForm() {
             <button
               type="submit"
               disabled={isPending}
-              className="min-h-12 w-full rounded-full bg-[#D8A35B] px-6 py-3 text-sm font-semibold text-[#0F172A] transition hover:bg-[#e6b66f] disabled:cursor-wait disabled:opacity-70"
+              className="min-h-12 w-full rounded-full bg-[color:var(--nsg-accent)] px-6 py-3 text-sm font-semibold text-[color:var(--nsg-background)] transition hover:bg-[color:var(--nsg-accent-hover)] disabled:cursor-wait disabled:opacity-70"
             >
               {isPending ? "Signing in..." : "Sign In"}
             </button>
           </form>
 
           <div className="mt-5 flex flex-col items-center gap-2 text-sm">
-            <Link href="/forgot-username" className="text-[#f0c98e] underline decoration-[#D8A35B]/40 underline-offset-4 hover:text-white">
+            <Link href="/forgot-username" className="text-[color:var(--nsg-accent-light)] underline decoration-[color:var(--nsg-accent)]/40 underline-offset-4 hover:text-white">
               Forgot Username?
             </Link>
-            <Link href="/forgot-password" className="text-[#f0c98e] underline decoration-[#D8A35B]/40 underline-offset-4 hover:text-white">
+            <Link href="/forgot-password" className="text-[color:var(--nsg-accent-light)] underline decoration-[color:var(--nsg-accent)]/40 underline-offset-4 hover:text-white">
               Forgot Password?
             </Link>
           </div>
@@ -95,7 +95,7 @@ export default function LoginForm() {
             New to Never Say Goodbye?{" "}
             <Link
               href="/signup"
-              className="text-[#f0c98e] underline decoration-[#D8A35B]/40 underline-offset-4 hover:text-white"
+              className="text-[color:var(--nsg-accent-light)] underline decoration-[color:var(--nsg-accent)]/40 underline-offset-4 hover:text-white"
             >
               Become A Moment Maker™
             </Link>

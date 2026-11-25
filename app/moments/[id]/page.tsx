@@ -26,17 +26,17 @@ export default async function MomentPage({
   ].filter((attachment) => attachment.name);
 
   return (
-    <main className="min-h-screen bg-[#0F172A] px-5 py-10 text-slate-100 sm:px-8 sm:py-14">
+    <main className="min-h-screen bg-[color:var(--nsg-background)] px-5 py-10 text-slate-100 sm:px-8 sm:py-14">
       <article className="mx-auto max-w-3xl">
         {user ? (
           <>
             {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-            <a href="/moments" className="text-sm font-semibold text-[#f0c98e] hover:underline">
+            <a href="/moments" className="text-sm font-semibold text-[color:var(--nsg-accent-light)] hover:underline">
               Shared Moments
             </a>
           </>
         ) : (
-          <a href={`/moment-maker/${encodeURIComponent(moment.authorId)}`} className="text-sm font-semibold text-[#f0c98e] hover:underline">
+          <a href={`/moment-maker/${encodeURIComponent(moment.authorId)}`} className="text-sm font-semibold text-[color:var(--nsg-accent-light)] hover:underline">
             Moment Maker Profile
           </a>
         )}
@@ -83,7 +83,7 @@ export default async function MomentPage({
           </section>
         )}
         {user && (
-          <Link href="/dashboard" className="mt-10 inline-block text-sm font-semibold text-[#f0c98e] hover:underline">
+          <Link href="/dashboard" className="mt-10 inline-block text-sm font-semibold text-[color:var(--nsg-accent-light)] hover:underline">
             My Legacy
           </Link>
         )}

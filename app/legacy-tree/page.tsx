@@ -9,13 +9,13 @@ export const metadata: Metadata = {
 
 export default function LegacyTreePage() {
   return (
-    <main className="min-h-screen overflow-hidden bg-[#0F172A] text-slate-100">
+    <main className="min-h-screen overflow-hidden bg-[color:var(--nsg-background)] text-slate-100">
       <header className="relative px-6 pb-12 pt-16 text-center sm:px-8 sm:pb-16 sm:pt-24">
         <div
           aria-hidden="true"
-          className="absolute inset-x-0 top-0 -z-0 h-72 bg-[radial-gradient(ellipse_at_50%_0%,rgba(216,163,91,0.12),transparent_68%)]"
+          className="absolute inset-x-0 top-0 -z-0 h-72 bg-[radial-gradient(ellipse_at_50%_0%,color-mix(in_srgb,var(--nsg-accent)_12%,transparent),transparent_68%)]"
         />
-        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">
+        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[color:var(--nsg-accent)]">
           Connected Lives™
         </p>
         <h1 className="mt-4 font-serif text-4xl tracking-tight text-white sm:text-5xl md:text-6xl">

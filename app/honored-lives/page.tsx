@@ -33,9 +33,9 @@ export default async function HonoredLivesPage() {
     `,
   ]);
   return (
-    <main className="min-h-screen bg-[#0F172A] px-5 py-10 text-slate-100 sm:px-8 sm:py-14">
+    <main className="min-h-screen bg-[color:var(--nsg-background)] px-5 py-10 text-slate-100 sm:px-8 sm:py-14">
       <div className="mx-auto max-w-3xl">
-        <Link href="/dashboard" className="text-sm text-[#f0c98e] hover:underline">← My Legacy</Link>
+        <Link href="/dashboard" className="text-sm text-[color:var(--nsg-accent-light)] hover:underline">← My Legacy</Link>
         <h1 className="mt-6 font-serif text-4xl text-white">🕊 Honored Lives™</h1>
         <p className="mt-4 leading-7 text-slate-400">
           Preserve a loved one&apos;s story as part of your family&apos;s Legacy Tree™.

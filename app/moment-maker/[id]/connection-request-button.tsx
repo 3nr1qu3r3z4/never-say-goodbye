@@ -8,7 +8,7 @@ import {
 } from "@/app/actions/connected-lives";
 
 const buttonClassName =
-  "inline-flex min-h-14 w-full max-w-2xl items-center justify-center rounded-full bg-[#D8A35B] px-8 py-4 text-sm font-semibold tracking-wide text-[#0F172A] shadow-lg shadow-[#D8A35B]/10 transition hover:bg-[#e6b66f] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B] disabled:cursor-wait disabled:opacity-70";
+  "inline-flex min-h-14 w-full max-w-2xl items-center justify-center rounded-full bg-[color:var(--nsg-accent)] px-8 py-4 text-sm font-semibold tracking-wide text-[color:var(--nsg-background)] shadow-lg shadow-[color:var(--nsg-accent)]/10 transition hover:bg-[color:var(--nsg-accent-hover)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)] disabled:cursor-wait disabled:opacity-70";
 
 export default function ConnectionRequestButton({
   profileUserId,

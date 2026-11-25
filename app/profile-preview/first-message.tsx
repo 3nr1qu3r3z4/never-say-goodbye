@@ -40,7 +40,7 @@ export default function FirstMessage() {
         id="first-message"
         type="button"
         onClick={openMessage}
-        className="mt-8 inline-flex w-full max-w-2xl justify-center rounded-full bg-[#D8A35B] px-8 py-4 text-sm font-semibold tracking-wide text-[#0F172A] shadow-lg shadow-[#D8A35B]/10 transition hover:bg-[#e6b66f] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
+        className="mt-8 inline-flex w-full max-w-2xl justify-center rounded-full bg-[color:var(--nsg-accent)] px-8 py-4 text-sm font-semibold tracking-wide text-[color:var(--nsg-background)] shadow-lg shadow-[color:var(--nsg-accent)]/10 transition hover:bg-[color:var(--nsg-accent-hover)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]"
       >
         ❤️ Read John&apos;s First Message
       </button>
@@ -68,14 +68,14 @@ export default function FirstMessage() {
             event.currentTarget.close();
           }
         }}
-        className="fixed inset-0 m-auto h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-h-none max-w-none overflow-y-auto overscroll-contain rounded-2xl border border-[#D8A35B]/30 bg-[#101b2e] p-0 text-slate-100 shadow-2xl shadow-black/50 backdrop:bg-slate-950/60 backdrop:backdrop-blur-sm sm:h-[72dvh] sm:w-[72vw] sm:rounded-3xl"
+        className="fixed inset-0 m-auto h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-h-none max-w-none overflow-y-auto overscroll-contain rounded-2xl border border-[color:var(--nsg-accent)]/30 bg-[#101b2e] p-0 text-slate-100 shadow-2xl shadow-black/50 backdrop:bg-slate-950/60 backdrop:backdrop-blur-sm sm:h-[72dvh] sm:w-[72vw] sm:rounded-3xl"
       >
-        <div className="min-h-full bg-gradient-to-br from-[#D8A35B]/[0.07] via-transparent to-slate-950/30 px-6 pb-10 pt-5 sm:px-12 sm:pb-16 sm:pt-8">
+        <div className="min-h-full bg-gradient-to-br from-[color:var(--nsg-accent)]/[0.07] via-transparent to-slate-950/30 px-6 pb-10 pt-5 sm:px-12 sm:pb-16 sm:pt-8">
           <div className="flex justify-end">
             <button
               type="button"
               onClick={() => dialogRef.current?.close()}
-              className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/15 px-5 text-sm font-semibold text-slate-300 transition hover:border-[#D8A35B]/50 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
+              className="inline-flex min-h-11 items-center justify-center rounded-full border border-[color:var(--nsg-border)]/15 px-5 text-sm font-semibold text-slate-300 transition hover:border-[color:var(--nsg-accent)]/50 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]"
             >
               <span aria-hidden="true" className="text-xl leading-none">×</span>
               <span className="sr-only">Close message</span>
@@ -98,11 +98,11 @@ export default function FirstMessage() {
               </p>
               <p>With love,<br />John</p>
             </div>
-            <div className="mt-10 rounded-2xl border border-[#D8A35B]/25 bg-white/[0.03] p-5 sm:p-6">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#D8A35B]">Voice Message</p>
+            <div className="mt-10 rounded-2xl border border-[color:var(--nsg-accent)]/25 bg-white/[0.03] p-5 sm:p-6">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--nsg-accent)]">Voice Message</p>
               <h3 className="mt-3 font-serif text-xl text-white">🎙 A Message From Dad</h3>
               <p className="mt-3 text-sm leading-6 text-slate-400">This example does not have a recording yet.</p>
-              <button type="button" disabled className="mt-5 min-h-11 rounded-full border border-white/10 bg-slate-800 px-6 py-3 text-sm font-semibold text-slate-400">
+              <button type="button" disabled className="mt-5 min-h-11 rounded-full border border-[color:var(--nsg-border)]/10 bg-slate-800 px-6 py-3 text-sm font-semibold text-slate-400">
                 Audio Coming Soon
               </button>
             </div>

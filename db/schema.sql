@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS users (
   display_name TEXT NOT NULL,
   display_style TEXT NOT NULL CHECK (display_style IN ('full-name', 'first-last', 'custom')),
   membership TEXT NOT NULL CHECK (membership IN ('free', 'tier-2', 'tier-3')),
+  site_theme TEXT NOT NULL DEFAULT 'classic',
   account_status TEXT NOT NULL DEFAULT 'active' CHECK (account_status IN ('active', 'inactive', 'memorialized', 'frozen')),
   discoverability TEXT NOT NULL DEFAULT 'searchable' CHECK (discoverability IN ('private', 'searchable', 'public')),
   featured BOOLEAN NOT NULL DEFAULT FALSE,

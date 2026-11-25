@@ -61,7 +61,7 @@ async function HomepageAccountActions() {
         {!user && (
           <Link
             href="/signup"
-            className="rounded-full bg-[#D8A35B] px-8 py-4 text-sm font-semibold tracking-wide text-[#0F172A] transition hover:bg-[#e6b66f] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
+            className="rounded-full bg-[color:var(--nsg-accent)] px-8 py-4 text-sm font-semibold tracking-wide text-[color:var(--nsg-background)] transition hover:bg-[color:var(--nsg-accent-hover)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]"
           >
             Create Your Legacy
           </Link>
@@ -69,8 +69,8 @@ async function HomepageAccountActions() {
         <Link
           href="/search"
           className={user
-            ? "rounded-full bg-[#D8A35B] px-8 py-4 text-sm font-semibold tracking-wide text-[#0F172A] transition hover:bg-[#e6b66f] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
-            : "rounded-full border border-[#D8A35B]/60 px-8 py-4 text-sm font-semibold tracking-wide text-[#f0c98e] transition hover:border-[#D8A35B] hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"}
+            ? "rounded-full bg-[color:var(--nsg-accent)] px-8 py-4 text-sm font-semibold tracking-wide text-[color:var(--nsg-background)] transition hover:bg-[color:var(--nsg-accent-hover)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]"
+            : "rounded-full border border-[color:var(--nsg-accent)]/60 px-8 py-4 text-sm font-semibold tracking-wide text-[color:var(--nsg-accent-light)] transition hover:border-[color:var(--nsg-accent)] hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]"}
         >
           Find A Moment Maker
         </Link>
@@ -79,7 +79,7 @@ async function HomepageAccountActions() {
         Not quite ready?{" "}
         <Link
           href="/about"
-          className="font-medium text-[#f0c98e] underline decoration-[#D8A35B]/40 underline-offset-4 transition hover:text-white"
+          className="font-medium text-[color:var(--nsg-accent-light)] underline decoration-[color:var(--nsg-accent)]/40 underline-offset-4 transition hover:text-white"
         >
           Learn why Never Say Goodbye exists.
         </Link>
@@ -90,15 +90,15 @@ async function HomepageAccountActions() {
 
 export default function Page() {
   return (
-    <main className="overflow-hidden bg-[#0F172A] text-slate-100">
+    <main className="overflow-hidden bg-[color:var(--nsg-background)] text-slate-100">
       <section className="relative isolate flex min-h-[92svh] flex-col items-center justify-center px-6 pt-8 pb-32 text-center sm:px-8 sm:pt-8 sm:pb-32">
         <div
           aria-hidden="true"
-          className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_50%_35%,rgba(216,163,91,0.12),transparent_58%)]"
+          className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_50%_35%,color-mix(in_srgb,var(--nsg-accent)_12%,transparent),transparent_58%)]"
         />
         <div
           aria-hidden="true"
-          className="absolute inset-x-0 bottom-0 -z-10 h-px bg-gradient-to-r from-transparent via-[#D8A35B]/40 to-transparent"
+          className="absolute inset-x-0 bottom-0 -z-10 h-px bg-gradient-to-r from-transparent via-[color:var(--nsg-accent)]/40 to-transparent"
         />
 
         <Image
@@ -109,7 +109,7 @@ export default function Page() {
           priority
           className="mb-0 h-[15.25rem] w-[15.25rem] object-contain sm:h-[19rem] sm:w-[19rem]"
         />
-        <p className="mt-1 text-[0.65rem] font-medium uppercase tracking-[0.24em] text-[#D8A35B] sm:text-xs">
+        <p className="mt-1 text-[0.65rem] font-medium uppercase tracking-[0.24em] text-[color:var(--nsg-accent)] sm:text-xs">
           Build it today. Leave it forever.
         </p>
         <h1 className="mt-1 max-w-4xl font-serif text-5xl leading-[1.08] tracking-tight text-white sm:text-6xl md:text-7xl">
@@ -117,7 +117,7 @@ export default function Page() {
         </h1>
         <div className="mt-2 flex flex-wrap items-center justify-center gap-x-3 font-serif text-xl leading-relaxed text-slate-200 sm:text-2xl md:text-3xl">
           <span>Preserve your presence.</span>
-          <span aria-hidden="true" className="text-[#D8A35B]">
+          <span aria-hidden="true" className="text-[color:var(--nsg-accent)]">
             •
           </span>
           <span>Share your moments.</span>
@@ -127,7 +127,7 @@ export default function Page() {
         </Suspense>
         <Link
           href="/legacy-tree"
-          className="mt-5 inline-flex text-sm font-medium text-[#f0c98e] transition hover:text-[#D8A35B] focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
+          className="mt-5 inline-flex text-sm font-medium text-[color:var(--nsg-accent-light)] transition hover:text-[color:var(--nsg-accent)] focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]"
         >
           🌳 Explore Legacy Tree™
         </Link>
@@ -138,7 +138,7 @@ export default function Page() {
 
       <section className="mx-auto max-w-7xl px-6 py-20 sm:px-8 sm:py-28">
         <div className="mx-auto max-w-2xl text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[color:var(--nsg-accent)]">
             A legacy made with love
           </p>
           <h2 className="mt-4 font-serif text-3xl text-white sm:text-4xl">
@@ -149,9 +149,9 @@ export default function Page() {
           {howItWorks.map((item) => (
             <article
               key={item.number}
-              className={`rounded-2xl border border-white/10 bg-white/[0.03] p-6 sm:p-7 ${item.number === "05" || item.number === "06" ? "sm:col-span-2" : ""}`}
+              className={`rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-6 sm:p-7 ${item.number === "05" || item.number === "06" ? "sm:col-span-2" : ""}`}
             >
-              <span className="font-serif text-sm tracking-[0.2em] text-[#D8A35B]">
+              <span className="font-serif text-sm tracking-[0.2em] text-[color:var(--nsg-accent)]">
                 {item.number}
               </span>
               <h3 className="mt-6 font-serif text-xl text-white">
@@ -177,11 +177,11 @@ export default function Page() {
 
       <section
         id="legacy-profile"
-        className="border-y border-white/10 bg-slate-950/30 px-6 py-20 sm:px-8 sm:py-28"
+        className="border-y border-[color:var(--nsg-border)]/10 bg-slate-950/30 px-6 py-20 sm:px-8 sm:py-28"
       >
         <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[1fr_0.9fr] lg:gap-20">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[color:var(--nsg-accent)]">
               A life of moments
             </p>
             <h2 className="mt-4 font-serif text-3xl text-white sm:text-4xl">
@@ -193,13 +193,13 @@ export default function Page() {
             </p>
           </div>
 
-          <article className="relative overflow-hidden rounded-3xl border border-[#D8A35B]/30 bg-gradient-to-br from-slate-800/80 to-slate-900 p-7 shadow-2xl shadow-black/20 sm:p-10">
+          <article className="relative overflow-hidden rounded-3xl border border-[color:var(--nsg-accent)]/30 bg-gradient-to-br from-slate-800/80 to-slate-900 p-7 shadow-2xl shadow-black/20 sm:p-10">
             <div
               aria-hidden="true"
-              className="absolute right-0 top-0 h-40 w-40 rounded-full bg-[#D8A35B]/10 blur-3xl"
+              className="absolute right-0 top-0 h-40 w-40 rounded-full bg-[color:var(--nsg-accent)]/10 blur-3xl"
             />
             <div className="relative">
-              <div className="mb-8 flex h-16 w-16 items-center justify-center rounded-full border border-[#D8A35B]/40 bg-[#D8A35B]/10 font-serif text-2xl text-[#D8A35B]">
+              <div className="mb-8 flex h-16 w-16 items-center justify-center rounded-full border border-[color:var(--nsg-accent)]/40 bg-[color:var(--nsg-accent)]/10 font-serif text-2xl text-[color:var(--nsg-accent)]">
                 J
               </div>
               <div aria-hidden="true" className="h-4" />
@@ -207,8 +207,8 @@ export default function Page() {
                 John Michael Doe
               </h3>
               <p className="mt-3 text-sm tracking-wide text-slate-300">
-                Father <span className="text-[#D8A35B]">•</span> Veteran{" "}
-                <span className="text-[#D8A35B]">•</span> Musician
+                Father <span className="text-[color:var(--nsg-accent)]">•</span> Veteran{" "}
+                <span className="text-[color:var(--nsg-accent)]">•</span> Musician
               </p>
               <div className="my-7 h-px bg-white/10" />
               <dl className="grid gap-5 sm:grid-cols-2">
@@ -231,7 +231,7 @@ export default function Page() {
               </dl>
               <Link
                 href="/profile-preview"
-                className="mt-8 inline-flex w-full justify-center rounded-full border border-[#D8A35B]/50 px-6 py-4 text-sm font-medium text-[#f0c98e] transition hover:bg-[#D8A35B]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
+                className="mt-8 inline-flex w-full justify-center rounded-full border border-[color:var(--nsg-accent)]/50 px-6 py-4 text-sm font-medium text-[color:var(--nsg-accent-light)] transition hover:bg-[color:var(--nsg-accent)]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]"
               >
                 See Sample Profile
               </Link>
@@ -248,7 +248,7 @@ export default function Page() {
       </Suspense>
 
       <section className="mx-auto max-w-7xl px-6 py-20 text-center sm:px-8 sm:py-28">
-        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">
+        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[color:var(--nsg-accent)]">
           For the days still to come
         </p>
         <h2 className="mt-4 font-serif text-3xl text-white sm:text-4xl">
@@ -261,7 +261,7 @@ export default function Page() {
           {sealedMessages.map((message) => (
             <article
               key={message.title}
-              className="rounded-2xl border border-white/10 bg-white/[0.03] p-7 transition hover:border-[#D8A35B]/40 sm:p-8"
+              className="rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-7 transition hover:border-[color:var(--nsg-accent)]/40 sm:p-8"
             >
               <span aria-hidden="true" className="text-3xl">
                 {message.icon}
@@ -277,15 +277,15 @@ export default function Page() {
         </div>
       </section>
 
-      <section className="border-y border-white/10 bg-gradient-to-r from-slate-950/60 via-slate-900/60 to-slate-950/60 px-6 py-20 sm:px-8 sm:py-28">
+      <section className="border-y border-[color:var(--nsg-border)]/10 bg-gradient-to-r from-slate-950/60 via-slate-900/60 to-slate-950/60 px-6 py-20 sm:px-8 sm:py-28">
         <Link
           href="/legacy-frame"
           aria-label="Learn more about Legacy Frame™"
-          className="group mx-auto grid max-w-6xl items-center gap-12 focus-visible:outline-2 focus-visible:outline-offset-8 focus-visible:outline-[#D8A35B] lg:grid-cols-2 lg:gap-20"
+          className="group mx-auto grid max-w-6xl items-center gap-12 focus-visible:outline-2 focus-visible:outline-offset-8 focus-visible:outline-[color:var(--nsg-accent)] lg:grid-cols-2 lg:gap-20"
         >
           <div className="order-2 flex justify-center lg:order-1">
             <div className="w-full max-w-sm">
-              <div className="relative mx-auto aspect-[4/5] w-full max-w-[18rem] overflow-hidden rounded-xl shadow-2xl shadow-black/30 transition group-hover:shadow-[#D8A35B]/15">
+              <div className="relative mx-auto aspect-[4/5] w-full max-w-[18rem] overflow-hidden rounded-xl shadow-2xl shadow-black/30 transition group-hover:shadow-[color:var(--nsg-accent)]/15">
                 <Image
                   src="/images/legacy-frame-upload.png"
                   alt="A framed portrait resting on a side table in a warm living room"
@@ -294,13 +294,13 @@ export default function Page() {
                   className="object-cover object-top"
                 />
               </div>
-              <p className="mt-5 text-center text-xs uppercase tracking-[0.22em] text-[#D8A35B]">
+              <p className="mt-5 text-center text-xs uppercase tracking-[0.22em] text-[color:var(--nsg-accent)]">
                 Legacy Frame™
               </p>
             </div>
           </div>
           <div className="order-1 lg:order-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[color:var(--nsg-accent)]">
               LEGACY FRAME™
             </p>
             <h2 className="mt-4 font-serif text-3xl text-white sm:text-4xl">
@@ -315,7 +315,7 @@ export default function Page() {
               Always close.
             </p>
             <span
-              className="mt-8 inline-flex rounded-full border border-[#D8A35B]/60 px-7 py-3.5 text-sm font-semibold text-[#f0c98e] transition group-hover:border-[#D8A35B] group-hover:bg-[#D8A35B]/10"
+              className="mt-8 inline-flex rounded-full border border-[color:var(--nsg-accent)]/60 px-7 py-3.5 text-sm font-semibold text-[color:var(--nsg-accent-light)] transition group-hover:border-[color:var(--nsg-accent)] group-hover:bg-[color:var(--nsg-accent)]/10"
             >
               Learn More
             </span>
@@ -353,7 +353,7 @@ export default function Page() {
             <Link
               key={feature.name}
               href={feature.href}
-              className="cursor-pointer rounded-2xl border border-white/10 bg-white/[0.03] px-6 py-10 transition duration-200 hover:-translate-y-1 hover:border-[#D8A35B]/40 hover:bg-white/[0.06] hover:shadow-lg hover:shadow-[#D8A35B]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B] sm:px-10"
+              className="cursor-pointer rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] px-6 py-10 transition duration-200 hover:-translate-y-1 hover:border-[color:var(--nsg-accent)]/40 hover:bg-white/[0.06] hover:shadow-lg hover:shadow-[color:var(--nsg-accent)]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)] sm:px-10"
             >
               <h3 className="font-serif text-2xl text-white">
                 {feature.name}
@@ -366,8 +366,8 @@ export default function Page() {
         </div>
       </section>
 
-      <footer className="border-t border-white/10 px-6 py-8 text-center sm:px-8">
-        <p className="font-serif text-lg text-white"><Link href="/" className="focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]">Never Say Goodbye</Link></p>
+      <footer className="border-t border-[color:var(--nsg-border)]/10 px-6 py-8 text-center sm:px-8">
+        <p className="font-serif text-lg text-white"><Link href="/" className="focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]">Never Say Goodbye</Link></p>
         <p className="mt-2 text-sm text-slate-400">Connection Beyond Goodbye</p>
         <p className="mt-4 text-xs tracking-wide text-slate-500">
           NeverSayGoodbye.life

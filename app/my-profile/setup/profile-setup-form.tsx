@@ -17,7 +17,7 @@ export type ProfileSetup = {
 };
 
 const fieldClassName =
-  "mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-slate-950/50 px-4 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-[#D8A35B]/70 focus:ring-2 focus:ring-[#D8A35B]/20";
+  "mt-2 min-h-12 w-full rounded-xl border border-[color:var(--nsg-border)]/10 bg-slate-950/50 px-4 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-[color:var(--nsg-accent)]/70 focus:ring-2 focus:ring-[color:var(--nsg-accent)]/20";
 
 const visibilityOptions = [
   {
@@ -72,7 +72,7 @@ export default function ProfileSetupForm({ profile }: { profile: ProfileSetup })
         </p>
         <div className="mt-4 space-y-3">
           {visibilityOptions.map((option) => (
-            <label key={option.value} className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-4 text-sm text-white transition hover:border-[#D8A35B]/30">
+            <label key={option.value} className="flex cursor-pointer items-start gap-3 rounded-xl border border-[color:var(--nsg-border)]/10 bg-white/[0.02] p-4 text-sm text-white transition hover:border-[color:var(--nsg-accent)]/30">
               <input
                 type="radio"
                 name="discoverability"
@@ -83,7 +83,7 @@ export default function ProfileSetupForm({ profile }: { profile: ProfileSetup })
                   if (option.value === "private") setShowSearchWarning(true);
                 }}
                 required
-                className="mt-1 h-4 w-4 shrink-0 accent-[#D8A35B] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D8A35B]"
+                className="mt-1 h-4 w-4 shrink-0 accent-[color:var(--nsg-accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--nsg-accent)]"
               />
               <span>
                 <span className="block font-medium">{option.label}</span>
@@ -93,7 +93,7 @@ export default function ProfileSetupForm({ profile }: { profile: ProfileSetup })
           ))}
         </div>
         <SearchabilityWarning open={showSearchWarning} onChoose={(choice) => { setDiscoverability(choice); setShowSearchWarning(false); }} />
-        <Link href="/legacy-controls" className="mt-3 inline-block text-sm text-[#f0c98e] underline decoration-[#D8A35B]/40 underline-offset-4 hover:text-white">
+        <Link href="/legacy-controls" className="mt-3 inline-block text-sm text-[color:var(--nsg-accent-light)] underline decoration-[color:var(--nsg-accent)]/40 underline-offset-4 hover:text-white">
           Review other Legacy Controls™
         </Link>
       </fieldset>
@@ -135,13 +135,13 @@ export default function ProfileSetupForm({ profile }: { profile: ProfileSetup })
 
       <div aria-live="polite" className="min-h-5 text-sm">
         {status.error && <p className="text-red-200">{status.error}</p>}
-        {status.success && <p className="text-[#f0c98e]">{status.success}</p>}
+        {status.success && <p className="text-[color:var(--nsg-accent-light)]">{status.success}</p>}
       </div>
-      <div className="flex flex-col gap-3 border-t border-white/10 pt-6 sm:flex-row">
-        <button type="submit" disabled={isSaving} className="inline-flex min-h-12 flex-1 items-center justify-center rounded-full bg-[#D8A35B] px-7 py-3 text-sm font-semibold text-[#0F172A] transition hover:bg-[#e6b66f] disabled:cursor-wait disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]">
+      <div className="flex flex-col gap-3 border-t border-[color:var(--nsg-border)]/10 pt-6 sm:flex-row">
+        <button type="submit" disabled={isSaving} className="inline-flex min-h-12 flex-1 items-center justify-center rounded-full bg-[color:var(--nsg-accent)] px-7 py-3 text-sm font-semibold text-[color:var(--nsg-background)] transition hover:bg-[color:var(--nsg-accent-hover)] disabled:cursor-wait disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]">
           {isSaving ? "Saving…" : "Save Profile Setup"}
         </button>
-        <Link href="/my-profile" className="inline-flex min-h-12 flex-1 items-center justify-center rounded-full border border-[#D8A35B]/60 px-7 py-3 text-sm font-semibold text-[#f0c98e] transition hover:border-[#D8A35B] hover:bg-[#D8A35B]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]">
+        <Link href="/my-profile" className="inline-flex min-h-12 flex-1 items-center justify-center rounded-full border border-[color:var(--nsg-accent)]/60 px-7 py-3 text-sm font-semibold text-[color:var(--nsg-accent-light)] transition hover:border-[color:var(--nsg-accent)] hover:bg-[color:var(--nsg-accent)]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]">
           Back to My Profile
         </Link>
       </div>

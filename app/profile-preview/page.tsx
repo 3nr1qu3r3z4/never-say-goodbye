@@ -112,9 +112,9 @@ const familyEvents = [
 
 export default function ProfilePreviewPage() {
   return (
-    <main className="min-h-screen overflow-hidden bg-[#0F172A] text-slate-100">
-      <header className="border-b border-[#D8A35B]/20 bg-[#D8A35B]/[0.05] px-6 py-5 text-center sm:px-8">
-        <p className="text-sm font-semibold text-[#f0c98e]">
+    <main className="min-h-screen overflow-hidden bg-[color:var(--nsg-background)] text-slate-100">
+      <header className="border-b border-[color:var(--nsg-accent)]/20 bg-[color:var(--nsg-accent)]/[0.05] px-6 py-5 text-center sm:px-8">
+        <p className="text-sm font-semibold text-[color:var(--nsg-accent-light)]">
           Featured Example Profile
         </p>
         <p className="mt-1 text-sm leading-6 text-slate-300">
@@ -124,7 +124,7 @@ export default function ProfilePreviewPage() {
       <section className="px-4 pt-4 sm:px-8 sm:pt-8">
         <figure
           aria-label="Portrait of a mature man for the John Michael Doe legacy profile"
-          className="relative mx-auto h-[55svh] min-h-[24rem] max-h-[46rem] max-w-6xl overflow-hidden rounded-[1.75rem] border border-[#D8A35B]/25 bg-gradient-to-br from-[#344255] via-[#172437] to-[#101827] shadow-2xl shadow-black/30 sm:rounded-[2rem]"
+          className="relative mx-auto h-[55svh] min-h-[24rem] max-h-[46rem] max-w-6xl overflow-hidden rounded-[1.75rem] border border-[color:var(--nsg-accent)]/25 bg-gradient-to-br from-[#344255] via-[#172437] to-[#101827] shadow-2xl shadow-black/30 sm:rounded-[2rem]"
         >
           <Image
             src="/mature-man-portrait.jpg"
@@ -136,14 +136,14 @@ export default function ProfilePreviewPage() {
           />
           <div
             aria-hidden="true"
-            className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_45%,rgba(216,163,91,0.2),transparent_58%)]"
+            className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_45%,color-mix(in_srgb,var(--nsg-accent)_20%,transparent),transparent_58%)]"
           />
           <div
             aria-hidden="true"
-            className="absolute inset-0 bg-gradient-to-t from-[#0F172A] via-transparent to-[#0F172A]/10"
+            className="absolute inset-0 bg-gradient-to-t from-[color:var(--nsg-background)] via-transparent to-[color:var(--nsg-background)]/10"
           />
           <div className="absolute inset-x-0 bottom-0 flex items-end justify-between p-5 sm:p-8">
-            <span className="text-[0.65rem] font-medium uppercase tracking-[0.24em] text-[#f0c98e]/80">
+            <span className="text-[0.65rem] font-medium uppercase tracking-[0.24em] text-[color:var(--nsg-accent-light)]/80">
               My Moments
             </span>
           </div>
@@ -154,12 +154,12 @@ export default function ProfilePreviewPage() {
             John Michael Doe
           </h1>
           <p className="mt-4 font-serif text-base text-slate-300 sm:text-lg">
-            Father <span className="px-1 text-[#D8A35B]">•</span> Veteran{" "}
-            <span className="px-1 text-[#D8A35B]">•</span> Musician
+            Father <span className="px-1 text-[color:var(--nsg-accent)]">•</span> Veteran{" "}
+            <span className="px-1 text-[color:var(--nsg-accent)]">•</span> Musician
           </p>
-          <div className="mx-auto mt-8 grid max-w-2xl grid-cols-2 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] text-left">
-            <div className="border-r border-white/10 p-5 sm:p-7">
-              <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-[#D8A35B]">
+          <div className="mx-auto mt-8 grid max-w-2xl grid-cols-2 overflow-hidden rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] text-left">
+            <div className="border-r border-[color:var(--nsg-border)]/10 p-5 sm:p-7">
+              <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-[color:var(--nsg-accent)]">
                 Born In
               </p>
               <p className="mt-2 font-serif text-base text-white sm:text-lg">
@@ -167,7 +167,7 @@ export default function ProfilePreviewPage() {
               </p>
             </div>
             <div className="p-5 sm:p-7">
-              <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-[#D8A35B]">
+              <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-[color:var(--nsg-accent)]">
                 Lives In
               </p>
               <p className="mt-2 font-serif text-base text-white sm:text-lg">
@@ -187,10 +187,10 @@ export default function ProfilePreviewPage() {
               James, Emma, and the generations after them will always know how
               much the ordinary days mattered.
             </p>
-            <p className="mt-5 text-xs font-semibold uppercase tracking-[0.2em] text-[#D8A35B]">
+            <p className="mt-5 text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--nsg-accent)]">
               Personal Motto
             </p>
-            <p className="mt-2 font-serif text-lg italic text-[#f0c98e]">
+            <p className="mt-2 font-serif text-lg italic text-[color:var(--nsg-accent-light)]">
               “Be present for the moments that matter.”
             </p>
           </div>
@@ -200,7 +200,7 @@ export default function ProfilePreviewPage() {
               Life Milestones
             </h2>
             <dl className="mt-4 grid grid-cols-2 gap-3 sm:gap-4">
-              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 sm:p-5">
+              <div className="rounded-xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-4 sm:p-5">
                 <dt className="text-xs uppercase tracking-[0.16em] text-slate-500">
                   Born
                 </dt>
@@ -208,7 +208,7 @@ export default function ProfilePreviewPage() {
                   June 6, 1955
                 </dd>
               </div>
-              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 sm:p-5">
+              <div className="rounded-xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-4 sm:p-5">
                 <dt className="text-xs uppercase tracking-[0.16em] text-slate-500">
                   Married
                 </dt>
@@ -222,17 +222,17 @@ export default function ProfilePreviewPage() {
           <FirstMessage />
           <Link
             href="/profile-preview#family-tree-heading"
-            className="mt-3 inline-flex w-full max-w-2xl justify-center rounded-full border border-[#D8A35B]/60 bg-transparent px-7 py-3.5 text-sm font-semibold tracking-wide text-[#f0c98e] transition hover:border-[#D8A35B] hover:bg-[#D8A35B]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
+            className="mt-3 inline-flex w-full max-w-2xl justify-center rounded-full border border-[color:var(--nsg-accent)]/60 bg-transparent px-7 py-3.5 text-sm font-semibold tracking-wide text-[color:var(--nsg-accent-light)] transition hover:border-[color:var(--nsg-accent)] hover:bg-[color:var(--nsg-accent)]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]"
           >
             🌳 View Legacy Tree™
           </Link>
         </div>
       </section>
 
-      <section className="border-y border-white/10 bg-slate-950/30 px-6 py-16 sm:px-8 sm:py-20">
+      <section className="border-y border-[color:var(--nsg-border)]/10 bg-slate-950/30 px-6 py-16 sm:px-8 sm:py-20">
         <div className="mx-auto max-w-6xl">
           <div className="mb-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[color:var(--nsg-accent)]">
               Stories in his own words
             </p>
             <h2 className="mt-3 font-serif text-3xl text-white sm:text-4xl">
@@ -243,7 +243,7 @@ export default function ProfilePreviewPage() {
             {sharedMoments.map((moment) => (
               <article
                 key={moment.title}
-                className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]"
+                className="overflow-hidden rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03]"
               >
                 <div className="relative flex aspect-[16/10] items-center justify-center overflow-hidden bg-gradient-to-br from-[#4a3e34] via-[#92805f] to-[#33423b]">
                   {moment.image ? (
@@ -264,7 +264,7 @@ export default function ProfilePreviewPage() {
 
       <section className="mx-auto max-w-6xl px-6 py-16 sm:px-8 sm:py-20">
         <div className="mb-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[color:var(--nsg-accent)]">
             For the moments still to come
           </p>
           <h2 className="mt-3 font-serif text-3xl text-white sm:text-4xl">
@@ -281,8 +281,8 @@ export default function ProfilePreviewPage() {
             <ProtectedMoment key={moment} title={moment} />
           ))}
         </div>
-        <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.03] p-6 sm:p-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#D8A35B]">
+        <div className="mt-8 rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-6 sm:p-8">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--nsg-accent)]">
             Cannot Open Until™
           </p>
           <p className="mt-3 max-w-3xl leading-7 text-slate-300">
@@ -294,7 +294,7 @@ export default function ProfilePreviewPage() {
 
       <section aria-labelledby="family-tree-heading" className="px-6 py-16 sm:px-8 sm:py-20">
         <div className="mx-auto max-w-6xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[color:var(--nsg-accent)]">
             A place for every generation
           </p>
           <h2 id="family-tree-heading" className="mt-3 font-serif text-3xl text-white sm:text-4xl">
@@ -312,10 +312,10 @@ export default function ProfilePreviewPage() {
           <ol className="mt-8">
             {treeGenerations.map((generation, index) => (
               <li key={generation[0].name}>
-                {index > 0 && <div aria-hidden="true" className="mx-auto h-6 w-px bg-[#D8A35B]/40" />}
+                {index > 0 && <div aria-hidden="true" className="mx-auto h-6 w-px bg-[color:var(--nsg-accent)]/40" />}
                 <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
                   {generation.map((person) => (
-                    <li key={person.name} className="rounded-2xl border border-[#D8A35B]/20 bg-white/[0.03] p-4 text-center sm:p-5">
+                    <li key={person.name} className="rounded-2xl border border-[color:var(--nsg-accent)]/20 bg-white/[0.03] p-4 text-center sm:p-5">
                       <span aria-hidden="true" className="text-xl">{person.icon}</span>
                       <p className="mt-2 font-serif text-base text-white sm:text-lg">{person.name}</p>
                       <p className="mt-1 text-sm text-slate-400">{person.relationship}</p>
@@ -330,7 +330,7 @@ export default function ProfilePreviewPage() {
 
       <section aria-labelledby="future-makers-heading" className="px-6 py-16 sm:px-8 sm:py-20">
         <div className="mx-auto max-w-6xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">For generations to come</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[color:var(--nsg-accent)]">For generations to come</p>
           <h2 id="future-makers-heading" className="mt-3 font-serif text-3xl text-white sm:text-4xl">Future Moment Makers™</h2>
           <p className="mt-4 max-w-3xl leading-7 text-slate-400">These fictional profiles illustrate reserved places for future loved ones. Only Debbie&apos;s example has a detail page.</p>
           <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -339,30 +339,30 @@ export default function ProfilePreviewPage() {
               { name: "Another Future Grandchild", description: "A separate place for another grandchild's future memories." },
               { name: "Future Godchild", description: "A place for a godchild's story before they have an account." },
             ].map(({ name, description }) => (
-              <li key={name} className="rounded-2xl border border-[#D8A35B]/25 bg-[#D8A35B]/[0.04] p-5 sm:p-6">
+              <li key={name} className="rounded-2xl border border-[color:var(--nsg-accent)]/25 bg-[color:var(--nsg-accent)]/[0.04] p-5 sm:p-6">
                 <span aria-hidden="true" className="text-xl">✨</span>
                 <p className="mt-3 font-serif text-lg text-white">{name}</p>
                 <p className="mt-1 text-sm text-slate-400">{description}</p>
               </li>
             ))}
-            <li className="rounded-2xl border border-[#D8A35B]/25 bg-[#D8A35B]/[0.04] p-5 sm:p-6">
+            <li className="rounded-2xl border border-[color:var(--nsg-accent)]/25 bg-[color:var(--nsg-accent)]/[0.04] p-5 sm:p-6">
               <span aria-hidden="true" className="text-xl">✨</span>
               <p className="mt-3 font-serif text-lg text-white">Debbie Doe</p>
               <p className="mt-1 text-sm text-slate-400">James has reserved a place for his daughter.</p>
-              <Link href="/future-moment-maker" className="mt-3 inline-block text-sm text-[#f0c98e] underline decoration-[#D8A35B]/40 underline-offset-4 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]">Explore Debbie&apos;s example</Link>
+              <Link href="/future-moment-maker" className="mt-3 inline-block text-sm text-[color:var(--nsg-accent-light)] underline decoration-[color:var(--nsg-accent)]/40 underline-offset-4 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]">Explore Debbie&apos;s example</Link>
             </li>
           </ul>
         </div>
       </section>
 
-      <section aria-labelledby="placeholders-heading" className="border-y border-white/10 bg-slate-950/30 px-6 py-16 sm:px-8 sm:py-20">
+      <section aria-labelledby="placeholders-heading" className="border-y border-[color:var(--nsg-border)]/10 bg-slate-950/30 px-6 py-16 sm:px-8 sm:py-20">
         <div className="mx-auto max-w-6xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">Remembering family</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[color:var(--nsg-accent)]">Remembering family</p>
           <h2 id="placeholders-heading" className="mt-3 font-serif text-3xl text-white sm:text-4xl">Family Placeholders</h2>
           <p className="mt-4 max-w-3xl leading-7 text-slate-400">Family members can appear in the tree even if they never had an account.</p>
           <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[...treeGenerations[0], ...treeGenerations[1]].map((person) => (
-              <li key={person.name} className="rounded-2xl border border-[#D8A35B]/25 bg-[#D8A35B]/[0.04] p-5 sm:p-6">
+              <li key={person.name} className="rounded-2xl border border-[color:var(--nsg-accent)]/25 bg-[color:var(--nsg-accent)]/[0.04] p-5 sm:p-6">
                 <span aria-hidden="true" className="text-xl">🕊</span>
                 <p className="mt-3 font-serif text-lg text-white">{person.name}</p>
                 <p className="mt-1 text-sm text-slate-400">{person.relationship}</p>
@@ -374,12 +374,12 @@ export default function ProfilePreviewPage() {
 
       <section aria-labelledby="calendar-heading" className="px-6 py-16 sm:px-8 sm:py-20">
         <div className="mx-auto max-w-6xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">Family Calendar™ Preview</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[color:var(--nsg-accent)]">Family Calendar™ Preview</p>
           <h2 id="calendar-heading" className="mt-3 font-serif text-3xl text-white sm:text-4xl">Upcoming Family Events</h2>
           <p className="mt-4 text-sm leading-6 text-slate-400">Example dates for this showcase, not a live calendar.</p>
           <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {familyEvents.map((event) => (
-              <li key={event.title} className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6">
+              <li key={event.title} className="rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5 sm:p-6">
                 <span aria-hidden="true" className="text-xl">{event.icon}</span>
                 <p className="mt-3 font-serif text-lg text-white">{event.title}</p>
                 <p className="mt-1 text-sm text-slate-400">{event.date}</p>
@@ -391,13 +391,13 @@ export default function ProfilePreviewPage() {
 
       <section aria-labelledby="most-visited-heading" className="px-6 py-16 sm:px-8 sm:py-20">
         <div className="mx-auto max-w-6xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">Close at hand</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[color:var(--nsg-accent)]">Close at hand</p>
           <h2 id="most-visited-heading" className="mt-3 font-serif text-3xl text-white sm:text-4xl">Frequently Visited</h2>
           <p className="mt-4 max-w-3xl leading-7 text-slate-400">A fictional example of a shortcut to profiles John visits frequently.</p>
           <ul className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {frequentlyVisited.map((person) => (
               <li key={person.name}>
-                <Link href={person.href} className="flex min-h-16 items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm font-medium text-slate-200 transition hover:border-[#D8A35B]/40 hover:text-[#f0c98e] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]">
+                <Link href={person.href} className="flex min-h-16 items-center gap-3 rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-4 text-sm font-medium text-slate-200 transition hover:border-[color:var(--nsg-accent)]/40 hover:text-[color:var(--nsg-accent-light)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]">
                   <span aria-hidden="true">{person.icon}</span>{person.name}
                 </Link>
               </li>
@@ -406,9 +406,9 @@ export default function ProfilePreviewPage() {
         </div>
       </section>
 
-      <section className="border-y border-white/10 bg-slate-950/30 px-6 py-16 sm:px-8 sm:py-20">
+      <section className="border-y border-[color:var(--nsg-border)]/10 bg-slate-950/30 px-6 py-16 sm:px-8 sm:py-20">
         <div className="mx-auto max-w-6xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[color:var(--nsg-accent)]">
             Always connected
           </p>
           <h2 className="mt-3 font-serif text-3xl text-white sm:text-4xl">
@@ -419,11 +419,11 @@ export default function ProfilePreviewPage() {
               <article
                 key={person.name}
                 id={"id" in person ? person.id : undefined}
-                className="scroll-mt-6 flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6"
+                className="scroll-mt-6 flex items-center gap-4 rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5 sm:p-6"
               >
                 <span
                   aria-hidden="true"
-                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[#D8A35B]/30 bg-[#D8A35B]/10 text-xl"
+                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[color:var(--nsg-accent)]/30 bg-[color:var(--nsg-accent)]/10 text-xl"
                 >
                   {person.icon}
                 </span>
@@ -431,7 +431,7 @@ export default function ProfilePreviewPage() {
                   <h3 className="font-serif text-lg text-white">
                     {"id" in person ? person.name : <Link
                       href={person.href}
-                      className="transition hover:text-[#f0c98e] focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D8A35B]"
+                      className="transition hover:text-[color:var(--nsg-accent-light)] focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--nsg-accent)]"
                     >
                       {person.name}
                     </Link>}
@@ -442,7 +442,7 @@ export default function ProfilePreviewPage() {
                   {person.name === "Mary Elizabeth Doe" && (
                     <Link
                       href="/mary-doe"
-                      className="mt-2 inline-flex text-sm font-medium text-[#f0c98e] transition hover:text-[#D8A35B] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D8A35B]"
+                      className="mt-2 inline-flex text-sm font-medium text-[color:var(--nsg-accent-light)] transition hover:text-[color:var(--nsg-accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--nsg-accent)]"
                     >
                       View Mary&apos;s Moments
                     </Link>
@@ -450,7 +450,7 @@ export default function ProfilePreviewPage() {
                   {person.name === "Robert “Bobby” Hayes" && (
                     <Link
                       href="/bobby-hayes"
-                      className="mt-2 inline-flex text-sm font-medium text-[#f0c98e] transition hover:text-[#D8A35B] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D8A35B]"
+                      className="mt-2 inline-flex text-sm font-medium text-[color:var(--nsg-accent-light)] transition hover:text-[color:var(--nsg-accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--nsg-accent)]"
                     >
                       View Bobby&apos;s Moments
                     </Link>
@@ -466,10 +466,10 @@ export default function ProfilePreviewPage() {
         <Link
           href="/legacy-frame"
           aria-label="Learn more about Legacy Frame™"
-          className="group mx-auto grid max-w-6xl items-center gap-10 rounded-3xl border border-[#D8A35B]/20 bg-gradient-to-br from-slate-900 to-slate-950 p-7 transition hover:border-[#D8A35B]/40 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B] sm:p-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-14 lg:p-14"
+          className="group mx-auto grid max-w-6xl items-center gap-10 rounded-3xl border border-[color:var(--nsg-accent)]/20 bg-gradient-to-br from-slate-900 to-slate-950 p-7 transition hover:border-[color:var(--nsg-accent)]/40 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)] sm:p-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-14 lg:p-14"
         >
           <div className="flex justify-center">
-            <div className="w-full max-w-xs rounded-[1.75rem] border border-[#D8A35B]/35 bg-[#111c31] p-3 shadow-2xl shadow-black/30">
+            <div className="w-full max-w-xs rounded-[1.75rem] border border-[color:var(--nsg-accent)]/35 bg-[color:var(--nsg-surface)] p-3 shadow-2xl shadow-black/30">
               <div className="relative aspect-[4/5] overflow-hidden rounded-[1.25rem]">
                 <Image
                   src="/images/legacy-frame-upload.png"
@@ -482,7 +482,7 @@ export default function ProfilePreviewPage() {
             </div>
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[color:var(--nsg-accent)]">
               Legacy Frame™
             </p>
             <h2 className="mt-3 font-serif text-3xl text-white sm:text-4xl">
@@ -498,7 +498,7 @@ export default function ProfilePreviewPage() {
               Always close.
             </p>
             <span
-              className="mt-7 inline-flex rounded-full border border-[#D8A35B]/60 px-7 py-3.5 text-sm font-semibold text-[#f0c98e] transition group-hover:border-[#D8A35B] group-hover:bg-[#D8A35B]/10"
+              className="mt-7 inline-flex rounded-full border border-[color:var(--nsg-accent)]/60 px-7 py-3.5 text-sm font-semibold text-[color:var(--nsg-accent-light)] transition group-hover:border-[color:var(--nsg-accent)] group-hover:bg-[color:var(--nsg-accent)]/10"
             >
               Learn More
             </span>
@@ -506,8 +506,8 @@ export default function ProfilePreviewPage() {
         </Link>
       </section>
 
-      <footer className="border-t border-white/10 px-6 py-8 text-center">
-        <p className="font-serif text-lg text-white"><Link href="/" className="focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]">Never Say Goodbye</Link></p>
+      <footer className="border-t border-[color:var(--nsg-border)]/10 px-6 py-8 text-center">
+        <p className="font-serif text-lg text-white"><Link href="/" className="focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]">Never Say Goodbye</Link></p>
         <p className="mt-2 text-sm text-slate-400">Connection Beyond Goodbye</p>
         <p className="mt-4 text-xs tracking-wide text-slate-500">
           NeverSayGoodbye.life

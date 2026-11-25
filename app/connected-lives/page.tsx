@@ -134,29 +134,29 @@ export default async function ConnectedLivesPage() {
     (connection) => connection.status === "declined",
   );
   const cardClassName =
-    "rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6";
+    "rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5 sm:p-6";
 
   return (
-    <main className="min-h-screen bg-[#0F172A] px-6 py-12 text-slate-100 sm:px-8 sm:py-16">
+    <main className="min-h-screen bg-[color:var(--nsg-background)] px-6 py-12 text-slate-100 sm:px-8 sm:py-16">
       <div className="mx-auto max-w-5xl">
-        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">
+        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[color:var(--nsg-accent)]">
           Meaningful relationships
         </p>
         <h1 className="mt-3 font-serif text-4xl text-white sm:text-5xl">
           Connected Lives™
         </h1>
         {incoming.length > 0 && (
-          <section className="mt-6 rounded-2xl border border-[#D8A35B]/50 bg-[#D8A35B]/[0.08] p-5 sm:p-6" aria-labelledby="requests-heading">
+          <section className="mt-6 rounded-2xl border border-[color:var(--nsg-accent)]/50 bg-[color:var(--nsg-accent)]/[0.08] p-5 sm:p-6" aria-labelledby="requests-heading">
             <h2 id="requests-heading" className="flex flex-wrap items-center gap-3 font-serif text-2xl text-white sm:text-3xl">
               Pending Connection Requests
-              <span className="rounded-full bg-[#D8A35B] px-3 py-1 font-sans text-sm font-semibold text-[#0F172A]">
+              <span className="rounded-full bg-[color:var(--nsg-accent)] px-3 py-1 font-sans text-sm font-semibold text-[color:var(--nsg-background)]">
                 {incoming.length}
               </span>
             </h2>
             <ul className="mt-5 grid gap-4 sm:grid-cols-2">
               {incoming.map((connection) => (
                 <li key={connection.id} className={cardClassName}>
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#D8A35B]">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--nsg-accent)]">
                     ❤️ Connection request
                   </p>
                   <h3 className="mt-2 break-words font-serif text-xl text-white">
@@ -182,12 +182,12 @@ export default async function ConnectedLivesPage() {
           <p className="mt-3 text-sm text-slate-400">People whose stories are still unfolding, separate from your accepted connections.</p>
           {futureMakers.length ? <ul className="mt-5 grid gap-4 sm:grid-cols-2">
             {futureMakers.map((maker) => <li key={maker.id} className={cardClassName}>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#D8A35B]">Future Moment Maker™</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--nsg-accent)]">Future Moment Maker™</p>
               <h3 className="mt-2 break-words font-serif text-xl text-white">{maker.name}</h3>
               <p className="mt-2 text-sm text-slate-300">{maker.relationship} · {maker.status === "awaiting-claim" ? "Awaiting Claim" : maker.status === "claimed" ? "Claimed" : maker.status}</p>
-              <Link href={`/future-moment-maker/${encodeURIComponent(maker.id)}`} className="mt-4 inline-flex min-h-11 items-center rounded-full border border-[#D8A35B]/50 px-5 text-sm font-semibold text-[#f0c98e] hover:bg-[#D8A35B]/10">View Record</Link>
+              <Link href={`/future-moment-maker/${encodeURIComponent(maker.id)}`} className="mt-4 inline-flex min-h-11 items-center rounded-full border border-[color:var(--nsg-accent)]/50 px-5 text-sm font-semibold text-[color:var(--nsg-accent-light)] hover:bg-[color:var(--nsg-accent)]/10">View Record</Link>
             </li>)}
-          </ul> : <p className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm text-slate-400">Future Moment Makers™ you create will appear here.</p>}
+          </ul> : <p className="mt-5 rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5 text-sm text-slate-400">Future Moment Makers™ you create will appear here.</p>}
         </section>
 
         <section className="mt-10" aria-labelledby="activity-heading">
@@ -201,7 +201,7 @@ export default async function ConnectedLivesPage() {
             <form action={markLivesNotificationsRead} className="mt-5">
               <button
                 type="submit"
-                className="min-h-11 rounded-full border border-[#D8A35B]/50 px-5 text-sm font-semibold text-[#f0c98e] transition hover:bg-[#D8A35B]/10"
+                className="min-h-11 rounded-full border border-[color:var(--nsg-accent)]/50 px-5 text-sm font-semibold text-[color:var(--nsg-accent-light)] transition hover:bg-[color:var(--nsg-accent)]/10"
               >
                 Mark Notifications Read
               </button>
@@ -212,7 +212,7 @@ export default async function ConnectedLivesPage() {
               {notifications.map((notification) => (
                 <li
                   key={notification.id}
-                  className={`${cardClassName} ${notification.readAt ? "opacity-75" : "border-[#D8A35B]/30"}`}
+                  className={`${cardClassName} ${notification.readAt ? "opacity-75" : "border-[color:var(--nsg-accent)]/30"}`}
                 >
                   <p className="text-sm leading-6 text-slate-200">
                     {notification.message}
@@ -224,7 +224,7 @@ export default async function ConnectedLivesPage() {
               ))}
             </ul>
           ) : (
-            <p className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-slate-400">
+            <p className="mt-5 rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5 text-slate-400">
               Relationship activity will appear here.
             </p>
           )}
@@ -251,7 +251,7 @@ export default async function ConnectedLivesPage() {
               ))}
             </ul>
           ) : (
-            <p className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-slate-400">
+            <p className="mt-5 rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5 text-slate-400">
               You have not sent any pending requests.
             </p>
           )}
@@ -277,7 +277,7 @@ export default async function ConnectedLivesPage() {
 
         <Link
           href="/search"
-          className="mt-10 inline-flex min-h-12 items-center rounded-full border border-[#D8A35B]/60 px-6 font-semibold text-[#f0c98e] transition hover:bg-[#D8A35B]/10"
+          className="mt-10 inline-flex min-h-12 items-center rounded-full border border-[color:var(--nsg-accent)]/60 px-6 font-semibold text-[color:var(--nsg-accent-light)] transition hover:bg-[color:var(--nsg-accent)]/10"
         >
           Find A Moment Maker
         </Link>

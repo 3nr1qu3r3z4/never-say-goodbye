@@ -178,23 +178,23 @@ const guides = [
   },
 ];
 
-const sectionClassName = "scroll-mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-7";
-const linkClassName = "inline-flex min-h-11 items-center text-sm font-semibold text-[#f0c98e] underline decoration-[#D8A35B]/40 underline-offset-4 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]";
+const sectionClassName = "scroll-mt-6 rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5 sm:p-7";
+const linkClassName = "inline-flex min-h-11 items-center text-sm font-semibold text-[color:var(--nsg-accent-light)] underline decoration-[color:var(--nsg-accent)]/40 underline-offset-4 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]";
 
 export default function HelpPage() {
   return (
-    <main className="min-h-screen bg-[#0F172A] px-5 py-10 text-slate-100 sm:px-8 sm:py-16">
+    <main className="min-h-screen bg-[color:var(--nsg-background)] px-5 py-10 text-slate-100 sm:px-8 sm:py-16">
       <div className="mx-auto max-w-5xl">
         <header className="max-w-3xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">Here for your family</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[color:var(--nsg-accent)]">Here for your family</p>
           <h1 className="mt-3 font-serif text-4xl text-white sm:text-5xl">Help Center</h1>
           <p className="mt-5 text-lg text-slate-300">Everything you need to know about Never Say Goodbye.</p>
-          <p className="mt-2 font-serif text-xl text-[#f0c98e]">Life gets busy. Family shouldn&apos;t have to wait.</p>
+          <p className="mt-2 font-serif text-xl text-[color:var(--nsg-accent-light)]">Life gets busy. Family shouldn&apos;t have to wait.</p>
         </header>
 
         <nav aria-label="Help Center topics" className="mt-8 flex flex-wrap gap-2">
           {[...guides, { id: "membership", title: "Membership Plans" }, { id: "support", title: "Support & Account Help" }, { id: "ideas", title: "Have an Idea?" }].map((section) => (
-            <a key={section.id} href={`#${section.id}`} className="inline-flex min-h-11 items-center rounded-full border border-white/10 px-4 text-sm text-slate-300 hover:border-[#D8A35B]/50 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]">
+            <a key={section.id} href={`#${section.id}`} className="inline-flex min-h-11 items-center rounded-full border border-[color:var(--nsg-border)]/10 px-4 text-sm text-slate-300 hover:border-[color:var(--nsg-accent)]/50 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]">
               {section.title}
             </a>
           ))}
@@ -205,15 +205,15 @@ export default function HelpPage() {
             <section key={section.id} id={section.id} aria-labelledby={`${section.id}-heading`} className={sectionClassName}>
               <h2 id={`${section.id}-heading`} className="font-serif text-2xl text-white">{section.title}</h2>
               {section.id === "getting-started" && (
-                <p className="mt-4 rounded-xl border border-[#D8A35B]/30 bg-[#D8A35B]/[0.06] p-4 text-sm leading-6 text-slate-200">
-                  <strong className="text-[#f0c98e]">Important:</strong> To be found in Search or added as an existing member of a Legacy Tree™, set your profile to Searchable Only or Public. After connecting and being added to the tree, you can return it to Private. Public Moment visibility also depends on this setting.
+                <p className="mt-4 rounded-xl border border-[color:var(--nsg-accent)]/30 bg-[color:var(--nsg-accent)]/[0.06] p-4 text-sm leading-6 text-slate-200">
+                  <strong className="text-[color:var(--nsg-accent-light)]">Important:</strong> To be found in Search or added as an existing member of a Legacy Tree™, set your profile to Searchable Only or Public. After connecting and being added to the tree, you can return it to Private. Public Moment visibility also depends on this setting.
                 </p>
               )}
               <div className="mt-4 divide-y divide-white/10">
                 {section.questions.map((item) => (
                   <details key={item.question} className="group">
-                    <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 py-3 font-semibold text-slate-200 hover:text-[#f0c98e] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B] [&::-webkit-details-marker]:hidden">
-                      {item.question}<span aria-hidden="true" className="text-[#D8A35B] group-open:rotate-45">+</span>
+                    <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 py-3 font-semibold text-slate-200 hover:text-[color:var(--nsg-accent-light)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)] [&::-webkit-details-marker]:hidden">
+                      {item.question}<span aria-hidden="true" className="text-[color:var(--nsg-accent)] group-open:rotate-45">+</span>
                     </summary>
                     {"answer" in item && item.answer && <p className="pb-4 text-sm leading-6 text-slate-400">{item.answer}</p>}
                     {"steps" in item && item.steps && (
@@ -224,7 +224,7 @@ export default function HelpPage() {
                   </details>
                 ))}
               </div>
-              <div className="mt-4 rounded-xl border border-dashed border-white/20 px-4 py-5 text-sm text-slate-500">
+              <div className="mt-4 rounded-xl border border-dashed border-[color:var(--nsg-border)]/20 px-4 py-5 text-sm text-slate-500">
                 📷 Screenshot Coming Soon: {section.screenshot}
               </div>
               <Link href={section.href} className={`mt-3 ${linkClassName}`}>{section.link} <span aria-hidden="true" className="ml-2">→</span></Link>
@@ -236,9 +236,9 @@ export default function HelpPage() {
             <p className="mt-3 text-sm leading-6 text-slate-400">Free Legacy is the only membership available for new accounts. Paid plans are coming soon, and plan limits are not enforced during beta.</p>
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
               {membershipPlans.map((plan) => (
-                <div key={plan.id} className={`rounded-xl border p-4 ${plan.mostPopular ? "border-[#D8A35B]/60" : "border-white/10"}`}>
-                  <h3 className="font-semibold text-white">{plan.name}{plan.mostPopular && <span className="ml-2 text-xs text-[#f0c98e]">⭐ Most Popular</span>}</h3>
-                  <p className="mt-1 font-serif text-[#f0c98e]">{membershipPrice(plan)}</p>
+                <div key={plan.id} className={`rounded-xl border p-4 ${plan.mostPopular ? "border-[color:var(--nsg-accent)]/60" : "border-[color:var(--nsg-border)]/10"}`}>
+                  <h3 className="font-semibold text-white">{plan.name}{plan.mostPopular && <span className="ml-2 text-xs text-[color:var(--nsg-accent-light)]">⭐ Most Popular</span>}</h3>
+                  <p className="mt-1 font-serif text-[color:var(--nsg-accent-light)]">{membershipPrice(plan)}</p>
                   <p className="mt-2 text-sm text-slate-400">{plan.available ? "Available now" : "Coming Soon"}</p>
                 </div>
               ))}

@@ -5,7 +5,7 @@ import { resetPassword } from "@/app/actions/account-recovery";
 import RecoveryShell from "@/app/account-recovery/recovery-shell";
 
 const inputClassName =
-  "mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-slate-950/50 px-4 text-sm text-white outline-none transition focus:border-[#D8A35B]/70 focus:ring-2 focus:ring-[#D8A35B]/20";
+  "mt-2 min-h-12 w-full rounded-xl border border-[color:var(--nsg-border)]/10 bg-slate-950/50 px-4 text-sm text-white outline-none transition focus:border-[color:var(--nsg-accent)]/70 focus:ring-2 focus:ring-[color:var(--nsg-accent)]/20";
 
 export default function ResetForm() {
   const [state, action, pending] = useActionState(resetPassword, {});
@@ -41,7 +41,7 @@ export default function ResetForm() {
             <input id="confirm-password" name="confirmPassword" type="password" autoComplete="new-password" minLength={8} maxLength={128} required className={inputClassName} />
           </div>
           {state.error && <p role="alert" className="text-sm text-rose-300">{state.error}</p>}
-          <button type="submit" disabled={pending} className="min-h-12 w-full rounded-full bg-[#D8A35B] px-6 py-3 text-sm font-semibold text-[#0F172A] transition hover:bg-[#e6b66f] disabled:opacity-70">
+          <button type="submit" disabled={pending} className="min-h-12 w-full rounded-full bg-[color:var(--nsg-accent)] px-6 py-3 text-sm font-semibold text-[color:var(--nsg-background)] transition hover:bg-[color:var(--nsg-accent-hover)] disabled:opacity-70">
             {pending ? "Saving…" : "Reset Password"}
           </button>
         </form>

@@ -10,11 +10,11 @@ type CardMoment = Pick<AccessibleMoment,
 export default function MomentCard({ moment }: { moment: CardMoment }) {
   const text = moment.story.trim() || moment.writtenMessage?.trim();
   return (
-    <li className="relative rounded-2xl border border-white/10 bg-white/[0.03]">
+    <li className="relative rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03]">
       <MomentActionsMenu momentId={moment.id} title={moment.title} isAuthor={moment.isAuthor} />
       <a
         href={`/moments/${encodeURIComponent(moment.id)}`}
-        className="flex min-h-28 items-start gap-4 rounded-2xl p-4 pr-16 hover:bg-white/[0.03] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B] sm:p-5 sm:pr-16"
+        className="flex min-h-28 items-start gap-4 rounded-2xl p-4 pr-16 hover:bg-white/[0.03] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)] sm:p-5 sm:pr-16"
       >
         {moment.hasVideo ? (
           <VideoPreview momentId={moment.id} />

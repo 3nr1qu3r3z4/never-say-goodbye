@@ -41,21 +41,21 @@ const momentTypes = [
 export default async function CreateMomentPage() {
   await requireUser();
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#0F172A] text-slate-100">
+    <main className="relative min-h-screen overflow-hidden bg-[color:var(--nsg-background)] text-slate-100">
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(216,163,91,0.12),transparent_58%)]"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,color-mix(in_srgb,var(--nsg-accent)_12%,transparent),transparent_58%)]"
       />
       <div className="relative mx-auto max-w-5xl px-5 py-8 sm:px-8 sm:py-12">
         <Link
           href="/dashboard"
-          className="text-xs font-medium uppercase tracking-[0.2em] text-slate-400 transition hover:text-[#f0c98e] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
+          className="text-xs font-medium uppercase tracking-[0.2em] text-slate-400 transition hover:text-[color:var(--nsg-accent-light)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]"
         >
           My Legacy
         </Link>
 
         <header className="mx-auto mt-10 max-w-2xl text-center sm:mt-14">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#D8A35B]">
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[color:var(--nsg-accent)]">
             A story worth keeping
           </p>
           <h1 className="mt-4 font-serif text-4xl leading-tight tracking-tight text-white sm:text-5xl">
@@ -77,12 +77,12 @@ export default async function CreateMomentPage() {
             <Link
               key={type.href}
               href={type.href}
-              className="group flex min-h-44 flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-6 transition duration-200 hover:-translate-y-1 hover:border-[#D8A35B]/45 hover:bg-white/[0.06] hover:shadow-xl hover:shadow-[#D8A35B]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
+              className="group flex min-h-44 flex-col rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-6 transition duration-200 hover:-translate-y-1 hover:border-[color:var(--nsg-accent)]/45 hover:bg-white/[0.06] hover:shadow-xl hover:shadow-[color:var(--nsg-accent)]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]"
             >
               <span aria-hidden="true" className="text-3xl">
                 {type.icon}
               </span>
-              <h2 className="mt-4 font-serif text-xl text-white transition group-hover:text-[#f0c98e]">
+              <h2 className="mt-4 font-serif text-xl text-white transition group-hover:text-[color:var(--nsg-accent-light)]">
                 {type.title}
               </h2>
               <p className="mt-2 text-sm leading-6 text-slate-400">

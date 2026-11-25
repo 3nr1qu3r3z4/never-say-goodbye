@@ -31,7 +31,7 @@ export default function ConnectionResponse({
                 name="response"
                 value="accept"
                 disabled={isPending}
-                className="min-h-11 rounded-full bg-[#D8A35B] px-5 text-sm font-semibold text-[#0F172A] transition hover:bg-[#e6b66f] disabled:opacity-60"
+                className="min-h-11 rounded-full bg-[color:var(--nsg-accent)] px-5 text-sm font-semibold text-[color:var(--nsg-background)] transition hover:bg-[color:var(--nsg-accent-hover)] disabled:opacity-60"
               >
                 {isPending ? "Saving…" : "Confirm"}
               </button>
@@ -39,7 +39,7 @@ export default function ConnectionResponse({
                 type="button"
                 onClick={() => setChoosingRelationship(false)}
                 disabled={isPending}
-                className="min-h-11 rounded-full border border-white/15 px-5 text-sm font-semibold text-slate-300 transition hover:border-white/30 hover:text-white disabled:opacity-60"
+                className="min-h-11 rounded-full border border-[color:var(--nsg-border)]/15 px-5 text-sm font-semibold text-slate-300 transition hover:border-[color:var(--nsg-border)]/30 hover:text-white disabled:opacity-60"
               >
                 Cancel
               </button>
@@ -50,7 +50,7 @@ export default function ConnectionResponse({
                 type="button"
                 onClick={() => setChoosingRelationship(true)}
                 disabled={isPending}
-                className="min-h-11 rounded-full bg-[#D8A35B] px-5 text-sm font-semibold text-[#0F172A] transition hover:bg-[#e6b66f] disabled:opacity-60"
+                className="min-h-11 rounded-full bg-[color:var(--nsg-accent)] px-5 text-sm font-semibold text-[color:var(--nsg-background)] transition hover:bg-[color:var(--nsg-accent-hover)] disabled:opacity-60"
               >
                 Accept
               </button>
@@ -59,7 +59,7 @@ export default function ConnectionResponse({
                 name="response"
                 value="decline"
                 disabled={isPending}
-                className="min-h-11 rounded-full border border-white/15 px-5 text-sm font-semibold text-slate-300 transition hover:border-white/30 hover:text-white disabled:opacity-60"
+                className="min-h-11 rounded-full border border-[color:var(--nsg-border)]/15 px-5 text-sm font-semibold text-slate-300 transition hover:border-[color:var(--nsg-border)]/30 hover:text-white disabled:opacity-60"
               >
                 {isPending ? "Saving…" : "Decline"}
               </button>
@@ -70,7 +70,7 @@ export default function ConnectionResponse({
       {(state.message || state.error) && (
         <p
           aria-live="polite"
-          className={`mt-3 text-sm ${state.error ? "text-rose-300" : "text-[#f0c98e]"}`}
+          className={`mt-3 text-sm ${state.error ? "text-rose-300" : "text-[color:var(--nsg-accent-light)]"}`}
         >
           {state.error ?? state.message}
         </p>

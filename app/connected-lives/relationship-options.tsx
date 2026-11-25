@@ -22,7 +22,7 @@ export default function RelationshipOptions({
               value={type.value}
               defaultChecked={selected === type.value}
               required
-              className="accent-[#D8A35B]"
+              className="accent-[color:var(--nsg-accent)]"
             />
             {type.label}
           </label>

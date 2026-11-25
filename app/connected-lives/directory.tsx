@@ -8,7 +8,7 @@ import { filterConnections, isFamilyRelationship, type DirectoryConnection } fro
 import RelationshipEditor from "./relationship-editor";
 import SharedTags from "./shared-tags";
 
-const inputClass = "mt-2 min-h-11 w-full rounded-xl border border-white/15 bg-slate-950/60 px-3 text-sm text-white";
+const inputClass = "mt-2 min-h-11 w-full rounded-xl border border-[color:var(--nsg-border)]/15 bg-slate-950/60 px-3 text-sm text-white";
 
 export default function ConnectedLivesDirectory({ connections, viewerId }: {
   connections: DirectoryConnection[]; viewerId: string;
@@ -48,13 +48,13 @@ export default function ConnectedLivesDirectory({ connections, viewerId }: {
     <section className="mt-10" aria-labelledby="connections-heading">
       <h2 id="connections-heading" className="font-serif text-2xl text-white sm:text-3xl">Connected Lives Directory</h2>
       <dl className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {statistics.map((statistic) => <div key={statistic.label} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-          <dd className="font-serif text-2xl text-[#f0c98e]">{statistic.value}</dd>
+        {statistics.map((statistic) => <div key={statistic.label} className="rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-4">
+          <dd className="font-serif text-2xl text-[color:var(--nsg-accent-light)]">{statistic.value}</dd>
           <dt className="mt-1 text-sm text-slate-400">{statistic.label}</dt>
         </div>)}
       </dl>
       {connections.length === 0 ? (
-        <p className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-slate-400">Your legacy grows through the people you connect with. Start building your Connected Lives network today.</p>
+        <p className="mt-5 rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5 text-slate-400">Your legacy grows through the people you connect with. Start building your Connected Lives network today.</p>
       ) : (
         <>
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -84,7 +84,7 @@ export default function ConnectedLivesDirectory({ connections, viewerId }: {
             </label>
           </div>
           <label className="mt-4 flex items-center gap-2 text-sm text-slate-300">
-            <input type="checkbox" checked={groupByRelationship} onChange={(event) => setGroupByRelationship(event.target.checked)} className="accent-[#D8A35B]" />
+            <input type="checkbox" checked={groupByRelationship} onChange={(event) => setGroupByRelationship(event.target.checked)} className="accent-[color:var(--nsg-accent)]" />
             Group by relationship
           </label>
           <p role="status" className="mt-4 text-sm text-slate-400">{filtered.length} {filtered.length === 1 ? "connection" : "connections"} shown.{groupByRelationship ? " Sorting applies within each relationship group." : ""}</p>
@@ -93,15 +93,15 @@ export default function ConnectedLivesDirectory({ connections, viewerId }: {
               <h3 className="font-serif text-xl text-white">{!groupByRelationship ? "All Connections" : relationshipLabel(category || null)}</h3>
               <ul className="mt-4 grid gap-4 sm:grid-cols-2">
             {group.map((connection) => (
-              <li key={connection.id} className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6">
+              <li key={connection.id} className="min-w-0 rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5 sm:p-6">
                 <div className="flex items-start gap-4">
-                  <div className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#D8A35B]/30 bg-slate-900 font-serif text-xl text-[#f0c98e]">
+                  <div className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[color:var(--nsg-accent)]/30 bg-slate-900 font-serif text-xl text-[color:var(--nsg-accent-light)]">
                     {connection.profilePhoto
                       ? <Image src={connection.profilePhoto} alt="" fill unoptimized sizes="64px" className="object-cover" />
                       : <span aria-hidden="true">{connection.displayName.slice(0, 1).toUpperCase()}</span>}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[#D8A35B]">Moment Maker™</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[color:var(--nsg-accent)]">Moment Maker™</p>
                     <h4 className="mt-2 break-words font-serif text-xl text-white">{connection.displayName}</h4>
                     <p className="mt-1 text-sm text-slate-300">{relationshipLabel(connection.relationshipType)}</p>
                   </div>
@@ -113,14 +113,14 @@ export default function ConnectedLivesDirectory({ connections, viewerId }: {
                     : "Connected Date Unavailable"}
                 </p>
                 {connection.personTags.length > 0 && <p className="mt-3 break-words text-sm text-slate-300">Tags: {connection.personTags.map((item) => item.label).join(" · ")}</p>}
-                {connection.profileVisible && connection.personId && <Link href={`/moment-maker/${encodeURIComponent(connection.personId)}`} className="mt-4 inline-flex min-h-11 items-center rounded-full border border-[#D8A35B]/50 px-5 text-sm font-semibold text-[#f0c98e] hover:bg-[#D8A35B]/10">View Profile</Link>}
+                {connection.profileVisible && connection.personId && <Link href={`/moment-maker/${encodeURIComponent(connection.personId)}`} className="mt-4 inline-flex min-h-11 items-center rounded-full border border-[color:var(--nsg-accent)]/50 px-5 text-sm font-semibold text-[color:var(--nsg-accent-light)] hover:bg-[color:var(--nsg-accent)]/10">View Profile</Link>}
                 <RelationshipEditor connectionId={connection.id} relationshipType={connection.relationshipType} />
                 {connection.personId && <SharedTags connectionId={connection.id} personId={connection.personId} viewerId={viewerId} name={connection.displayName} personTags={connection.personTags} ownTags={connection.ownTags} />}
               </li>
             ))}
               </ul>
             </section>)}
-          </div> : <p className="mt-5 rounded-2xl border border-white/10 p-5 text-sm text-slate-400">No connections match these filters.</p>}
+          </div> : <p className="mt-5 rounded-2xl border border-[color:var(--nsg-border)]/10 p-5 text-sm text-slate-400">No connections match these filters.</p>}
         </>
       )}
     </section>

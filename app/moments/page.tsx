@@ -14,9 +14,9 @@ export default async function MomentsPage() {
   const moments = await getAccessibleMoments(user.id);
 
   return (
-    <main className="min-h-screen bg-[#0F172A] px-5 py-10 text-slate-100 sm:px-8 sm:py-14">
+    <main className="min-h-screen bg-[color:var(--nsg-background)] px-5 py-10 text-slate-100 sm:px-8 sm:py-14">
       <div className="mx-auto max-w-4xl">
-        <Link href="/dashboard" className="text-sm font-semibold text-[#f0c98e] hover:underline">
+        <Link href="/dashboard" className="text-sm font-semibold text-[color:var(--nsg-accent-light)] hover:underline">
           My Legacy
         </Link>
         <h1 className="mt-8 font-serif text-4xl text-white">Shared Moments</h1>
@@ -28,7 +28,7 @@ export default async function MomentsPage() {
             {moments.map((moment) => <MomentCard key={moment.id} moment={moment} />)}
           </ul>
         ) : (
-          <p className="mt-8 rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm text-slate-400">
+          <p className="mt-8 rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5 text-sm text-slate-400">
             No Shared Moments are available yet.
           </p>
         )}

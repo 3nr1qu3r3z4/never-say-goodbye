@@ -4,7 +4,7 @@ import { useActionState } from "react";
 import { submitLegacyFrameInterest } from "@/app/actions/legacy-frame";
 
 const inputClassName =
-  "min-h-12 w-full rounded-xl border border-white/10 bg-slate-950/50 px-4 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-[#D8A35B]/70 focus:ring-2 focus:ring-[#D8A35B]/20";
+  "min-h-12 w-full rounded-xl border border-[color:var(--nsg-border)]/10 bg-slate-950/50 px-4 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-[color:var(--nsg-accent)]/70 focus:ring-2 focus:ring-[color:var(--nsg-accent)]/20";
 
 export default function LegacyFrameWaitlist() {
   const [state, action, isPending] = useActionState(
@@ -31,7 +31,7 @@ export default function LegacyFrameWaitlist() {
         <button
           type="submit"
           disabled={isPending}
-          className="inline-flex min-h-12 shrink-0 items-center justify-center rounded-full bg-[#D8A35B] px-6 py-3 text-sm font-semibold text-[#0F172A] transition hover:bg-[#e6b66f] disabled:cursor-wait disabled:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
+          className="inline-flex min-h-12 shrink-0 items-center justify-center rounded-full bg-[color:var(--nsg-accent)] px-6 py-3 text-sm font-semibold text-[color:var(--nsg-background)] transition hover:bg-[color:var(--nsg-accent-hover)] disabled:cursor-wait disabled:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]"
         >
           {isPending ? "Saving..." : "Notify Me When Available"}
         </button>
@@ -46,7 +46,7 @@ export default function LegacyFrameWaitlist() {
         </p>
       )}
       {state.success && (
-        <p role="status" className="mt-3 text-sm text-[#f0c98e]">
+        <p role="status" className="mt-3 text-sm text-[color:var(--nsg-accent-light)]">
           {state.success}
         </p>
       )}

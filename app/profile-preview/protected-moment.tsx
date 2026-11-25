@@ -49,12 +49,12 @@ export default function ProtectedMoment({ title }: { title: string }) {
       <button
         type="button"
         onClick={() => setDialogOpen(true)}
-        className="group w-full overflow-hidden rounded-2xl border border-[#D8A35B]/20 bg-slate-900 text-left transition hover:-translate-y-1 hover:border-[#D8A35B]/50 hover:shadow-lg hover:shadow-[#D8A35B]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
+        className="group w-full overflow-hidden rounded-2xl border border-[color:var(--nsg-accent)]/20 bg-slate-900 text-left transition hover:-translate-y-1 hover:border-[color:var(--nsg-accent)]/50 hover:shadow-lg hover:shadow-[color:var(--nsg-accent)]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]"
       >
         <span className="relative block h-36 overflow-hidden">
           <span
             aria-hidden="true"
-            className="absolute inset-0 scale-110 bg-gradient-to-br from-[#D8A35B]/25 via-slate-700 to-[#0F172A] blur-xl"
+            className="absolute inset-0 scale-110 bg-gradient-to-br from-[color:var(--nsg-accent)]/25 via-slate-700 to-[color:var(--nsg-background)] blur-xl"
           />
           <span
             aria-hidden="true"
@@ -62,7 +62,7 @@ export default function ProtectedMoment({ title }: { title: string }) {
           >
             🔒
           </span>
-          <span className="absolute bottom-3 right-4 text-xs uppercase tracking-[0.18em] text-[#f0c98e]">
+          <span className="absolute bottom-3 right-4 text-xs uppercase tracking-[0.18em] text-[color:var(--nsg-accent-light)]">
             Sealed
           </span>
         </span>
@@ -75,9 +75,9 @@ export default function ProtectedMoment({ title }: { title: string }) {
       {unlocked && (
         <section
           aria-labelledby={`unlocked-moment-heading-${momentId}`}
-          className="mt-6 rounded-2xl border border-[#D8A35B]/30 bg-white/[0.04] p-6 shadow-xl shadow-black/20 sm:p-8"
+          className="mt-6 rounded-2xl border border-[color:var(--nsg-accent)]/30 bg-white/[0.04] p-6 shadow-xl shadow-black/20 sm:p-8"
         >
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#D8A35B]">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--nsg-accent)]">
             Private Moment
           </p>
           <h3
@@ -103,10 +103,10 @@ export default function ProtectedMoment({ title }: { title: string }) {
           <section
             aria-labelledby={dialogTitleId}
             aria-modal="true"
-            className="w-full max-w-md rounded-2xl border border-[#D8A35B]/30 bg-[#0F172A] p-6 shadow-2xl shadow-black/50 sm:p-8"
+            className="w-full max-w-md rounded-2xl border border-[color:var(--nsg-accent)]/30 bg-[color:var(--nsg-background)] p-6 shadow-2xl shadow-black/50 sm:p-8"
             role="dialog"
           >
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#D8A35B]">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--nsg-accent)]">
               ACCESS PROTECTED
             </p>
             <h2
@@ -142,7 +142,7 @@ export default function ProtectedMoment({ title }: { title: string }) {
                 }}
                 aria-invalid={hasError}
                 aria-describedby={hasError ? errorId : undefined}
-                className="mt-2 min-h-12 w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-[#D8A35B]/70 focus:ring-2 focus:ring-[#D8A35B]/20"
+                className="mt-2 min-h-12 w-full rounded-xl border border-[color:var(--nsg-border)]/10 bg-slate-950/70 px-4 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-[color:var(--nsg-accent)]/70 focus:ring-2 focus:ring-[color:var(--nsg-accent)]/20"
               />
               {hasError && (
                 <p
@@ -159,13 +159,13 @@ export default function ProtectedMoment({ title }: { title: string }) {
                 <button
                   type="button"
                   onClick={closeDialog}
-                  className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/15 px-5 py-2.5 text-sm font-semibold text-slate-300 transition hover:border-white/30 hover:bg-white/[0.05] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
+                  className="inline-flex min-h-11 items-center justify-center rounded-full border border-[color:var(--nsg-border)]/15 px-5 py-2.5 text-sm font-semibold text-slate-300 transition hover:border-[color:var(--nsg-border)]/30 hover:bg-white/[0.05] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#D8A35B] px-5 py-2.5 text-sm font-semibold text-[#0F172A] transition hover:bg-[#e6b66f] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]"
+                  className="inline-flex min-h-11 items-center justify-center rounded-full bg-[color:var(--nsg-accent)] px-5 py-2.5 text-sm font-semibold text-[color:var(--nsg-background)] transition hover:bg-[color:var(--nsg-accent-hover)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]"
                 >
                   Unlock Moment
                 </button>

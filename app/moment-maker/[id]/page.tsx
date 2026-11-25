@@ -128,14 +128,14 @@ export default async function MomentMakerProfilePage({
   const isOwnProfile = currentUser?.id === profile.id;
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#0F172A] text-slate-100">
+    <main className="min-h-screen overflow-hidden bg-[color:var(--nsg-background)] text-slate-100">
       {currentUser && currentUser.id !== profile.id && frequentVisitsEnabled() && (
         <VisitTracker profileId={profile.id} />
       )}
       <section className="px-4 pt-4 sm:px-8 sm:pt-8">
         <figure
           aria-label={`Moment Maker profile for ${profile.displayName}`}
-          className="relative mx-auto flex aspect-square w-full max-w-[42rem] items-end overflow-hidden rounded-[1.75rem] border border-[#D8A35B]/25 bg-gradient-to-br from-[#344255] via-[#172437] to-[#101827] shadow-2xl shadow-black/30 sm:rounded-[2rem]"
+          className="relative mx-auto flex aspect-square w-full max-w-[42rem] items-end overflow-hidden rounded-[1.75rem] border border-[color:var(--nsg-accent)]/25 bg-gradient-to-br from-[#344255] via-[#172437] to-[#101827] shadow-2xl shadow-black/30 sm:rounded-[2rem]"
         >
           {profile.publicProfilePhoto && profile.profilePhoto && (
             <Image
@@ -149,13 +149,13 @@ export default async function MomentMakerProfilePage({
           )}
           <div
             aria-hidden="true"
-            className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_45%,rgba(216,163,91,0.2),transparent_58%)]"
+            className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_45%,color-mix(in_srgb,var(--nsg-accent)_20%,transparent),transparent_58%)]"
           />
           <div
             aria-hidden="true"
-            className="absolute inset-0 bg-gradient-to-t from-[#0F172A] via-transparent to-[#0F172A]/10"
+            className="absolute inset-0 bg-gradient-to-t from-[color:var(--nsg-background)] via-transparent to-[color:var(--nsg-background)]/10"
           />
-          <span className="absolute bottom-5 left-5 text-[0.65rem] font-medium uppercase tracking-[0.24em] text-[#f0c98e]/80 sm:bottom-8 sm:left-8">
+          <span className="absolute bottom-5 left-5 text-[0.65rem] font-medium uppercase tracking-[0.24em] text-[color:var(--nsg-accent-light)]/80 sm:bottom-8 sm:left-8">
             My Moments
           </span>
         </figure>
@@ -169,7 +169,7 @@ export default async function MomentMakerProfilePage({
               {descriptors.map((descriptor, index) => (
                 <span key={`${descriptor}-${index}`}>
                   {index > 0 && (
-                    <span className="px-2 text-[#D8A35B]">•</span>
+                    <span className="px-2 text-[color:var(--nsg-accent)]">•</span>
                   )}
                   {descriptor}
                 </span>
@@ -191,7 +191,7 @@ export default async function MomentMakerProfilePage({
           {isOwnProfile && (
             <Link
               href="/my-profile"
-              className="mt-8 inline-flex min-h-12 items-center rounded-full border border-[#D8A35B]/60 px-6 font-semibold text-[#f0c98e] transition hover:bg-[#D8A35B]/10"
+              className="mt-8 inline-flex min-h-12 items-center rounded-full border border-[color:var(--nsg-accent)]/60 px-6 font-semibold text-[color:var(--nsg-accent-light)] transition hover:bg-[color:var(--nsg-accent)]/10"
             >
               Edit My Profile
             </Link>
@@ -200,7 +200,7 @@ export default async function MomentMakerProfilePage({
       </section>
 
       {sharedMoments.length > 0 && (
-        <section className="border-y border-white/10 bg-slate-950/30 px-6 py-14 sm:px-8 sm:py-16">
+        <section className="border-y border-[color:var(--nsg-border)]/10 bg-slate-950/30 px-6 py-14 sm:px-8 sm:py-16">
           <div className="mx-auto max-w-6xl">
             <h2 className="font-serif text-3xl text-white sm:text-4xl">
               Shared Moments
@@ -222,9 +222,9 @@ export default async function MomentMakerProfilePage({
               {personalMoments.map((moment) => (
                 <li
                   key={moment.id}
-                  className="rounded-2xl border border-[#D8A35B]/20 bg-white/[0.03] p-5"
+                  className="rounded-2xl border border-[color:var(--nsg-accent)]/20 bg-white/[0.03] p-5"
                 >
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#D8A35B]">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--nsg-accent)]">
                     Private Moment
                   </p>
                   <p className="mt-3 font-serif text-lg text-white">

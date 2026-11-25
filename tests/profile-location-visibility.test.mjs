@@ -241,6 +241,7 @@ test("owners receive their actual location values independently of visitor setti
     "@/lib/db": { getSql: () => async () => [profile] },
     "./profile-editor": { default: ({ birthplace, location }) =>
       React.createElement(ProfileLocations, { birthplace, location }) },
+    "./appearance": { default: () => null },
   }).default;
   const html = renderToStaticMarkup(await page());
   assert.match(html, /Boston/);
