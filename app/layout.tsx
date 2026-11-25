@@ -33,7 +33,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <SiteNavigation />
         {children}
         <footer className="mt-auto bg-[#0F172A] px-6 py-4 text-center">
-          <nav aria-label="Footer navigation">
+          <nav aria-label="Footer navigation" className="flex flex-wrap justify-center gap-x-6">
+            <Link href="/pricing" className="inline-flex min-h-11 items-center text-sm text-slate-400 transition hover:text-[#f0c98e] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]">
+              Plans &amp; Pricing
+            </Link>
             <Link href="/help" className="inline-flex min-h-11 items-center text-sm text-slate-400 transition hover:text-[#f0c98e] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B]">
               Help Center
             </Link>

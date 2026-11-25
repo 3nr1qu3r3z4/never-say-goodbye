@@ -9,6 +9,10 @@ import * as jsxRuntime from "react/jsx-runtime";
 import { renderToStaticMarkup } from "react-dom/server";
 import ts from "typescript";
 
+const planSource = fs.readFileSync(path.join(path.dirname(path.dirname(fileURLToPath(import.meta.url))), "lib", "membership-plans.ts"), "utf8");
+const planExports = {};
+vm.runInNewContext(ts.transpileModule(planSource, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, { exports: planExports, Intl });
+
 function loadPage(relativePath, user = null, overrides = {}, globals = {}) {
   const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
   const source = fs.readFileSync(path.join(root, ...relativePath), "utf8");
@@ -23,6 +27,7 @@ function loadPage(relativePath, user = null, overrides = {}, globals = {}) {
     "next/image": { default: () => null },
     "@/lib/auth": { getCurrentUser: async () => user },
     "@/app/actions/auth": { logoutAction: () => {} },
+    "@/lib/membership-plans": planExports,
     "./weekly-moment-makers": { default: () => null },
     "./first-message": { default: () => null },
     "./protected-moment": { default: () => null },
@@ -119,7 +124,7 @@ test("the shared layout provides Help Center in footer navigation", () => {
     "./globals.css": {},
   });
   const html = renderToStaticMarkup(React.createElement(layout, null, React.createElement("main", null, "Page content")));
-  assert.match(html, /<main>Page content<\/main>[\s\S]*<footer[^>]*><nav aria-label="Footer navigation"><a href="\/help"[^>]*>Help Center<\/a>/);
+  assert.match(html, /<main>Page content<\/main>[\s\S]*<footer[^>]*><nav aria-label="Footer navigation"[^>]*><a href="\/pricing"[^>]*>Plans &amp; Pricing<\/a>[\s\S]*<a href="\/help"[^>]*>Help Center<\/a>/);
 });
 
 test("Help Center presents current guides, limitations and support contact", () => {
@@ -134,9 +139,62 @@ test("Help Center presents current guides, limitations and support contact", () 
   assert.match(html, /Placeholders are not accounts/);
   assert.match(html, /not video uploads or contributor permissions/);
   assert.match(html, /MP4, MOV, or M4V video up to 100 MiB/);
-  assert.match(html, /Free is currently the only membership available for new accounts/);
+  assert.match(html, /Free Legacy is the only membership available for new accounts/);
+  assert.match(html, /href="\/pricing"/);
   assert.match(html, /href="mailto:NeverSayGoodbye.life@yahoo.com"/);
   assert.match(html, /href="\/forgot-password"/);
+});
+
+test("pricing displays the requested roadmap without implying paid access or delivery is available", () => {
+  const html = renderPage(["app", "pricing", "page.tsx"]);
+  for (const text of [
+    "Free Legacy", "Free Forever", "Legacy Plus", "$4.99/month", "Family Legacy", "$7.99/month",
+    "Most Popular", "Legacy Forever", "$299 One-Time", "3 Public Videos", "2 Private Videos",
+    "25 Photos", "10 Stories", "5 Voice Messages", "2 Cannot Open Until™ Messages",
+    "50 total videos", "50 voice messages", "25 Cannot Open Until™ Messages",
+    "Up to 5 family profiles", "250 videos", "Up to 10 family profiles", "1,000 videos",
+    "Never Forget™ Family Calendar", "Legacy Vault Export", "Digital Executor Designation",
+  ]) assert.ok(html.includes(text), text);
+  assert.match(html, /plan limits are not enforced/);
+  assert.match(html, /paid plans and billing are coming soon/);
+  for (const text of ["Automatic reminders", "Birthday video delivery", "Anniversary message delivery", "Custom milestone scheduling", "Scheduled message delivery", "Unlimited future deliveries", "Legacy Vault Export"]) {
+    assert.ok(html.includes(`${text}<span class="text-slate-400"> (Coming Soon)</span>`), text);
+  }
+  assert.match(html, /Shared family dates/);
+  assert.match(html, /href="\/signup"[^>]*>Create a Free Account/);
+  assert.equal((html.match(/Create a Free Account/g) ?? []).length, 1);
+  const [free, plus, family, forever] = planExports.membershipPlans;
+  assert.deepEqual(JSON.parse(JSON.stringify([free.limits, plus.limits, family.limits, forever.limits])), [
+    { profiles: 1, videos: { public: 3, private: 2 }, photos: 25, stories: 10, voiceMessages: 5, cannotOpenUntilMessages: 2 },
+    { videos: { total: 50 }, photos: null, stories: null, voiceMessages: 50, cannotOpenUntilMessages: 25 },
+    { profiles: 5, videos: { total: 250 }, photos: null, stories: null, voiceMessages: null, futureDeliveries: null },
+    { profiles: 10, videos: { total: 1000 }, futureDeliveries: null },
+  ]);
+});
+
+test("signup lists all roadmap plans but allows only Free Legacy", () => {
+  const Signup = loadPage(["app", "signup", "signup-form.tsx"], null, {
+    react: {
+      ...React,
+      useActionState: () => [{}, () => {}, false],
+      useState: (initial) => [initial, () => {}],
+    },
+    "@/app/actions/auth": { signupAction: () => {} },
+    "@/app/searchability-warning": { default: () => null },
+  });
+  const html = renderToStaticMarkup(React.createElement(Signup));
+  assert.match(html, /href="\/pricing"/);
+  const inputs = [...html.matchAll(/<input\b[^>]*>/g)].map((match) => match[0]);
+  const free = inputs.find((input) => input.includes('name="membership"') && input.includes('value="free"'));
+  assert.ok(free);
+  assert.match(free, /checked=""/);
+  assert.doesNotMatch(free, /disabled=""/);
+  for (const id of ["legacy-plus", "family-legacy", "legacy-forever"]) {
+    const input = inputs.find((item) => item.includes('name="membership"') && item.includes(`value="${id}"`));
+    assert.ok(input, id);
+    assert.match(input, /disabled=""/);
+  }
+  assert.match(html, /plan limits are not enforced/);
 });
 
 test("the homepage showcase link opens John's profile without the message fragment", () => {

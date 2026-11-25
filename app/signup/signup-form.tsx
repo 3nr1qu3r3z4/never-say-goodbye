@@ -4,50 +4,10 @@ import { useActionState, useState } from "react";
 import Link from "next/link";
 import { signupAction } from "@/app/actions/auth";
 import SearchabilityWarning from "@/app/searchability-warning";
+import { membershipPlans, membershipPrice } from "@/lib/membership-plans";
 
 const inputClassName =
   "min-h-12 w-full rounded-xl border border-white/10 bg-slate-950/50 px-4 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-[#D8A35B]/70 focus:ring-2 focus:ring-[#D8A35B]/20";
-
-const plans = [
-  {
-    name: "FREE",
-    description: "A meaningful place to begin.",
-    value: "free",
-    features: [
-      "Create Moments",
-      "Build Connected Lives™",
-      "Join Legacy Trees™",
-    ],
-    action: "Start Free",
-  },
-  {
-    name: "TIER 2",
-    description: "Build and care for your family story.",
-    value: "tier-2",
-    features: [
-      "Legacy Tree™ Ownership",
-      "Cannot Open Until™",
-      "Family Management",
-      "Future Moment Makers™",
-    ],
-    action: "Choose Tier 2",
-    unavailable: true,
-  },
-  {
-    name: "TIER 3",
-    description: "A deeper way to protect what matters.",
-    value: "tier-3",
-    features: [
-      "Everything in Tier 2",
-      "Legacy Successor™",
-      "Merge Moment Makers™",
-      "Advanced Legacy Controls™",
-    ],
-    action: "Choose Tier 3",
-    recommended: true,
-    unavailable: true,
-  },
-];
 
 const displayOptions = [
   { value: "full-name", label: "Full Name" },
@@ -473,84 +433,67 @@ export default function SignupForm() {
               >
                 Membership Options
               </h2>
+              <p className="mt-3 text-sm leading-6 text-slate-400">
+                Free Legacy is available now. Paid plans are coming soon; beta access remains unchanged and plan limits are not enforced.{" "}
+                <Link href="/pricing" className="font-semibold text-[#f0c98e] underline underline-offset-4">Compare plans and planned features</Link>
+              </p>
             </div>
-            <fieldset className="grid gap-4 md:grid-cols-3">
+            <fieldset className="grid gap-4 md:grid-cols-2">
               <legend className="sr-only">Select a membership option</legend>
-              {plans.map((plan) => (
+              {membershipPlans.map((plan) => (
                 <div
-                  key={plan.value}
-                  aria-disabled={plan.unavailable || undefined}
+                  key={plan.id}
+                  aria-disabled={!plan.available || undefined}
                   className={`relative flex flex-col rounded-2xl border bg-slate-950/40 p-5 transition ${
-                    plan.recommended
+                    plan.mostPopular
                       ? "border-[#D8A35B]/70 shadow-lg shadow-[#D8A35B]/10"
                       : "border-white/10"
-                  } ${selectedPlan === plan.value ? "bg-[#D8A35B]/[0.08]" : ""} ${
-                    plan.unavailable ? "opacity-70" : ""
+                  } ${selectedPlan === plan.id ? "bg-[#D8A35B]/[0.08]" : ""} ${
+                    !plan.available ? "opacity-70" : ""
                   }`}
                 >
-                  {plan.recommended && (
-                    <span className="absolute right-4 top-4 rounded-full bg-[#D8A35B]/15 px-2.5 py-1 text-[0.6rem] font-semibold tracking-[0.14em] text-[#f0c98e]">
-                      RECOMMENDED
-                    </span>
-                  )}
-                  {plan.unavailable && (
-                    <span
-                      className={`absolute right-4 rounded-full border border-[#D8A35B]/40 bg-[#D8A35B]/10 px-2.5 py-1 text-[0.6rem] font-semibold tracking-[0.12em] text-[#f0c98e] ${
-                        plan.recommended ? "top-12" : "top-4"
-                      }`}
-                    >
-                      COMING SOON
-                    </span>
-                  )}
+                  <div className="mb-3 flex flex-wrap gap-2">
+                    {plan.mostPopular && <span className="rounded-full bg-[#D8A35B]/15 px-3 py-1 text-xs font-semibold text-[#f0c98e]">⭐ Most Popular</span>}
+                    {!plan.available && <span className="rounded-full border border-white/15 px-3 py-1 text-xs font-semibold text-slate-300">Coming Soon</span>}
+                  </div>
                   <label
                     className={`flex items-center gap-3 ${
-                      plan.unavailable ? "cursor-not-allowed" : "cursor-pointer"
+                      !plan.available ? "cursor-not-allowed" : "cursor-pointer"
                     }`}
                   >
                     <input
                       type="radio"
                       name="membership"
-                      value={plan.value}
-                      checked={selectedPlan === plan.value}
-                      onChange={() => setSelectedPlan(plan.value)}
-                      disabled={plan.unavailable}
+                      value={plan.id}
+                      checked={selectedPlan === plan.id}
+                      onChange={() => setSelectedPlan(plan.id)}
+                      disabled={!plan.available}
                       className="h-4 w-4 accent-[#D8A35B] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D8A35B]"
                     />
                     <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[#D8A35B]">
                       {plan.name}
                     </span>
                   </label>
-                  <p className="mt-3 min-h-12 font-serif text-lg leading-snug text-white">
-                    {plan.description}
-                  </p>
-                  <ul className="mt-4 flex-1 space-y-2 text-sm text-slate-300">
-                    {plan.features.map((feature) => (
-                      <li key={feature} className="flex gap-2">
-                        <span aria-hidden="true" className="text-[#D8A35B]">
-                          ✓
-                        </span>
-                        <span>{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  <p className="mt-3 font-semibold text-[#f0c98e]">{membershipPrice(plan)}</p>
+                  <p className="mt-3 flex-1 text-sm leading-6 text-slate-300">{plan.tagline}</p>
                   <button
                     type="button"
-                    aria-pressed={selectedPlan === plan.value}
-                    disabled={plan.unavailable}
+                    aria-pressed={selectedPlan === plan.id}
+                    disabled={!plan.available}
                     onClick={() => {
-                      if (plan.unavailable) return;
-                      setSelectedPlan(plan.value);
+                      if (!plan.available) return;
+                      setSelectedPlan(plan.id);
                       document
                         .getElementById("terms-and-conditions")
                         ?.scrollIntoView({ behavior: "smooth", block: "center" });
                     }}
                     className={`mt-5 min-h-11 w-full rounded-full border px-4 py-2.5 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D8A35B] disabled:cursor-not-allowed disabled:border-white/10 disabled:text-slate-500 disabled:hover:border-white/10 disabled:hover:text-slate-500 ${
-                      selectedPlan === plan.value
+                      selectedPlan === plan.id
                         ? "border-[#D8A35B] bg-[#D8A35B]/15 text-[#f0c98e]"
                         : "border-white/15 text-slate-300 hover:border-[#D8A35B]/60 hover:text-[#f0c98e]"
                     }`}
                   >
-                    {plan.action}
+                    {plan.available ? "Start Free" : "Coming Soon"}
                   </button>
                 </div>
               ))}

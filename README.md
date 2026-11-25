@@ -3,6 +3,24 @@
 Never Say Goodbye is a Moment Maker platform for preserving stories, moments,
 and family connections.
 
+## Membership plans
+
+The public `/pricing` page presents the planned Free Legacy, Legacy Plus,
+Family Legacy, and Legacy Forever plans. Their prices, advertised limits,
+and feature availability are defined in `lib/membership-plans.ts` and shared
+with signup and Help Center. Paid registration and billing are not available,
+and plan quotas and entitlements are not enforced during beta. Existing beta
+access remains unchanged; existing per-file upload limits still apply.
+
+The plan definitions are not an entitlement system. Limits list explicit
+plan changes; `null` means unlimited, omitted limits are inherited or
+unspecified, and a plan's video limit replaces its parent's video limit. Before
+enabling billing, resolve how future deliveries relate to Cannot Open Until
+quotas, and define legacy membership mappings, payment lifecycle and cancellation,
+grandfathering, quota accounting, and enforcement. Reminder notifications,
+scheduled deliveries, voice uploads, and other features marked Coming Soon
+also require implementation.
+
 ## Shared Moments
 
 Signed-in members can view their own Shared Moments and moments addressed to

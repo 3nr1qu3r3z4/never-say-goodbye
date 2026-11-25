@@ -50,6 +50,12 @@ test("signup requires terms and the existing visibility agreement on the server"
   assert.match((await actions.signupAction({}, data)).error, /accept both agreements/);
   assert.equal(queries, 0);
   data.set("visibilityAcknowledgment", "on");
+  for (const membership of ["legacy-plus", "family-legacy", "legacy-forever", "tier-2", "tier-3"]) {
+    data.set("membership", membership);
+    assert.match((await actions.signupAction({}, data)).error, /Only Free Legacy membership/);
+    assert.equal(queries, 0);
+  }
+  data.set("membership", "free");
   assert.match((await actions.signupAction({}, data)).error, /already exists/);
   assert.equal(queries, 1);
 });

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { membershipPlans, membershipPrice } from "@/lib/membership-plans";
 
 export const metadata: Metadata = {
   title: "Help Center | Never Say Goodbye",
@@ -18,7 +19,7 @@ const guides = [
         question: "How do I create an account?",
         steps: [
           "Choose Create Your Legacy, enter your account details, and choose a display name.",
-          "Choose your profile visibility, select Free membership, accept the required agreements, and create your account.",
+          "Choose your profile visibility, select Free Legacy, accept the required agreements, and create your account.",
         ],
       },
       {
@@ -232,24 +233,17 @@ export default function HelpPage() {
 
           <section id="membership" aria-labelledby="membership-heading" className={sectionClassName}>
             <h2 id="membership-heading" className="font-serif text-2xl text-white">Membership Plans</h2>
-            <p className="mt-3 text-sm leading-6 text-slate-400">Free is currently the only membership available for new accounts. Signup also lists future Tier 2 and Tier 3 options. Paid options, pricing, and plan-specific limits have not been confirmed.</p>
-            <div className="mt-5 grid gap-3 md:grid-cols-3">
-              <div className="rounded-xl border border-white/10 p-4">
-                <h3 className="font-semibold text-white">Free</h3>
-                <p className="mt-1 font-serif text-[#f0c98e]">A Meaningful Place to Begin</p>
-                <p className="mt-3 text-sm leading-6 text-slate-400">Create Moments, build Connected Lives™, and join Legacy Trees™. Current media limits are listed above; no overall account quota is published.</p>
-              </div>
-              <div className="rounded-xl border border-white/10 p-4">
-                <h3 className="font-semibold text-white">Premium <span className="text-xs text-slate-400">· Not available yet</span></h3>
-                <p className="mt-1 font-serif text-[#f0c98e]">Build and Care for Your Family Story</p>
-                <p className="mt-3 text-sm leading-6 text-slate-400">Features and limits are not yet confirmed.</p>
-              </div>
-              <div className="rounded-xl border border-white/10 p-4">
-                <h3 className="font-semibold text-white">Legacy Lifetime <span className="text-xs text-slate-400">· Not available yet</span></h3>
-                <p className="mt-1 font-serif text-[#f0c98e]">Protect What Matters Forever</p>
-                <p className="mt-3 text-sm leading-6 text-slate-400">Features and limits are not yet confirmed.</p>
-              </div>
+            <p className="mt-3 text-sm leading-6 text-slate-400">Free Legacy is the only membership available for new accounts. Paid plans are coming soon, and plan limits are not enforced during beta.</p>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              {membershipPlans.map((plan) => (
+                <div key={plan.id} className={`rounded-xl border p-4 ${plan.mostPopular ? "border-[#D8A35B]/60" : "border-white/10"}`}>
+                  <h3 className="font-semibold text-white">{plan.name}{plan.mostPopular && <span className="ml-2 text-xs text-[#f0c98e]">⭐ Most Popular</span>}</h3>
+                  <p className="mt-1 font-serif text-[#f0c98e]">{membershipPrice(plan)}</p>
+                  <p className="mt-2 text-sm text-slate-400">{plan.available ? "Available now" : "Coming Soon"}</p>
+                </div>
+              ))}
             </div>
+            <Link href="/pricing" className={`mt-4 ${linkClassName}`}>Compare plans and planned features <span aria-hidden="true" className="ml-2">→</span></Link>
           </section>
 
           <section id="support" aria-labelledby="support-heading" className={sectionClassName}>

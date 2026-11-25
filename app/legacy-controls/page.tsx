@@ -409,9 +409,8 @@ export default async function LegacyControlsPage({
                 🤝 Merge Moment Makers™
               </h3>
               <p className="mt-2 text-sm leading-6 text-slate-400">
-                Combine two Tier 3 Moment Makers into a shared Legacy Tree™.
-                This prevents duplicate family trees and allows spouses or
-                family members to manage one tree together.
+                A future option to combine two Moment Makers into a shared Legacy Tree™.
+                This feature is not available yet.
               </p>
               <button
                 type="button"

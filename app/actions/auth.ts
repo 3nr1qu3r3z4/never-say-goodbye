@@ -65,7 +65,7 @@ export async function signupAction(
     return { error: "Choose how your profile name should appear." };
   }
   if (!memberships.includes(membership as (typeof memberships)[number])) {
-    return { error: "Only Free membership is available for new accounts right now." };
+    return { error: "Only Free Legacy membership is available for new accounts right now." };
   }
   if (
     !discoverabilityOptions.includes(
