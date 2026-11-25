@@ -30,7 +30,7 @@ export default function HomepageVideo() {
           controls
           playsInline
           preload="none"
-          poster="/images/family-traditions.jpg"
+          poster="/images/message-for-the-future-poster.webp"
           aria-label="A Message For The Future promotional video"
           className="aspect-video w-full object-contain"
           onPlay={() => setPlaying(true)}
