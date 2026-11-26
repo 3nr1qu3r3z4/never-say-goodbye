@@ -311,11 +311,18 @@ async function FamilyMembersForUser({ userId }: { userId: string }) {
                 <h2 className="mt-2 break-words font-serif text-2xl text-white sm:text-3xl">{tree.name}</h2>
                 <form action={`/api/legacy-tree/${encodeURIComponent(tree.id)}/pdf`} method="post" className="mt-4">
                   <details className="mb-3 text-left">
-                    <summary className="cursor-pointer text-sm text-[color:var(--nsg-accent-light)]">Use a family name for the title (optional)</summary>
-                    <label className="mt-3 block text-sm text-slate-300">Family name
+                    <summary className="cursor-pointer text-sm text-[color:var(--nsg-accent-light)]">Use a different family name for the title (optional)</summary>
+                    <label className="mt-3 block text-sm text-slate-300">Family name override
                       <input name="familyName" maxLength={80} className="mt-2 min-h-11 w-full rounded-xl border border-[color:var(--nsg-border)]/20 bg-slate-950 px-3 text-white" />
                     </label>
                   </details>
+                  <fieldset className="mb-4 text-left text-sm text-slate-300">
+                    <legend className="font-semibold">Include Relationship Labels?</legend>
+                    <div className="mt-2 flex gap-5">
+                      <label className="inline-flex items-center gap-2"><input type="radio" name="includeRelationshipLabels" value="yes" /> Yes</label>
+                      <label className="inline-flex items-center gap-2"><input type="radio" name="includeRelationshipLabels" value="no" defaultChecked /> No</label>
+                    </div>
+                  </fieldset>
                   <button type="submit" className={buttonClassName}>Export Family Tree PDF</button>
                 </form>
               </div>

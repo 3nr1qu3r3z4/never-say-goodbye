@@ -14,11 +14,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (typeof rawFamilyName !== "string" || rawFamilyName.length > 80 || /[\u0000-\u001f\u007f]/.test(rawFamilyName)) {
     return new Response("Enter a family name of 80 characters or fewer.", { status: 400, headers: privateHeaders });
   }
-  const familyName = rawFamilyName.trim();
+  const labelOptions = form.getAll("includeRelationshipLabels");
+  if (labelOptions.length > 1 || (labelOptions.length === 1 && labelOptions[0] !== "yes" && labelOptions[0] !== "no")) {
+    return new Response("Choose whether to include relationship labels.", { status: 400, headers: privateHeaders });
+  }
   const sql = getSql();
   const [trees, members, placeholders, futureMakers] = await sql.transaction([
     sql`
-      SELECT t.owner_user_id AS "ownerId", owner.display_name AS "ownerName"
+      SELECT t.owner_user_id AS "ownerId", owner.display_name AS "ownerName", owner.last_name AS "ownerSurname"
       FROM legacy_trees t
       JOIN legacy_tree_members viewer ON viewer.tree_id = t.id AND viewer.user_id = ${user.id}
       JOIN users owner ON owner.id = t.owner_user_id
@@ -50,7 +53,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       WHERE f.legacy_tree_id = ${id} AND f.status <> 'archived'
     `,
   ]);
-  const tree = trees[0] as { ownerId: string; ownerName: string } | undefined;
+  const tree = trees[0] as { ownerId: string; ownerName: string; ownerSurname: string | null } | undefined;
   if (!tree) return new Response("Tree not found.", { status: 404, headers: privateHeaders });
   type PersonRow = {
     kind: ExportPerson["kind"]; id: string; name: string; relationship: string;
@@ -72,7 +75,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     isHonored: row.isHonored ?? false,
   }));
   try {
-    const pdf = await createLegacyTreePdf(tree.ownerName, familyName, people, new Date());
+    const surname = tree.ownerSurname?.trim() || "";
+    const normalizeName = (value: string) => value.normalize("NFC").trim().replace(/\s+/g, " ").toLowerCase();
+    const visibleSurname = surname && ` ${normalizeName(tree.ownerName)} `.includes(` ${normalizeName(surname)} `);
+    const familyName = rawFamilyName.trim() || (visibleSurname ? surname : "");
+    const pdf = await createLegacyTreePdf(tree.ownerName, familyName, people, new Date(), {
+      includeRelationshipLabels: labelOptions[0] === "yes",
+    });
     return new Response(new Uint8Array(pdf), {
       headers: { ...privateHeaders, "Content-Type": "application/pdf", "Content-Disposition": "attachment; filename=\"family-tree.pdf\"" },
     });

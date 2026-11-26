@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import fontkit from "@pdf-lib/fontkit";
 import { PDFDocument, rgb, type PDFFont, type PDFPage } from "pdf-lib";
-import { exportTreeSections, type ExportPerson } from "@/lib/legacy-tree-export";
+import { exportTreeSections, type ExportPerson, type ExportSection } from "@/lib/legacy-tree-export";
 import { positionRelationship, treePersonKey, treeReferenceKey } from "@/lib/tree-positioning";
 
 const fontNames = [
@@ -88,6 +88,7 @@ export async function createLegacyTreePdf(
   familyName: string,
   people: ExportPerson[],
   generatedAt: Date,
+  options: { includeRelationshipLabels?: boolean } = {},
 ) {
   const document = await PDFDocument.create();
   document.registerFontkit(fontkit);
@@ -99,14 +100,58 @@ export async function createLegacyTreePdf(
     const font = await document.embedFont(data, { subset: true });
     return { font, characters: new Set(font.getCharacterSet()) };
   }));
-  const title = familyName ? `The ${familyName} Family` : `${ownerName}'s Legacy Tree`;
+  const title = familyName ? `${familyName.toUpperCase()} LEGACY TREE` : "LEGACY TREE";
   const date = new Intl.DateTimeFormat("en-US", { dateStyle: "long", timeZone: "UTC" }).format(generatedAt);
   const sections = exportTreeSections(people, ownerName);
   const pageWidth = 792;
   const pageHeight = 612;
   const margin = 44;
-  const cardWidth = 210;
-  const cardGap = 18;
+  const normal = { cardWidth: 210, cardGap: 18, columns: 3, nameSize: 13, detailSize: 10, lineHeight: 18, minCardHeight: 54, cardPadding: 16, rowGap: 14, headingSize: 12, headingLineHeight: 17, headingGap: 10, sectionSpace: 12 };
+  const compact = { cardWidth: 164, cardGap: 12, columns: 4, nameSize: 11, detailSize: 9, lineHeight: 14, minCardHeight: 44, cardPadding: 12, rowGap: 12, headingSize: 10, headingLineHeight: 14, headingGap: 8, sectionSpace: 8 };
+  const dense = { cardWidth: 128, cardGap: 12, columns: 5, nameSize: 10, detailSize: 9, lineHeight: 13, minCardHeight: 40, cardPadding: 10, rowGap: 12, headingSize: 10, headingLineHeight: 14, headingGap: 8, sectionSpace: 8 };
+  type Layout = typeof normal;
+  const titleLines = wrap(title, pageWidth - 2 * margin, 20, fonts);
+  const startY = pageHeight - 55 - titleLines.length * 25 - 14;
+  function household(section: ExportSection) {
+    const ownerIndex = section.label === "Household" ? section.people.findIndex((person) => person.isOwner) : -1;
+    const partners = section.label === "Household"
+      ? section.people.filter((person) => !person.isOwner && !treeReferenceKey(person) && positionRelationship(person.relationship)?.partner)
+      : [];
+    const partnerIndex = partners.length === 1 ? section.people.indexOf(partners[0]) : -1;
+    return { ownerIndex, partners, partnerIndex, connected: ownerIndex >= 0 && partnerIndex === ownerIndex + 1 };
+  }
+  function cardLines(person: ExportPerson, layout: Layout) {
+    const years = person.deathYear
+      ? person.birthYear ? `${person.birthYear}–${person.deathYear}` : `Passed ${person.deathYear}`
+      : "";
+    const relationship = options.includeRelationshipLabels && !person.isOwner ? person.relationship : "";
+    return [
+      ...wrap(person.name, layout.cardWidth - 20, layout.nameSize, fonts).map((text) => ({ text, size: layout.nameSize })),
+      ...wrap([relationship, years].filter(Boolean).join(" · "), layout.cardWidth - 20, layout.detailSize, fonts).map((text) => ({ text, size: layout.detailSize })),
+      ...(person.isHonored ? [{ text: "Honored Life™", size: layout.detailSize }] : []),
+    ];
+  }
+  function rowSize(section: ExportSection, index: number, layout: Layout) {
+    const { connected, ownerIndex } = household(section);
+    return connected && ownerIndex === index + layout.columns - 1 ? layout.columns - 1 : layout.columns;
+  }
+  function rowHeight(row: ExportPerson[], layout: Layout) {
+    const lines = Math.max(...row.map((person) => cardLines(person, layout).length));
+    return Math.max(layout.minCardHeight, lines * layout.lineHeight + layout.cardPadding) + layout.rowGap;
+  }
+  function onePageHeight(layout: Layout) {
+    return sections.reduce((total, section) => {
+      let height = wrapHeading(section.label, 140, layout.headingSize, fonts).length * layout.headingLineHeight + layout.headingGap + layout.sectionSpace;
+      for (let index = 0; index < section.people.length;) {
+        const row = section.people.slice(index, index + rowSize(section, index, layout));
+        height += rowHeight(row, layout);
+        index += row.length;
+      }
+      return total + height;
+    }, 0);
+  }
+  const layout = [normal, compact, dense].find((candidate) => startY - onePageHeight(candidate) >= 85) ?? normal;
+  const { cardWidth, cardGap } = layout;
   const spineX = 36;
   const borderColor = rgb(0.68, 0.57, 0.38);
   const cardColor = rgb(1, 0.998, 0.988);
@@ -130,7 +175,6 @@ export async function createLegacyTreePdf(
   function newPage() {
     page = document.addPage([pageWidth, pageHeight]);
     page.drawRectangle({ x: 0, y: 0, width: pageWidth, height: pageHeight, color: rgb(0.995, 0.99, 0.97) });
-    const titleLines = wrap(title, pageWidth - 2 * margin, 20, fonts);
     y = pageHeight - 55;
     for (const line of titleLines) {
       drawText(page, line, pageWidth / 2, y, 20, fonts, true);
@@ -147,56 +191,30 @@ export async function createLegacyTreePdf(
     sections.every((section) => section.people.length <= 3) &&
     sections[0].people.every((person) => positionRelationship(person.relationship)?.generation === 1) &&
     sections[2].people.every((person) => positionRelationship(person.relationship)?.generation === -1);
-  const estimatedHeight = simpleTree ? sections.reduce((total, section) => {
-    const headingHeight = wrapHeading(section.label, 140, 12, fonts).length * 17 + 10;
-    const maxLines = Math.max(...section.people.map((person) => {
-      const years = person.birthYear && person.deathYear ? `${person.birthYear}–${person.deathYear}` :
-        person.birthYear ? `Born ${person.birthYear}` : person.deathYear ? `Passed ${person.deathYear}` : "";
-      return wrap(person.name, cardWidth - 20, 13, fonts).length +
-        wrap([person.relationship, years].filter(Boolean).join(" · "), cardWidth - 20, 10, fonts).length +
-        Number(person.isHonored);
-    }));
-    return total + headingHeight + Math.max(54, maxLines * 18 + 16) + 14 + 12;
-  }, 0) : 0;
+  const estimatedHeight = simpleTree ? onePageHeight(layout) : 0;
   const sectionGap = simpleTree && y - estimatedHeight - 48 >= 85 ? 24 : 0;
   for (let sectionIndex = 0; sectionIndex < sections.length; sectionIndex++) {
     const section = sections[sectionIndex];
-    const ownerIndex = section.label === "Household" ? section.people.findIndex((person) => person.isOwner) : -1;
-    const partners = section.label === "Household"
-      ? section.people.filter((person) => !person.isOwner && !treeReferenceKey(person) && positionRelationship(person.relationship)?.partner)
-      : [];
-    const partnerIndex = partners.length === 1 ? section.people.indexOf(partners[0]) : -1;
-    const hasHouseholdConnector = ownerIndex >= 0 && partnerIndex === ownerIndex + 1;
+    const { ownerIndex, partners, partnerIndex, connected: hasHouseholdConnector } = household(section);
     if (section.label === "Household") layoutState.centeredHousehold = hasHouseholdConnector && section.people.length === 2;
     const sectionCards: Card[] = [];
     for (let index = 0; index < section.people.length;) {
-      const heading = wrapHeading(`${section.label}${index > 0 ? " (continued)" : ""}`, 140, 12, fonts);
-      const rowSize = hasHouseholdConnector && ownerIndex === index + 2 ? 2 : 3;
-      const row = section.people.slice(index, index + rowSize);
-      const cards = row.map((person) => {
-        const years = person.birthYear && person.deathYear ? `${person.birthYear}–${person.deathYear}` :
-          person.birthYear ? `Born ${person.birthYear}` : person.deathYear ? `Passed ${person.deathYear}` : "";
-        const showRelationship = section.label === "Additional Family" ||
-          (section.label === "Household" && !person.isOwner && !(hasHouseholdConnector && person === partners[0]));
-        return [
-          ...wrap(person.name, cardWidth - 20, 13, fonts).map((text) => ({ text, size: 13 })),
-          ...wrap([showRelationship ? person.relationship : "", years].filter(Boolean).join(" · "), cardWidth - 20, 10, fonts).map((text) => ({ text, size: 10 })),
-          ...(person.isHonored ? [{ text: "Honored Life™", size: 10 }] : []),
-        ];
-      });
-      const cardHeight = Math.max(54, Math.max(...cards.map((card) => card.length)) * 18 + 16);
-      const rowHeight = cardHeight + 14;
-      const headingHeight = heading.length * 17 + 10;
-      if (rowHeight + headingHeight > pageHeight - 160) {
+      const heading = wrapHeading(`${section.label}${index > 0 ? " (continued)" : ""}`, 140, layout.headingSize, fonts);
+      const row = section.people.slice(index, index + rowSize(section, index, layout));
+      const cards = row.map((person) => cardLines(person, layout));
+      const rowHeightValue = rowHeight(row, layout);
+      const cardHeight = rowHeightValue - layout.rowGap;
+      const headingHeight = heading.length * layout.headingLineHeight + layout.headingGap;
+      if (rowHeightValue + headingHeight > startY - 85) {
         throw new Error("A family member's name or relationship is too long to fit on a page.");
       }
-      if (index === 0 || y - rowHeight < 85) {
-        if (y - headingHeight - rowHeight < 85) newPage();
+      if (index === 0 || y - rowHeightValue < 85) {
+        if (y - headingHeight - rowHeightValue < 85) newPage();
         for (const line of heading) {
-          drawText(page, line, margin, y, 12, fonts);
-          y -= 17;
+          drawText(page, line, margin, y, layout.headingSize, fonts);
+          y -= layout.headingLineHeight;
         }
-        y -= 10;
+        y -= layout.headingGap;
       }
       const rowWidth = row.length * cardWidth + (row.length - 1) * cardGap;
       const rowLeft = (pageWidth - rowWidth) / 2;
@@ -212,9 +230,9 @@ export async function createLegacyTreePdf(
           x, y: cardBottom, width: cardWidth, height: cardHeight,
           color: cardColor, borderColor, borderWidth: 0.7,
         });
-        const textTop = cardBottom + (cardHeight + (card.length - 1) * 18) / 2 - 4;
+        const textTop = cardBottom + (cardHeight + (card.length - 1) * layout.lineHeight) / 2 - 4;
         card.forEach((line, lineIndex) =>
-          drawText(page!, line.text, x + cardWidth / 2, textTop - lineIndex * 18, line.size, fonts, true));
+          drawText(page, line.text, x + cardWidth / 2, textTop - lineIndex * layout.lineHeight, line.size, fonts, true));
       });
       if (section.label === "Household") layoutState.householdLastRowBottom = cardBottom;
       if (hasHouseholdConnector && ownerIndex >= index && partnerIndex < index + row.length) {
@@ -229,7 +247,7 @@ export async function createLegacyTreePdf(
           const target = rowCards.find((card) => treePersonKey(card.person) === reference);
           if (target && (target.person.isOwner || (partners.length === 1 && target.person === partners[0] &&
               group.sectionIndex === sectionIndex - 1 && index === 0)) &&
-            group.cards.length <= 3 && group.cards.every((card) =>
+            group.cards.length <= layout.columns && group.cards.every((card) =>
               card.page === page && card.bottom === group.cards[0].bottom &&
               positionRelationship(card.person.relationship)?.generation === 1 &&
               (treeReferenceKey(card.person) ?? treePersonKey(owner)) === reference)) {
@@ -262,7 +280,7 @@ export async function createLegacyTreePdf(
           section.people.every((person) => positionRelationship(person.relationship)?.generation === -1 &&
             (treeReferenceKey(person) ?? treePersonKey(owner)) === childReference)) {
         const busY = cardTop + 5;
-        if (section.people.length <= 3 && source.bottom === layoutState.householdLastRowBottom) {
+        if (section.people.length <= layout.columns && source.bottom === layoutState.householdLastRowBottom) {
           const trunkX = layoutState.centeredHousehold ? pageWidth / 2 : source.x;
           // Start at the referenced person, not the partnership line, so the other parent's identity is not assumed.
           if (trunkX === source.x) {
@@ -287,14 +305,14 @@ export async function createLegacyTreePdf(
           layoutState.childSpine.y = busY;
         }
       }
-      y -= rowHeight;
+      y -= rowHeightValue;
       index += row.length;
     }
     if (section.people.every((person) => positionRelationship(person.relationship)?.generation === 1)) {
       layoutState.parentGroups.push({ sectionIndex, people: section.people, cards: sectionCards });
     }
     if (section.label === "Household") layoutState.household = sectionCards;
-    y -= 12 + (sectionIndex < sections.length - 1 ? sectionGap : 0);
+    y -= layout.sectionSpace + (sectionIndex < sections.length - 1 ? sectionGap : 0);
   }
   return document.save();
 }

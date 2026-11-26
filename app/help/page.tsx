@@ -82,6 +82,10 @@ const guides = [
         answer: "Yes. You can add a Family Placeholder™ with a name and relationship, plus optional years and notes. Placeholders are not accounts: they cannot sign in or receive notifications. Additional placeholder capabilities may come later.",
       },
       {
+        question: "How do I export a family tree PDF?",
+        answer: "Tree members can choose Export Family Tree PDF. The title uses the owner's surname only when it appears in their display name, or you can enter a family name. Relationship labels are optional and off by default. Birth years appear only when a passing year is known.",
+      },
+      {
         question: "How do family milestones appear on the calendar?",
         answer: "Add milestones within a Legacy Tree™. Saving shares them with that tree, and they appear in its Family Calendar™ automatically. Account holders manage their own milestones and can allow tree owners and admins to manage them; owners and admins can also manage placeholder and Honored Life™ milestones. Dates without a known day appear separately rather than on an invented day. Existing family-date sharing choices still apply.",
       },

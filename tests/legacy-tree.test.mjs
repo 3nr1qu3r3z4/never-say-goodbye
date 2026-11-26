@@ -113,6 +113,9 @@ test("membership maps and tree navigation remain scoped and distinguish relation
   assert.match(first, /Owner/);
   assert.match(first, /Remembered Relative/);
   assert.match(first, /action="\/api\/legacy-tree\/first\/pdf"[^>]*method="post"/i);
+  assert.match(first, /Include Relationship Labels\?/);
+  assert.match(first, /name="includeRelationshipLabels" checked="" value="no"/);
+  assert.match(first, /name="includeRelationshipLabels" value="yes"/);
   assert.match(first, />Export Family Tree PDF<\/button>/);
   assert.doesNotMatch(first, /Future Relative/);
   assert.match(second, /Future Relative/);

@@ -56,8 +56,9 @@ async function drawing(page) {
     if (operation === OPS.restore) translation = stack.pop();
     if (operation === OPS.transform) translation = [translation[0] + args[4], translation[1] + args[5]];
     if (operation === OPS.constructPath && args[0].length === 3) lines.push(args[2]);
-    if (operation === OPS.constructPath && args[0].length === 5 && args[2][2] === 210) {
-      cards.push({ x: translation[0] + 105, bottom: translation[1], top: translation[1] + args[2][3] });
+    if (operation === OPS.constructPath && args[0].length === 5 && [128, 164, 210].includes(args[2][2])) {
+      const width = args[2][2];
+      cards.push({ x: translation[0] + width / 2, width, bottom: translation[1], top: translation[1] + args[2][3] });
     }
   }
   return { cards, lines };
@@ -100,14 +101,97 @@ test("export retains family lines, positioning, uncertain relatives and actual P
   assert.equal(pages.length, 1);
   assert.deepEqual(Array.from(pages[0].page.view), [0, 0, 792, 612]);
   const text = pages[0].items.map((item) => item.str).join("");
-  for (const expected of ["The Reza Family", "Dora Gallardo", "1940–2020", "Honored Life™",
+  for (const expected of ["REZA LEGACY TREE", "Dora Gallardo", "1940–2020", "Honored Life™",
     "Robert Smith", "Additional Family", "林 美", "Build it today. Leave it forever.",
     "Never Say Goodbye™", "November 26, 2026"]) {
     assert.ok(text.includes(expected), `PDF missing ${expected}: ${text}`);
   }
   assert.doesNotMatch(text, /Auto Placed|Review|Create a Moment|Admin|Legacy Tree™/);
   assert.doesNotMatch(text, /Mother|Father/);
-  assert.match(text, /Cousin/);
+  assert.doesNotMatch(text, /Cousin/);
+});
+
+test("labels are opt-in and years appear only when a passing year is known", async () => {
+  const people = [
+    person("owner", "Alex Owner", "", { kind: "member", isOwner: true, birthYear: 1975 }),
+    person("living", "Living Person", "Child", { birthYear: 2005 }),
+    person("deceased", "Remembered Person", "Mother", { birthYear: 1940, deathYear: 2020 }),
+    person("passing", "Another Person", "Father", { deathYear: 2018 }),
+    person("uncertain", "Casey Person", "Cousin"),
+  ];
+  const render = async (options) => {
+    const { pages } = await readPdf(await pdf.createLegacyTreePdf("Alex Owner", "", people, new Date("2026-11-26T12:00:00Z"), options));
+    return pages.flatMap(({ items }) => items.map((item) => item.str)).join(" ");
+  };
+  const defaults = await render();
+  assert.match(defaults, /LEGACY TREE/);
+  assert.doesNotMatch(defaults, /Alex Owner's Legacy Tree|1975|2005|Mother|Father|Cousin/);
+  assert.match(defaults, /1940–2020/);
+  assert.match(defaults, /Passed 2018/);
+  const labeled = await render({ includeRelationshipLabels: true });
+  for (const value of ["Child", "Mother", "Father", "Cousin", "1940–2020", "Passed 2018"]) {
+    assert.ok(labeled.includes(value), value);
+  }
+  assert.doesNotMatch(labeled, /1975|2005/);
+});
+
+test("moderate trees use a compact single page without losing names or footer", async () => {
+  const people = [
+    person("owner", "Alex Owner", "", { kind: "member", isOwner: true }),
+    person("partner", "Jordan Owner", "Partner"),
+    ...Array.from({ length: 4 }, (_, index) => person(`grand${index}`, `Grandparent ${index}`, "Grandparent")),
+    ...Array.from({ length: 4 }, (_, index) => person(`parent${index}`, `Parent ${index}`, "Parent")),
+    ...Array.from({ length: 4 }, (_, index) => person(`child${index}`, `Child ${index}`, "Child")),
+  ];
+  const { pages } = await readPdf(await pdf.createLegacyTreePdf("Alex Owner", "Owner", people, new Date("2026-11-26T12:00:00Z")));
+  assert.equal(pages.length, 1);
+  const { cards, lines } = await drawing(pages[0].page);
+  assert.equal(cards.length, people.length);
+  assert.ok(cards.every((card) => card.width === 164 && card.bottom >= 85));
+  for (const person of people) cardFor(person.name, pages[0].items, cards);
+  for (let index = 0; index < 4; index++) {
+    const parent = cardFor(`Parent ${index}`, pages[0].items, cards);
+    const child = cardFor(`Child ${index}`, pages[0].items, cards);
+    assert.ok(vertical(lines, parent.x, parent.bottom - 5, parent.bottom));
+    assert.ok(vertical(lines, child.x, child.top, child.top + 5));
+  }
+  for (const [x1, y1, x2, y2] of lines) {
+    for (const card of cards) {
+      const crosses = x1 === x2
+        ? x1 > card.x - card.width / 2 && x1 < card.x + card.width / 2 && y1 < card.top && y2 > card.bottom
+        : y1 > card.bottom && y1 < card.top && x1 < card.x + card.width / 2 && x2 > card.x - card.width / 2;
+      assert.equal(crosses, false, "connector must not cross a card");
+    }
+  }
+  assert.ok(pages[0].items.some((item) => item.str.includes("Build it today.")));
+});
+
+test("a wider five-column layout keeps a larger tree on one page", async () => {
+  const people = [
+    person("owner", "Alex Owner", "", { kind: "member", isOwner: true }),
+    person("partner", "Jordan Owner", "Partner"),
+    ...Array.from({ length: 5 }, (_, index) => person(`grand${index}`, `Grandparent ${index}`, "Grandparent")),
+    ...Array.from({ length: 5 }, (_, index) => person(`parent${index}`, `Parent ${index}`, "Parent")),
+    ...Array.from({ length: 5 }, (_, index) => person(`child${index}`, `Child ${index}`, "Child")),
+  ];
+  const { pages } = await readPdf(await pdf.createLegacyTreePdf("Alex Owner", "Owner", people, new Date("2026-11-26T12:00:00Z")));
+  assert.equal(pages.length, 1);
+  const { cards, lines } = await drawing(pages[0].page);
+  assert.equal(cards.length, people.length);
+  assert.ok(cards.every((card) => card.width === 128 && card.bottom >= 85));
+  for (const person of people) cardFor(person.name, pages[0].items, cards);
+  for (let index = 0; index < 5; index++) {
+    const child = cardFor(`Child ${index}`, pages[0].items, cards);
+    assert.ok(vertical(lines, child.x, child.top, child.top + 5));
+  }
+  for (const [x1, y1, x2, y2] of lines) {
+    for (const card of cards) {
+      const crosses = x1 === x2
+        ? x1 > card.x - card.width / 2 && x1 < card.x + card.width / 2 && y1 < card.top && y2 > card.bottom
+        : y1 > card.bottom && y1 < card.top && x1 < card.x + card.width / 2 && x2 > card.x - card.width / 2;
+      assert.equal(crosses, false, "connector must not cross a card");
+    }
+  }
 });
 
 test("person cards are centered and only supported household connectors are drawn", async () => {
@@ -124,7 +208,7 @@ test("person cards are centered and only supported household connectors are draw
   };
   assert.ok(Math.abs((center("Alex Owner") + center("Jordan Owner")) / 2 - 396) < 1);
   assert.ok(Math.abs(center("Morgan Owner") - 396) < 1);
-  assert.ok(items.some((item) => item.str.includes("Born 2005")));
+  assert.ok(!items.some((item) => item.str.includes("2005")));
   assert.ok(!items.some((item) => item.str === "Child"));
   const { cards, lines } = await drawing(pages[0].page);
   const ownerCard = cardFor("Alex Owner", items, cards);
@@ -185,7 +269,7 @@ test("unresolved references remain in Additional Family without speculative conn
   const { cards, lines } = await drawing(pages[0].page);
   const relative = cardFor("Casey Relative", pages[0].items, cards);
   assert.ok(pages[0].items.some((item) => item.str.includes("Additional")));
-  assert.ok(pages[0].items.some((item) => item.str === "Child"));
+  assert.ok(!pages[0].items.some((item) => item.str === "Child"));
   assert.ok(!lines.some(([x1, y1, x2, y2]) =>
     x1 === relative.x && x2 === relative.x && (y1 === relative.top || y2 === relative.bottom)));
 });
@@ -262,8 +346,8 @@ test("multiple child rows stay connected without lines crossing person cards", a
   for (const [x1, y1, x2, y2] of lines) {
     for (const card of cards) {
       const crosses = x1 === x2
-        ? x1 > card.x - 105 && x1 < card.x + 105 && y1 < card.top && y2 > card.bottom
-        : y1 > card.bottom && y1 < card.top && x1 < card.x + 105 && x2 > card.x - 105;
+        ? x1 > card.x - card.width / 2 && x1 < card.x + card.width / 2 && y1 < card.top && y2 > card.bottom
+        : y1 > card.bottom && y1 < card.top && x1 < card.x + card.width / 2 && x2 > card.x - card.width / 2;
       assert.equal(crosses, false, "connector must not cross a card");
     }
   }
@@ -273,13 +357,13 @@ test("household connector does not cross a page break", async () => {
   const people = [
     person("owner", "Alex Owner", "", { kind: "member", isOwner: true }),
     person("partner", "Jordan Owner", "Partner"),
-    person("child", "Morgan Owner", "Child"),
+    ...Array.from({ length: 22 }, (_, index) => person(`child${index}`, `Morgan ${String(index).padStart(2, "0")}`, "Child")),
     ...Array.from({ length: 9 }, (_, index) => person(`parent${index}`, `Parent ${index}`, "Parent")),
   ];
   const { pages } = await readPdf(await pdf.createLegacyTreePdf("Alex Owner", "", people, new Date("2026-11-26T12:00:00Z")));
   assert.ok(pages.length > 1);
   assert.ok(pages[0].items.some((item) => item.str === "Alex Owner"));
-  assert.ok(pages[1].items.some((item) => item.str === "Morgan Owner"));
+  assert.ok(pages[1].items.some((item) => item.str === "Morgan 00"));
   const paths = await Promise.all(pages.map(async ({ page }) => (await drawing(page)).lines));
   assert.ok(paths[0].some(([x1, y1, x2, y2]) => y1 === y2 && x2 - x1 === 18));
   assert.equal(paths[1].length, 0);
@@ -311,33 +395,47 @@ test("unsupported characters fail explicitly instead of producing missing glyphs
 test("export endpoint enforces authentication and tree membership before generating", async () => {
   let user = null;
   let tree = [];
-  let calls = 0;
+  const calls = [];
   const sql = () => ({});
   sql.transaction = async () => [tree, [], [], []];
   const route = loadModule("app/api/legacy-tree/[id]/pdf/route.ts", {
     "@/lib/auth": { getCurrentUser: async () => user },
     "@/lib/db": { getSql: () => sql },
     "@/lib/legacy-tree-pdf": {
-      createLegacyTreePdf: async () => { calls++; return new Uint8Array([37, 80, 68, 70]); },
+      createLegacyTreePdf: async (...args) => { calls.push(args); return new Uint8Array([37, 80, 68, 70]); },
       UnsupportedTreeCharacterError: pdf.UnsupportedTreeCharacterError,
     },
   });
-  const makeRequest = () => {
+  const makeRequest = (familyName = "", labels) => {
     const body = new FormData();
-    body.set("familyName", "");
+    body.set("familyName", familyName);
+    if (labels !== undefined) body.set("includeRelationshipLabels", labels);
     return new Request("http://localhost/api/legacy-tree/tree/pdf", { method: "POST", body });
   };
   const context = { params: Promise.resolve({ id: "tree" }) };
   assert.equal((await route.POST(makeRequest(), context)).status, 401);
   user = { id: "viewer" };
   assert.equal((await route.POST(makeRequest(), context)).status, 404);
-  assert.equal(calls, 0);
-  tree = [{ ownerId: "owner", ownerName: "Owner" }];
+  assert.equal(calls.length, 0);
+  tree = [{ ownerId: "owner", ownerName: "Alex Reza", ownerSurname: "Reza" }];
   const result = await route.POST(makeRequest(), context);
   assert.equal(result.status, 200);
   assert.equal(result.headers.get("content-type"), "application/pdf");
   assert.equal(result.headers.get("cache-control"), "private, no-store");
-  assert.equal(calls, 1);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0][1], "Reza");
+  assert.equal(calls[0][4].includeRelationshipLabels, false);
+  assert.equal((await route.POST(makeRequest("Gallardo", "yes"), context)).status, 200);
+  assert.equal(calls[1][1], "Gallardo");
+  assert.equal(calls[1][4].includeRelationshipLabels, true);
+  assert.equal((await route.POST(makeRequest("", "invalid"), context)).status, 400);
+  assert.equal(calls.length, 2);
+  tree = [{ ownerId: "owner", ownerName: "Alex", ownerSurname: "Reza" }];
+  assert.equal((await route.POST(makeRequest("", "no"), context)).status, 200);
+  assert.equal(calls[2][1], "");
+  tree = [{ ownerId: "owner", ownerName: "Alex Areza", ownerSurname: "Reza" }];
+  assert.equal((await route.POST(makeRequest("", "no"), context)).status, 200);
+  assert.equal(calls[3][1], "");
 });
 
 test("export queries respect real tree membership and omit private content", {
