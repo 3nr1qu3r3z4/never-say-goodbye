@@ -22,6 +22,7 @@ function numberField(form: FormData, name: string, min: number, max: number) {
 function revalidateMilestones() {
   revalidatePath("/legacy-tree");
   revalidatePath("/family-calendar");
+  revalidatePath("/dashboard");
 }
 
 export async function saveMilestoneAdminConsent(_state: MilestoneState, form: FormData): Promise<MilestoneState> {

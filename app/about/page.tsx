@@ -14,7 +14,7 @@ const sections = [
       "Every life is made up of moments.",
       "Some are extraordinary.",
       "Most are wonderfully ordinary.",
-      "A familiar laugh.\nA voice message.\nA family story.\nA photo tucked away for years.",
+      "A familiar laugh.\nA recorded voice.\nA family story.\nA photo tucked away for years.",
       "These moments help define who we are and how we remember the people we love.",
       "Never Say Goodbye exists to help preserve those moments and keep them connected across generations.",
     ],

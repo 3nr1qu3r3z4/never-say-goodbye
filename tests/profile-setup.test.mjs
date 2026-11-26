@@ -43,8 +43,9 @@ function form(values) {
 
 function createActions(authenticated = true, userExists = true) {
   const queries = [];
+  const revalidated = [];
   const actions = loadModule("app/actions/profile.ts", {
-    "next/cache": { revalidatePath: () => {} },
+    "next/cache": { revalidatePath: (path) => revalidated.push(path) },
     "@/lib/auth": {
       requireUser: async () => {
         if (!authenticated) throw new Error("Not authenticated");
@@ -59,17 +60,18 @@ function createActions(authenticated = true, userExists = true) {
     },
     "@/lib/profile-photo": loadModule("lib/profile-photo.ts", { "server-only": {} }),
   });
-  return { actions, queries };
+  return { actions, queries, revalidated };
 }
 
 test("profile photo validation still accepts supported images and rejects invalid data", async () => {
-  const { actions, queries } = createActions();
+  const { actions, queries, revalidated } = createActions();
   const invalid = await actions.saveProfilePhoto("data:text/html;base64,AAAA");
   assert.ok(invalid.error);
   assert.equal(queries.length, 0);
   const valid = await actions.saveProfilePhoto("data:image/png;base64,iVBORw0KGgo=");
   assert.ok(valid.success);
   assert.equal(queries.length, 1);
+  assert.ok(revalidated.includes("/dashboard"));
 });
 
 test("profile setup is prefilled with all requested fields and visibility", () => {

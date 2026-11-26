@@ -22,7 +22,7 @@ export type AccessibleMoment = {
   isAuthor: boolean;
 };
 
-async function findAccessibleMoments(viewerId: string | null, momentId: string | null, includePhoto: boolean, familyActivity = false, profileAuthorId: string | null = null) {
+async function findAccessibleMoments(viewerId: string | null, momentId: string | null, includePhoto: boolean, familyActivity = false, profileAuthorId: string | null = null, ownerOnly = false) {
   const sql = getSql();
   return (await sql`
     SELECT m.id, m.title, m.story, m.tags,
@@ -47,6 +47,7 @@ async function findAccessibleMoments(viewerId: string | null, momentId: string |
     WHERE m.kind = 'shared'
       AND m.access_code_hash IS NULL
       AND (${momentId}::text IS NULL OR m.id = ${momentId})
+      AND (NOT ${ownerOnly}::boolean OR m.user_id = ${viewerId})
       AND (
         ${profileAuthorId}::text IS NULL
         OR (
@@ -107,12 +108,16 @@ async function findAccessibleMoments(viewerId: string | null, momentId: string |
         )
       )
     ORDER BY m.created_at DESC, m.id
-    LIMIT ${familyActivity ? 5 : null}
+    LIMIT ${familyActivity || ownerOnly ? 5 : null}
   `) as AccessibleMoment[];
 }
 
 export async function getAccessibleMoments(viewerId: string) {
   return findAccessibleMoments(viewerId, null, false);
+}
+
+export async function getRecentOwnMoments(viewerId: string) {
+  return findAccessibleMoments(viewerId, null, false, false, null, true);
 }
 
 export async function getAccessibleMoment(viewerId: string | null, momentId: string, includePhoto = true) {

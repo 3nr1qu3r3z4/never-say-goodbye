@@ -1,3 +1,5 @@
+import type { TreeMilestone } from "@/lib/tree-milestones";
+
 export type CalendarEvent = {
   id: string;
   title: string;
@@ -5,6 +7,20 @@ export type CalendarEvent = {
   repeatsYearly: boolean;
   source: string;
 };
+
+export function datedCalendarMilestones(milestones: TreeMilestone[]): CalendarEvent[] {
+  return milestones.flatMap((milestone) => {
+    if (milestone.month === null || milestone.day === null) return [];
+    const monthDay = `${String(milestone.month).padStart(2, "0")}-${String(milestone.day).padStart(2, "0")}`;
+    return [{
+      id: `tree-${milestone.kind}:${milestone.id}`,
+      title: `${milestone.personName} ${milestone.title}`,
+      date: milestone.year === null ? `--${monthDay}` : `${milestone.year}-${monthDay}`,
+      repeatsYearly: milestone.repeatsYearly,
+      source: "Legacy Tree™",
+    }];
+  });
+}
 
 export function validCalendarDate(value: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || value.startsWith("0000")) return false;

@@ -96,7 +96,7 @@ test("appearance presents accessible selections and explains beta and future pla
   assert.match(html, /All themes are available during beta/);
   assert.match(html, /Available with Legacy Plus/);
   assert.match(html, /Available with Family Legacy/);
-  assert.match(html, /future theme packs/);
+  assert.doesNotMatch(html, /future theme packs/i);
   for (const theme of themes.siteThemes) {
     assert.ok(html.includes(theme.name));
     assert.ok(!html.includes(theme.colors));

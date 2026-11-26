@@ -1,12 +1,17 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { getDashboardData } from "@/lib/account-data";
 import { requireUser } from "@/lib/auth";
 import { isFounder } from "@/lib/admin";
 import { frequentVisitsEnabled, getFrequentVisitSections } from "@/lib/frequent-visits";
-import { getRecentFamilyActivity } from "@/lib/moment-access";
-import { getFamilyBulletins } from "@/lib/family-calendar-data";
+import { getRecentFamilyActivity, getRecentOwnMoments } from "@/lib/moment-access";
+import { getCalendarEvents, getCalendarSettings, getFamilyBulletins } from "@/lib/family-calendar-data";
+import { datedCalendarMilestones, occurrences } from "@/lib/family-calendar";
+import { getTreeMilestones } from "@/lib/tree-milestones-data";
+import { getLegacyConnections, getLegacyProfile } from "@/lib/my-legacy-data";
+import MomentCard from "@/app/moments/moment-card";
 import SignupWelcome from "./signup-welcome";
 import FrequentVisits from "./frequent-visits";
 
@@ -34,11 +39,30 @@ const notificationActionClassName =
 
 export default async function DashboardPage() {
   const user = await requireUser();
-  const data = await getDashboardData(user);
-  const [moments, bulletins] = await Promise.all([
+  const [data, profile, connections, ownMoments, calendar, moments, bulletins] = await Promise.all([
+    getDashboardData(user),
+    getLegacyProfile(user.id),
+    getLegacyConnections(user.id),
+    getRecentOwnMoments(user.id),
+    getCalendarSettings(user.id),
     getRecentFamilyActivity(user.id),
     getFamilyBulletins(user.id, null),
   ]);
+  const selectedTree = calendar.trees[0];
+  const [calendarEvents, milestones] = selectedTree
+    ? await Promise.all([
+      getCalendarEvents(user.id, selectedTree.id),
+      getTreeMilestones(user.id, selectedTree.id),
+    ])
+    : [[], []];
+  const today = new Date();
+  const end = new Date(today.getTime() + 89 * 24 * 60 * 60 * 1000);
+  const upcomingEvents = occurrences(
+    [...calendarEvents, ...datedCalendarMilestones(milestones)],
+    today.toISOString().slice(0, 10),
+    end.toISOString().slice(0, 10),
+  ).slice(0, 3);
+  const visibility = { private: "Hidden", searchable: "Searchable Only", public: "Public" }[profile.discoverability];
   const familyActivity = [
     ...moments.map((moment) => ({ kind: "moment" as const, ...moment })),
     ...bulletins.map((bulletin) => ({ kind: "bulletin" as const, ...bulletin })),
@@ -137,6 +161,22 @@ export default async function DashboardPage() {
                 {data.reflection}
               </p>
             </section>
+            <section aria-labelledby="owner-profile-heading" className="mt-8 flex max-w-xl flex-wrap items-start gap-4 rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5">
+              <span className="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[color:var(--nsg-accent)]/30 bg-slate-900 font-serif text-2xl text-[color:var(--nsg-accent-light)]">
+                {profile.profilePhoto ? (
+                  <Image src={profile.profilePhoto} alt="" fill unoptimized sizes="80px" className="object-cover" />
+                ) : <span aria-hidden="true">{profile.displayName.slice(0, 1).toUpperCase()}</span>}
+              </span>
+              <div className="min-w-0 flex-1">
+                <h2 id="owner-profile-heading" className="break-words font-serif text-2xl text-white">{profile.displayName}</h2>
+                <p className="mt-1 text-sm text-slate-400">Profile visibility: {visibility}</p>
+                {profile.bio && <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-slate-300">{profile.bio}</p>}
+                <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1">
+                  <Link href="/my-profile" className={`inline-flex min-h-11 items-center text-sm font-semibold text-[color:var(--nsg-accent-light)] hover:underline ${actionFocusClassName}`}>Edit Profile</Link>
+                  <Link href="/my-profile/preview" className={`inline-flex min-h-11 items-center text-sm font-semibold text-[color:var(--nsg-accent-light)] hover:underline ${actionFocusClassName}`}>Preview Profile</Link>
+                </div>
+              </div>
+            </section>
           </div>
 
           <section
@@ -230,6 +270,63 @@ export default async function DashboardPage() {
       </Suspense>
 
       <div className="mx-auto max-w-6xl space-y-12 px-6 py-10 sm:space-y-16 sm:px-8 sm:py-14">
+        <section aria-labelledby="legacy-quick-actions-heading">
+          <h2 id="legacy-quick-actions-heading" className="font-serif text-2xl text-white sm:text-3xl">Quick Actions</h2>
+          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            {[
+              { label: "Create Moment", href: "/create-moment" },
+              { label: "Find People", href: "/search" },
+              { label: "Open Legacy Tree™", href: "/legacy-tree" },
+            ].map((item) => <Link key={item.href} href={item.href} className={`${actionCardClassName} ${actionFocusClassName} flex min-h-14 items-center justify-center p-4 text-center font-semibold text-[color:var(--nsg-accent-light)]`}>{item.label}</Link>)}
+          </div>
+        </section>
+
+        <section aria-labelledby="your-moments-heading">
+          <h2 id="your-moments-heading" className="font-serif text-2xl text-white sm:text-3xl">Your Moments</h2>
+          <p className="mt-2 text-sm text-slate-400">Your recent Shared Moments appear here.</p>
+          {ownMoments.length ? (
+            <ul className="mt-5 grid gap-3 lg:grid-cols-2">
+              {ownMoments.map((moment) => <MomentCard key={moment.id} moment={moment} />)}
+            </ul>
+          ) : <p className="mt-5 rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5 text-sm text-slate-400">You haven&apos;t published a Shared Moment yet.</p>}
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+          <a href="/moments" className={`mt-4 inline-flex min-h-11 items-center text-sm font-semibold text-[color:var(--nsg-accent-light)] hover:underline ${actionFocusClassName}`}>View Shared Moments</a>
+        </section>
+
+        <div className="grid gap-4 lg:grid-cols-3">
+          <section aria-labelledby="connections-preview-heading" className="rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5">
+            <h2 id="connections-preview-heading" className="font-serif text-2xl text-white">Connected Lives™</h2>
+            {connections.length ? <ul className="mt-4 space-y-2 text-sm text-slate-300">{connections.map((connection) => <li key={connection.id} className="break-words">{connection.displayName}</li>)}</ul> : <p className="mt-4 text-sm text-slate-400">Your accepted connections will appear here.</p>}
+            <Link href="/connected-lives" className={`mt-4 inline-flex min-h-11 items-center text-sm font-semibold text-[color:var(--nsg-accent-light)] hover:underline ${actionFocusClassName}`}>View Connected Lives™</Link>
+          </section>
+          <section aria-labelledby="calendar-preview-heading" className="rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5">
+            <h2 id="calendar-preview-heading" className="font-serif text-2xl text-white">Family Calendar™</h2>
+            {selectedTree ? (
+              <>
+                <p className="mt-3 break-words text-sm text-slate-400">{selectedTree.name} · Next 90 days</p>
+                {upcomingEvents.length ? <ul className="mt-3 space-y-3">{upcomingEvents.map((event) => <li key={`${event.id}-${event.date}`} className="break-words text-sm text-slate-300"><time dateTime={event.date} className="block text-xs text-slate-400">{new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeZone: "UTC" }).format(new Date(`${event.date}T00:00:00Z`))}</time>{event.title}</li>)}</ul> : <p className="mt-3 text-sm text-slate-400">No upcoming events in this period.</p>}
+                <Link href={`/family-calendar?tree=${encodeURIComponent(selectedTree.id)}&view=agenda`} className={`mt-4 inline-flex min-h-11 items-center text-sm font-semibold text-[color:var(--nsg-accent-light)] hover:underline ${actionFocusClassName}`}>View Family Calendar™</Link>
+              </>
+            ) : <><p className="mt-4 text-sm text-slate-400">Create or join a Legacy Tree™ to see its family calendar.</p><Link href="/family-calendar" className={`mt-4 inline-flex min-h-11 items-center text-sm font-semibold text-[color:var(--nsg-accent-light)] hover:underline ${actionFocusClassName}`}>View Family Calendar™</Link></>}
+          </section>
+          <section aria-labelledby="tree-preview-heading" className="rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5">
+            <h2 id="tree-preview-heading" className="font-serif text-2xl text-white">Legacy Tree™</h2>
+            {calendar.trees.length ? <ul className="mt-4 space-y-2 text-sm text-slate-300">{calendar.trees.slice(0, 3).map((tree) => <li key={tree.id} className="break-words"><Link href={`/legacy-tree#legacy-tree-item-${encodeURIComponent(tree.id)}`} className={`hover:underline ${actionFocusClassName}`}>{tree.name}</Link></li>)}</ul> : <p className="mt-4 text-sm text-slate-400">Your family trees will appear here.</p>}
+            <Link href="/legacy-tree" className={`mt-4 inline-flex min-h-11 items-center text-sm font-semibold text-[color:var(--nsg-accent-light)] hover:underline ${actionFocusClassName}`}>Open Legacy Tree™</Link>
+          </section>
+        </div>
+
+        <section aria-labelledby="settings-shortcuts-heading">
+          <h2 id="settings-shortcuts-heading" className="font-serif text-2xl text-white sm:text-3xl">Settings</h2>
+          <div className="mt-4 flex flex-wrap gap-3">
+            {[
+              { label: "Legacy Controls™", href: "/legacy-controls" },
+              { label: "Appearance", href: "/my-profile#appearance" },
+              { label: "Email Preferences", href: "/email-preferences" },
+            ].map((item) => <Link key={item.href} href={item.href} className={`${actionFocusClassName} inline-flex min-h-11 items-center rounded-full border border-[color:var(--nsg-accent)]/40 px-5 py-2 text-sm font-semibold text-[color:var(--nsg-accent-light)] hover:bg-white/5`}>{item.label}</Link>)}
+          </div>
+        </section>
+
         {frequentVisits && <FrequentVisits {...frequentVisits} />}
         <section
           id="moment-making-menu"

@@ -105,5 +105,6 @@ export async function createHonoredLife(
   revalidatePath("/legacy-tree");
   revalidatePath("/honored-lives");
   revalidatePath("/family-calendar");
+  revalidatePath("/dashboard");
   return { success: "Honored Life added to your Legacy Tree™.", treeId };
 }

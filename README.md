@@ -15,7 +15,7 @@ access remains unchanged; existing per-file upload limits still apply.
 The plan definitions are not an entitlement system. Limits list explicit
 plan changes; `null` means unlimited, omitted limits are inherited or
 unspecified, and a plan's video limit replaces its parent's video limit. Before
-enabling billing, resolve how future deliveries relate to Cannot Open Until
+enabling billing, resolve how scheduled delivery relates to Cannot Open Until
 quotas, and define legacy membership mappings, payment lifecycle and cancellation,
 grandfathering, quota accounting, and enforcement. Reminder notifications,
 scheduled deliveries, and other features marked Coming Soon
@@ -24,6 +24,15 @@ also require implementation.
 Family Calendar currently displays shared family dates and events. Reminder
 preferences can be saved, but automated notifications are not sent. Support
 is available to every family.
+
+## My Legacy
+
+The signed-in landing page at `/dashboard` brings together the owner's profile,
+recent Shared Moments, family activity, accepted connections, and tree links.
+Its calendar preview shows up to three events in the next 90 days for the first
+accessible tree, using the same membership and sharing checks as Family Calendar.
+Other Moment types do not yet have viewing pages. Profile editing, appearance,
+privacy controls, and the owner profile preview remain on their existing pages.
 
 ## Homepage video
 
@@ -38,8 +47,7 @@ Apply migration 024 before deploying. Signed-in users can choose a curated
 site theme under My Profile → Appearance. The preference is stored on the
 user account and follows it across devices; guests use Classic NSG. All six
 themes are available during beta. Plan labels describe future access only and
-do not enforce membership. Future theme packs and paid entitlement enforcement
-are not implemented.
+do not enforce membership. Paid entitlement enforcement is not implemented.
 
 ## Shared Moments
 

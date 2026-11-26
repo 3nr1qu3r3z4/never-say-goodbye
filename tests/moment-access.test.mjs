@@ -334,6 +334,8 @@ test("moment audiences are enforced against current relationships in PostgreSQL"
     assert.deepEqual(Array.from(await access.getAccessibleMoments("relative"), (moment) => moment.id), ["family"]);
     assert.deepEqual(Array.from(await access.getAccessibleMoments("author"), (moment) => moment.id).sort(), ["connections", "family", "private", "public"]);
     assert.deepEqual(Array.from(await access.getAccessibleMoments("outsider"), (moment) => moment.id), []);
+    assert.deepEqual(Array.from(await access.getRecentOwnMoments("author"), (moment) => moment.id).sort(), ["connections", "family", "private", "public"]);
+    assert.deepEqual(Array.from(await access.getRecentOwnMoments("relative"), (moment) => moment.id), []);
     for (const viewer of [null, "author", "relative", "outsider"]) {
       const profileMoments = await access.getPublicProfileSharedMoments(viewer, "author");
       assert.deepEqual(Array.from(profileMoments, (moment) => moment.id), ["public"]);
@@ -373,6 +375,7 @@ test("moment audiences are enforced against current relationships in PostgreSQL"
     }
     const recent = await activityFor("accepted");
     assert.equal(recent.length, 5);
+    assert.equal((await access.getRecentOwnMoments("author")).length, 5);
     assert.equal(recent[0], "recent-12");
     assert.equal(recent[4], "recent-8");
     await db.exec("DELETE FROM moments WHERE id LIKE 'recent-%'");
@@ -541,17 +544,41 @@ test("moment audiences are enforced against current relationships in PostgreSQL"
 
     let audioViewer = { id: "relative" };
     let audioStreams = 0;
+    const audioStream = loadModule("lib/moment-media-stream.ts", {
+      "@vercel/blob": { get: async (pathname, options) => {
+        assert.equal(pathname, "moment-audio/own.mp3");
+        assert.equal(options.access, "private");
+        audioStreams++;
+        const range = options.headers?.Range;
+        const contentRange = range ? `bytes ${range.slice(6)}/100` : null;
+        return {
+          statusCode: 200,
+          headers: new Headers(contentRange ? { "content-range": contentRange } : {}),
+          stream: new ReadableStream({ start(controller) {
+            controller.enqueue(new Uint8Array(range ? [1, 2, 3, 4] : new Array(100).fill(0)));
+            controller.close();
+          } }),
+        };
+      } },
+    }, { Headers });
     const audioRoute = loadModule("app/api/moments/[id]/audio/route.ts", {
       "@/lib/auth": { getCurrentUser: async () => audioViewer },
       "@/lib/moment-access": access,
       "@/lib/db": { getSql: () => sql },
-      "@/lib/moment-media-stream": { streamMomentMedia: async () => { audioStreams++; return new Response("audio"); } },
+      "@/lib/moment-media-stream": audioStream,
     });
-    const getAudio = () => audioRoute.GET(new Request("https://example.test/audio"), { params: Promise.resolve({ id: audioMoment.id }) });
+    const getAudio = (range) => audioRoute.GET(new Request("https://example.test/audio", {
+      headers: range ? { Range: range } : {},
+    }), { params: Promise.resolve({ id: audioMoment.id }) });
     assert.equal((await getAudio()).status, 200);
+    const audioPart = await getAudio("bytes=2-5");
+    assert.equal(audioPart.status, 206);
+    assert.equal(audioPart.headers.get("content-range"), "bytes 2-5/100");
+    assert.equal(audioPart.headers.get("cache-control"), "private, no-store");
+    assert.deepEqual(Array.from(new Uint8Array(await audioPart.arrayBuffer())), [1, 2, 3, 4]);
     audioViewer = { id: "outsider" };
     assert.equal((await getAudio()).status, 404);
-    assert.equal(audioStreams, 1);
+    assert.equal(audioStreams, 2);
     audioViewer = { id: "relative" };
 
     await db.exec(`

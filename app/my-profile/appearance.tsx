@@ -9,11 +9,10 @@ export default function Appearance({ selectedTheme }: { selectedTheme: SiteTheme
   const [selection, setSelection] = useState(selectedTheme);
 
   return (
-    <section className="mt-9 rounded-3xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5 shadow-2xl shadow-black/20 sm:mt-11 sm:p-9" aria-labelledby="appearance-heading">
+    <section id="appearance" className="mt-9 scroll-mt-6 rounded-3xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5 shadow-2xl shadow-black/20 sm:mt-11 sm:p-9" aria-labelledby="appearance-heading">
       <h2 id="appearance-heading" className="font-serif text-2xl text-white">Appearance</h2>
       <p className="mt-2 text-sm leading-6 text-slate-300">
         Choose your site theme. All themes are available during beta; plan labels show future availability.
-        Legacy Forever will include all standard themes and future theme packs.
       </p>
       <form action={action} className="mt-6">
         <fieldset disabled={pending}>

@@ -25,7 +25,8 @@ const guides = [
       {
         question: "How do I complete my profile and choose visibility?",
         steps: [
-          "From My Legacy, open My Profile and choose View Profile, then Edit Profile Setup. Add the details and photo you want and save. When uploading a profile photo, drag and zoom to choose the square crop shown on your profile.",
+          "From My Legacy, open My Profile and choose View Profile. Update your details on My Profile and choose Save Profile.",
+          "To add or change your photo, choose Upload Profile Photo on My Profile. Drag and zoom to adjust the square crop, then choose Save Photo.",
           "Open My Profile → Legacy Controls™ to change profile visibility and the information you share. Save your changes.",
         ],
       },
@@ -70,12 +71,14 @@ const guides = [
         question: "How do I build a tree and add family?",
         steps: [
           "Open Legacy Tree™ from My Legacy. If you do not belong to a tree, choose Create My Legacy Tree.",
-          "Choose Add Family Member, select the tree and member type, enter the relationship, and submit. Existing Moment Makers must be searchable when they are added.",
+          "Choose Add Family Member. If you belong to multiple trees, choose a tree, then select the family member this person is related to.",
+          "Choose their relationship, enter their first and last name, then say whether they already have an account. Search for and select an existing searchable Moment Maker, create a Family Placeholder™, or choose Future Moment Maker™.",
+          "For an existing account or Future Moment Maker™, choose Add Family Member. For a placeholder, add optional years and notes and choose Add Family Member, or choose Skip and Add.",
         ],
       },
       {
         question: "How are family relationships displayed?",
-        answer: "Relationship labels are entered by the person adding a member and may reflect their perspective. The tree shows membership rather than automatically inferring generations or creating Connected Lives™ connections.",
+        answer: "Recognized relationships, such as parent, child, or spouse, position people in generations relative to the selected family member. Relationships that cannot be positioned appear under Relationships to review. Adding someone to a tree does not create a Connected Lives™ connection.",
       },
       {
         question: "Are Family Placeholders available?",
@@ -121,8 +124,8 @@ const guides = [
       {
         question: "How do I create and publish a Shared Moment?",
         steps: [
-          "From My Legacy, choose Create Moment → Shared Moment. Add a title and a story, written message, photo, or video.",
-          "Select Photo or Video and choose a file if desired. Wait for it to be prepared or uploaded, then choose your audience and select Publish Moment. You can also save a draft.",
+          "From My Legacy, choose Create Moment → Shared Moment. Add a title and a story, written message, photo, video, or audio; you can combine them.",
+          "To add media, select Photo, Video, or Audio and choose a file for each selected type. Wait for it to be prepared or uploaded, then choose your audience and select Publish Moment. You can also save a draft.",
         ],
       },
       {
@@ -140,22 +143,22 @@ const guides = [
   },
   {
     id: "photos-videos",
-    title: "Photos & Videos",
-    screenshot: "Selecting a photo or video",
+    title: "Stories, Photos, Videos & Audio",
+    screenshot: "Adding a story, photo, video, or audio",
     href: "/create-moment/shared",
     link: "Create a Shared Moment",
     questions: [
       {
-        question: "Which photos and videos can I upload?",
-        answer: "Shared Moment photos support JPG, JPEG, PNG, WEBP, HEIC, and HEIF, up to 20 MB before optimization. A Shared Moment can contain one MP4, MOV, or M4V video up to 100 MiB (104,857,600 bytes; approximately 100 MB). Video playback depends on the browser and the video's codec.",
+        question: "Which photos, videos, and audio files can I upload?",
+        answer: "Shared Moment photos support JPG, JPEG, PNG, WEBP, HEIC, and HEIF, up to 20 MB before optimization. A Shared Moment can contain one MP4, MOV, or M4V video and one MP3, M4A, or WAV audio file, each up to 100 MiB (104,857,600 bytes; approximately 100 MB). Video and audio playback depend on the browser and the file's codec.",
       },
       {
         question: "Why might an upload or playback fail?",
-        answer: "Check the format, file size, and internet connection, then try again. A supported video container can still use a codec your browser cannot play. Older filename-only selections were not uploaded; select the original file again in a draft. Previously published filename-only Moments must be recreated.",
+        answer: "Check the format, file size, and internet connection, then try again. A supported video or audio file can still use a codec your browser cannot play. Older filename-only selections were not uploaded; select the original file again in a draft. Previously published filename-only Moments must be recreated.",
       },
       {
         question: "Why can't a family member see my media?",
-        answer: "Media follows the Shared Moment's audience. Connections Only requires an accepted connection; Family Only requires membership in the same Legacy Tree™. Private is author-only. Public viewing also depends on the author's profile and public Shared Moment visibility settings. Photos and videos inherit these same checks.",
+        answer: "Media follows the Shared Moment's audience. Connections Only requires an accepted connection; Family Only requires membership in the same Legacy Tree™. Private is author-only. Public viewing also depends on the author's profile and public Shared Moment visibility settings. Photos, videos, and audio inherit these same checks.",
       },
     ],
   },
@@ -168,7 +171,7 @@ const guides = [
     questions: [
       {
         question: "What is Moments in the Making?",
-        answer: "This card on My Legacy shows up to five recent items: accessible Shared Moments from your accepted Connected Lives™ and people in a shared Legacy Tree™, and Family Shout-Outs from your trees. It identifies uploaded photos, videos, and written messages when present.",
+        answer: "This card on My Legacy shows up to five recent items: accessible Shared Moments from your accepted Connected Lives™ and people in a shared Legacy Tree™, and Family Shout-Outs from your trees. It identifies uploaded photos, videos, audio, and written messages when present.",
       },
       {
         question: "How do I view an activity, and why might one be missing?",

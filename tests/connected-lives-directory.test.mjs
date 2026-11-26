@@ -67,21 +67,41 @@ test("directory searches and combines relationship and tag filters; sorts unknow
   assert.deepEqual(ids("", "all", "all", "za"), ["1", "4", "3", "2"]);
 });
 
-function loadDashboard(data, founder = false, familyActivity = [], bulletins = []) {
+function loadDashboard(data, founder = false, familyActivity = [], bulletins = [], preview = {}) {
   return loadModule("app/dashboard/page.tsx", {
     react: React,
     "react/jsx-runtime": jsxRuntime,
     "next/link": { default: ({ children, ...props }) => React.createElement("a", props, children) },
-    "@/lib/auth": { requireUser: async () => ({ id: "owner", firstName: "Owner" }) },
+    "next/image": { default: ({ src, alt }) => React.createElement("img", { src, alt }) },
+    "@/lib/auth": { requireUser: async () => {
+      if (preview.unauthenticated) throw new Error("Not authenticated");
+      return { id: "owner", firstName: "Owner" };
+    } },
     "@/lib/admin": { isFounder: () => founder },
     "@/lib/account-data": { getDashboardData: async () => ({
       ...data, reflection: reflection.legacyReflection(data.counts, null, 0),
     }) },
-    "@/lib/moment-access": { getRecentFamilyActivity: async (id) => {
+    "@/lib/moment-access": { getRecentOwnMoments: async (id) => {
+      assert.equal(id, "owner");
+      return preview.ownMoments ?? [];
+    }, getRecentFamilyActivity: async (id) => {
       assert.equal(id, "owner");
       return familyActivity;
     } },
-    "@/lib/family-calendar-data": { getFamilyBulletins: async () => bulletins },
+    "@/lib/family-calendar-data": {
+      getFamilyBulletins: async () => bulletins,
+      getCalendarSettings: async (id) => { assert.equal(id, "owner"); return { trees: preview.trees ?? [] }; },
+      getCalendarEvents: async (id, tree) => { assert.equal(id, "owner"); assert.equal(tree, preview.trees[0].id); return preview.events ?? []; },
+    },
+    "@/lib/family-calendar": loadModule("lib/family-calendar.ts"),
+    "@/lib/tree-milestones-data": { getTreeMilestones: async (id, tree) => {
+      assert.equal(id, "owner"); assert.equal(tree, preview.trees[0].id); return preview.milestones ?? [];
+    } },
+    "@/lib/my-legacy-data": {
+      getLegacyProfile: async (id) => { assert.equal(id, "owner"); return preview.profile ?? { displayName: "Owner", bio: "", profilePhoto: null, discoverability: "private" }; },
+      getLegacyConnections: async (id) => { assert.equal(id, "owner"); return preview.connections ?? []; },
+    },
+    "@/app/moments/moment-card": { default: ({ moment }) => React.createElement("li", null, moment.title) },
     "@/lib/frequent-visits": { frequentVisitsEnabled: () => false },
     "./signup-welcome": { default: () => null },
     "./frequent-visits": { default: () => null },
@@ -122,6 +142,50 @@ test("dashboard places one reflection immediately beneath the welcome", async ()
   const html = renderToStaticMarkup(await loadDashboard(data)());
   assert.match(html, /Welcome back, Owner\.[\s\S]*?Keep building the moments that matter most\.[\s\S]*?Legacy Reflection<\/h2>[\s\S]*?You have preserved 1 shared memory\./);
   assert.equal((html.match(/Legacy Reflection/g) ?? []).length, 1);
+});
+
+test("My Legacy brings owner details and existing destinations together with empty previews", async () => {
+  const data = { counts: { sharedMoments: 0, personalMoments: 0, connectedLives: 0, newLivesRequests: 0,
+    unreadLivesNotifications: 0, futureMomentMakers: 0, drafts: 0 }, recentActivity: [] };
+  const html = renderToStaticMarkup(await loadDashboard(data, false, [], [], {
+    profile: { displayName: "Jane Owner", bio: "A private owner bio", profilePhoto: "data:image/png;base64,abc", discoverability: "private" },
+  })());
+  assert.match(html, /src="data:image\/png;base64,abc"/);
+  assert.match(html, /Jane Owner/);
+  assert.match(html, /A private owner bio/);
+  assert.match(html, /Profile visibility: Hidden/);
+  for (const href of ["/my-profile", "/my-profile/preview", "/create-moment", "/search", "/legacy-tree", "/connected-lives", "/family-calendar", "/legacy-controls", "/my-profile#appearance", "/email-preferences"]) {
+    assert.ok(html.includes(`href="${href}"`), href);
+  }
+  assert.match(html, /You haven&#x27;t published a Shared Moment yet/);
+  assert.match(html, /Your accepted connections will appear here/);
+  assert.match(html, /Create or join a Legacy Tree™ to see its family calendar/);
+  assert.match(html, /Your family trees will appear here/);
+  await assert.rejects(loadDashboard(data, false, [], [], { unauthenticated: true })(), /Not authenticated/);
+});
+
+test("My Legacy previews own moments, connections and the first accessible tree's upcoming dates", async () => {
+  const data = { counts: { sharedMoments: 1, personalMoments: 0, connectedLives: 1, newLivesRequests: 0,
+    unreadLivesNotifications: 0, futureMomentMakers: 0, drafts: 0 }, recentActivity: [] };
+  const date = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+  const html = renderToStaticMarkup(await loadDashboard(data, false, [], [], {
+    profile: { displayName: "Owner", bio: "", profilePhoto: null, discoverability: "searchable" },
+    ownMoments: [{ id: "own", title: "My memory" }],
+    connections: [{ id: "connection", displayName: "Family member" }],
+    trees: [{ id: "tree/one", name: "First tree" }, { id: "tree-two", name: "Second tree" }],
+    events: [{ id: "event", title: "Family gathering", date, repeatsYearly: false, source: "Manual Event" },
+      { id: "past", title: "Past event", date: "2000-01-01", repeatsYearly: false, source: "Manual Event" }],
+    milestones: [{ id: "milestone", kind: "birthday", personName: "Jane", title: "Birthday", year: null,
+      month: Number(date.slice(5, 7)), day: Number(date.slice(8, 10)), repeatsYearly: true }],
+  })());
+  assert.match(html, /Profile visibility: Searchable Only/);
+  assert.match(html, /Your Moments[\s\S]*My memory/);
+  assert.match(html, /Connected Lives™[\s\S]*Family member/);
+  assert.match(html, /First tree · Next 90 days[\s\S]*Family gathering[\s\S]*Jane Birthday|First tree · Next 90 days[\s\S]*Jane Birthday[\s\S]*Family gathering/);
+  assert.doesNotMatch(html, /Past event/);
+  assert.match(html, /href="\/family-calendar\?tree=tree%2Fone&amp;view=agenda"/);
+  assert.match(html, /href="\/legacy-tree#legacy-tree-item-tree%2Fone"/);
+  assert.match(html, /Second tree/);
 });
 
 test("family bulletins share the recent activity limit and link to their calendar", async () => {
@@ -434,6 +498,20 @@ test("migration, shared tags, privacy and future-record authorization in disposa
       "@/lib/db": { getSql: () => sql },
       "@/lib/legacy-reflection": reflection,
     });
+    const legacyData = loadModule("lib/my-legacy-data.ts", {
+      "server-only": {},
+      "@/lib/db": { getSql: () => sql },
+    });
+    await db.exec("UPDATE users SET bio = 'Owner-only bio', discoverability = 'private' WHERE id = 'alice'");
+    const ownerProfile = await legacyData.getLegacyProfile("alice");
+    assert.equal(ownerProfile.bio, "Owner-only bio");
+    assert.equal(ownerProfile.discoverability, "private");
+    assert.equal((await legacyData.getLegacyProfile("bob")).bio, "");
+    await assert.rejects(legacyData.getLegacyProfile("missing"), /profile could not be found/);
+    assert.deepEqual(Array.from(await legacyData.getLegacyConnections("alice"), (row) => row.displayName), ["outsider"]);
+    assert.deepEqual(Array.from(await legacyData.getLegacyConnections("bob")), []);
+    assert.deepEqual(Array.from(await legacyData.getLegacyConnections("outsider"), (row) => row.displayName), ["alice"]);
+    await db.exec("UPDATE users SET bio = '', discoverability = 'searchable' WHERE id = 'alice'");
     const aliceDashboard = await dashboardData.getDashboardData({ id: "alice" });
     const day = Math.floor(Date.now() / 86_400_000);
     assert.equal(aliceDashboard.reflection, day % 2 === 0

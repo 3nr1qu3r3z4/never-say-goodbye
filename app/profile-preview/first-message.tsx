@@ -98,14 +98,6 @@ export default function FirstMessage() {
               </p>
               <p>With love,<br />John</p>
             </div>
-            <div className="mt-10 rounded-2xl border border-[color:var(--nsg-accent)]/25 bg-white/[0.03] p-5 sm:p-6">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--nsg-accent)]">Audio Moment</p>
-              <h3 className="mt-3 font-serif text-xl text-white">🎙 A Message From Dad</h3>
-              <p className="mt-3 text-sm leading-6 text-slate-400">This example does not have a recording yet.</p>
-              <button type="button" disabled className="mt-5 min-h-11 rounded-full border border-[color:var(--nsg-border)]/10 bg-slate-800 px-6 py-3 text-sm font-semibold text-slate-400">
-                Audio Coming Soon
-              </button>
-            </div>
           </div>
         </div>
       </dialog>

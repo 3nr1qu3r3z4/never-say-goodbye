@@ -5,7 +5,7 @@ import { requireUser } from "@/lib/auth";
 import { getCalendarEvents, getCalendarSettings, getFamilyBulletins } from "@/lib/family-calendar-data";
 import { getTreeMilestones } from "@/lib/tree-milestones-data";
 import { milestoneDate } from "@/lib/tree-milestones";
-import { occurrences, validCalendarDate, type CalendarEvent } from "@/lib/family-calendar";
+import { datedCalendarMilestones, occurrences, validCalendarDate, type CalendarEvent } from "@/lib/family-calendar";
 import { BulletinForm, ManualEvent, ReminderSettings } from "./calendar-forms";
 
 export const metadata: Metadata = {
@@ -74,17 +74,7 @@ export default async function FamilyCalendarPage({
         getFamilyBulletins(user.id, selected.id),
       ])
     : [[], [], []];
-  const datedMilestones: CalendarEvent[] = milestones.flatMap((milestone) => {
-    if (milestone.month === null || milestone.day === null) return [];
-    const monthDay = `${String(milestone.month).padStart(2, "0")}-${String(milestone.day).padStart(2, "0")}`;
-    return [{
-      id: `tree-${milestone.kind}:${milestone.id}`,
-      title: `${milestone.personName} ${milestone.title}`,
-      date: milestone.year === null ? `--${monthDay}` : `${milestone.year}-${monthDay}`,
-      repeatsYearly: milestone.repeatsYearly,
-      source: "Legacy Tree™",
-    }];
-  });
+  const datedMilestones = datedCalendarMilestones(milestones);
   const partialMilestones = milestones.filter((milestone) => milestone.month === null || milestone.day === null);
   const allEvents = [...legacyEvents, ...datedMilestones];
   const events = occurrences(allEvents, dateText(start), dateText(end));

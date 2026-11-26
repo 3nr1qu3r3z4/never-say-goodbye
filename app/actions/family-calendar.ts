@@ -54,6 +54,7 @@ export async function saveCalendarProfile(
   if (rows.length === 0) return { error: "Your account is unavailable or a birthday is already saved as a tree milestone. Remove that milestone before changing your full birthday." };
   revalidatePath("/family-calendar");
   revalidatePath("/legacy-tree");
+  revalidatePath("/dashboard");
   return { success: "Your family date preferences have been saved." };
 }
 
@@ -95,6 +96,7 @@ export async function createCalendarEvent(
   `;
   if (rows.length === 0) return { error: "You must belong to the selected tree." };
   revalidatePath("/family-calendar");
+  revalidatePath("/dashboard");
   return { success: "Family event added." };
 }
 
@@ -221,6 +223,7 @@ export async function saveTreeSourceDate(
   if (rows.length === 0) return { error: "This record cannot be updated. Check access, consent, and any recorded years." };
   revalidatePath("/family-calendar");
   revalidatePath("/legacy-tree");
+  revalidatePath("/dashboard");
   return { success: "Family dates saved." };
 }
 
@@ -252,5 +255,6 @@ export async function addRelationshipMilestone(
   if (rows.length === 0) return { error: "Both members must share milestones, and you must be a tree owner or admin." };
   revalidatePath("/family-calendar");
   revalidatePath("/legacy-tree");
+  revalidatePath("/dashboard");
   return { success: "Relationship milestone added." };
 }

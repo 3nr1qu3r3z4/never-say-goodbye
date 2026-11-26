@@ -136,11 +136,17 @@ test("Help Center presents current guides, limitations and support contact", () 
     assert.match(html, new RegExp(`href="#${id}"`));
   }
   assert.equal((html.match(/Screenshot Coming Soon:/g) ?? []).length, 7);
+  assert.match(html, /Screenshot Coming Soon: Adding a story, photo, video, or audio/);
   assert.match(html, /<details/);
   assert.match(html, /Searchable Only or Public/);
+  assert.match(html, /choose Upload Profile Photo on My Profile[\s\S]*choose Save Photo/);
+  assert.match(html, /select the family member this person is related to[\s\S]*Choose their relationship[\s\S]*first and last name/);
+  assert.match(html, /Recognized relationships[\s\S]*position people in generations[\s\S]*Relationships to review/);
   assert.match(html, /Placeholders are not accounts/);
   assert.match(html, /not video uploads or contributor permissions/);
-  assert.match(html, /MP4, MOV, or M4V video up to 100 MiB/);
+  assert.match(html, /a story, written message, photo, video, or audio; you can combine them/);
+  assert.match(html, /one MP4, MOV, or M4V video and one MP3, M4A, or WAV audio file, each up to 100 MiB/);
+  assert.match(html, /Photos, videos, and audio inherit these same checks/);
   assert.match(html, /Free Legacy is the only membership available for new accounts/);
   assert.match(html, /href="\/pricing"/);
   assert.match(html, /href="mailto:NeverSayGoodbye.life@yahoo.com"/);
@@ -151,31 +157,33 @@ test("pricing displays the requested roadmap without implying paid access or del
   const html = renderPage(["app", "pricing", "page.tsx"]);
   for (const text of [
     "Free Legacy", "Free Forever", "Legacy Plus", "$4.99/month", "Family Legacy", "$7.99/month",
-    "Most Popular", "Legacy Forever", "$299 One-Time", "3 Public Videos", "2 Private Videos",
+    "Most Popular", "Legacy Forever", "$299 One-Time", "3 Public and 2 Private Videos",
     "25 Photos", "10 Stories", "5 Audio Moments", "2 Cannot Open Until™ Messages",
     "50 Total Videos", "50 Audio Moments", "25 Cannot Open Until™ Messages",
-    "Up to 5 Family Profiles", "250 Videos", "Up to 10 Family Profiles", "1,000 Videos",
-    "Never Forget™ Family Calendar", "Legacy Vault Export", "Digital Executor Designation",
+    "250 Videos", "1,000 Videos",
+    "Never Forget™ Family Calendar", "Printable Legacy Tree™ PDF Export", "Successor Assignment",
   ]) assert.ok(html.includes(text), text);
   assert.match(html, /current access without the listed plan limits/);
   assert.match(html, /paid plans are coming soon/);
+  assert.doesNotMatch(html, /Up to (5|10) Family Profiles/);
   for (const text of [
-    "Automatic reminders",
-    "Birthday video delivery", "Anniversary message delivery", "Custom milestone scheduling",
-    "5 Audio Moments",
-    "2 Cannot Open Until™ Messages",
-    "Birthday, Anniversary, and Custom Reminders",
+    "Automatic Family Reminders",
+    "2 Cannot Open Until™ Messages", "25 Cannot Open Until™ Messages",
     "Scheduled Message Delivery",
-    "Unlimited Future Deliveries", "Legacy Vault Export",
+    "Successor Assignment",
   ]) {
     assert.ok(html.includes(`${text}<span class="text-slate-400"> (Coming Soon)</span>`), text);
   }
-  for (const text of ["Family Calendar™ with Shared Dates", "Legacy Tree™ PDF Export"]) {
+  for (const text of ["Automatic Family Reminders", "Scheduled Message Delivery"]) {
+    assert.equal(html.split(`${text}<span class="text-slate-400"> (Coming Soon)</span>`).length - 1, 2);
+  }
+  for (const text of ["Track family dates and events with Family Calendar™", "Printable Legacy Tree™ PDF Export", "5 Audio Moments", "50 Audio Moments", "Unlimited Audio Moments"]) {
     assert.ok(html.includes(text));
     assert.ok(!html.includes(`${text}<span class="text-slate-400"> (Coming Soon)</span>`));
   }
   assert.doesNotMatch(html, /Priority (Support|Preservation Services)|preferences can be saved|notifications not sent|audio uploads not available|delivery not available|unlocking not available/i);
-  assert.match(html, /Shared family dates/);
+  assert.doesNotMatch(html, /Personal Never Forget™ Calendar|Full Never Forget™ Family Calendar|Basic Legacy Tree™|Full Legacy Tree™|Legacy Tree™ Preview|Family Sharing &amp; Management|Legacy Vault Export|Expanded Preservation Storage|Future Theme Packs|Digital Executor Designation|Permanent Family Stewardship|Early Access to Premium|Custom milestone scheduling|Unlimited Future Deliveries|Birthday video delivery|Anniversary message delivery/i);
+  assert.match(html, /shared birthdays, anniversaries, graduations, and family milestones/);
   assert.match(html, /href="\/signup"[^>]*>Create a Free Account/);
   assert.equal((html.match(/Create a Free Account/g) ?? []).length, 1);
   const [free, plus, family, forever] = planExports.membershipPlans;
@@ -183,15 +191,16 @@ test("pricing displays the requested roadmap without implying paid access or del
     [
       { text: "1 Moment Maker™ Profile" },
       { text: "Classic NSG Site Theme" },
-      { text: "3 Public Videos" },
-      { text: "2 Private Videos" },
+      { text: "3 Public and 2 Private Videos" },
       { text: "25 Photos" },
       { text: "10 Stories" },
-      { text: "5 Audio Moments", planned: true },
+      { text: "5 Audio Moments" },
       { text: "2 Cannot Open Until™ Messages", planned: true },
-      { text: "Legacy Tree™ Preview" },
-      { text: "Legacy Tree™ PDF Export" },
-      { text: "Family Calendar™ with Shared Dates" },
+      { text: "Build and grow your Legacy Tree™" },
+      { text: "Printable Legacy Tree™ PDF Export" },
+      { text: "Stay connected through Connected Lives™" },
+      { text: "Share Moments with family only" },
+      { text: "Track family dates and events with Family Calendar™" },
     ],
     [
       { text: "Everything in Free Legacy plus:" },
@@ -199,46 +208,27 @@ test("pricing displays the requested roadmap without implying paid access or del
       { text: "50 Total Videos" },
       { text: "Unlimited Photos" },
       { text: "Unlimited Stories" },
-      { text: "50 Audio Moments", planned: true },
+      { text: "50 Audio Moments" },
       { text: "25 Cannot Open Until™ Messages", planned: true },
-      { text: "Personal Never Forget™ Calendar", planned: true },
-      { text: "Birthday, Anniversary, and Custom Reminders", planned: true },
+      { text: "Automatic Family Reminders", planned: true },
       { text: "Scheduled Message Delivery", planned: true },
-      { text: "Basic Legacy Tree™" },
-      { text: "Private Family Sharing" },
     ],
     [
       { text: "Everything in Legacy Plus plus:" },
-      { text: "Up to 5 Family Profiles", planned: true },
-      { text: "Connected Lives™" },
-      { text: "Full Legacy Tree™" },
       { text: "250 Videos" },
-      { text: "Unlimited Audio Moments", planned: true },
-      { text: "Unlimited Future Deliveries", planned: true },
-      { text: "Full Never Forget™ Family Calendar", planned: true },
-      { text: "Shared Birthdays, Anniversaries, and Family Milestones" },
-      { text: "Family Event Tracking" },
-      { text: "Family Sharing & Management", planned: true },
-      { text: "Legacy Vault Export", planned: true },
+      { text: "Unlimited Audio Moments" },
     ],
     [
       { text: "Everything in Family Legacy plus:" },
-      { text: "Up to 10 Family Profiles", planned: true },
       { text: "1,000 Videos" },
-      { text: "Expanded Preservation Storage", planned: true },
-      { text: "Future Theme Packs Included", planned: true },
       { text: "Successor Assignment", planned: true },
-      { text: "Digital Executor Designation", planned: true },
-      { text: "Permanent Family Stewardship Tools", planned: true },
-      { text: "Complete Legacy Vault Export", planned: true },
-      { text: "Early Access to Premium Features", planned: true },
     ],
   ]);
   assert.deepEqual(JSON.parse(JSON.stringify([free.limits, plus.limits, family.limits, forever.limits])), [
-    { profiles: 1, videos: { public: 3, private: 2 }, photos: 25, stories: 10, voiceMessages: 5, cannotOpenUntilMessages: 2 },
+    { videos: { public: 3, private: 2 }, photos: 25, stories: 10, voiceMessages: 5, cannotOpenUntilMessages: 2 },
     { videos: { total: 50 }, photos: null, stories: null, voiceMessages: 50, cannotOpenUntilMessages: 25 },
-    { profiles: 5, videos: { total: 250 }, photos: null, stories: null, voiceMessages: null, futureDeliveries: null },
-    { profiles: 10, videos: { total: 1000 }, futureDeliveries: null },
+    { videos: { total: 250 }, photos: null, stories: null, voiceMessages: null },
+    { videos: { total: 1000 } },
   ]);
 });
 
@@ -431,10 +421,10 @@ test("family traditions displays a local, described image instead of a placehold
   assert.ok(fs.statSync(path.join(root, "public", "images", "family-traditions.jpg")).size > 0);
 });
 
-test("first message does not advertise a duration without a recording", () => {
+test("first message does not display a placeholder for nonexistent audio", () => {
   const html = renderPage(["app", "profile-preview", "first-message.tsx"]);
-  assert.match(html, /This example does not have a recording yet/);
-  assert.doesNotMatch(html, /Duration:/);
+  assert.match(html, /John&#x27;s First Message/);
+  assert.doesNotMatch(html, /Audio Coming Soon|This example does not have a recording yet|Duration:/);
 });
 
 test("Escape closes a protected moment and clears its entered code and error", () => {

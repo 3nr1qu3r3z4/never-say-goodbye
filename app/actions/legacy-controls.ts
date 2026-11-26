@@ -57,6 +57,7 @@ export async function saveLegacyControls(formData: FormData): Promise<void> {
   revalidatePath("/my-profile");
   revalidatePath("/my-profile/setup");
   revalidatePath("/my-profile/preview");
+  revalidatePath("/dashboard");
   revalidatePath("/search");
   revalidatePath("/moment-maker/[id]", "page");
   redirect("/legacy-controls?saved=1");

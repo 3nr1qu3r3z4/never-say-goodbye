@@ -66,6 +66,7 @@ export async function createLegacyTree(): Promise<void> {
   revalidatePath("/legacy-tree");
   revalidatePath("/family-calendar");
   revalidatePath("/create-moment");
+  revalidatePath("/dashboard");
 }
 
 export async function addFamilyMember(
@@ -160,6 +161,7 @@ export async function addFamilyMember(
       RETURNING user_id
     `;
     revalidatePath("/legacy-tree");
+    revalidatePath("/dashboard");
     return {
       success: added.length
         ? "Moment Maker™ added to your Legacy Tree™."
@@ -183,6 +185,7 @@ export async function addFamilyMember(
       )
     `;
     revalidatePath("/legacy-tree");
+    revalidatePath("/dashboard");
     return { success: "Future Moment Maker™ added to your Legacy Tree™.", treeId: tree.id };
   }
 
@@ -217,6 +220,7 @@ export async function addFamilyMember(
   `;
   revalidatePath("/legacy-tree");
   revalidatePath("/create-moment");
+  revalidatePath("/dashboard");
   return { success: "Family Placeholder added to your Legacy Tree™.", treeId: tree.id };
 }
 

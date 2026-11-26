@@ -49,6 +49,7 @@ export async function saveProfilePhoto(
   console.info("[profile-photo] database save completed");
   revalidatePath("/my-profile");
   revalidatePath("/my-profile/preview");
+  revalidatePath("/dashboard");
 
   return { success: "Your profile photo has been saved." };
 }
@@ -117,6 +118,7 @@ export async function saveProfile(
   revalidatePath("/my-profile");
   revalidatePath("/my-profile/preview");
   revalidatePath("/my-profile/setup");
+  revalidatePath("/dashboard");
 
   return { success: "Your profile has been saved." };
 }
@@ -166,6 +168,7 @@ export async function saveProfileSetup(formData: FormData): Promise<ProfileSaveR
   revalidatePath("/my-profile");
   revalidatePath("/my-profile/setup");
   revalidatePath("/my-profile/preview");
+  revalidatePath("/dashboard");
   revalidatePath("/legacy-controls");
   revalidatePath("/search");
   return { success: "Your profile setup has been saved." };
