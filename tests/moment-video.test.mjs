@@ -156,6 +156,8 @@ test("the Shared Moment editor uploads before saving and disables publishing whi
       },
     },
     "@/lib/moment-video": video,
+    "@/lib/moment-audio-actions": {},
+    "@/lib/moment-audio": {},
   }).default;
   function render(kind = "shared") {
     stateIndex = 0;
@@ -198,7 +200,7 @@ test("playback authorizes each request and forwards valid byte ranges privately"
   let allowed = true;
   let fetches = 0;
   let requestedRange;
-  const route = loadModule("app/api/moments/[id]/video/route.ts", {
+  const stream = loadModule("lib/moment-media-stream.ts", {
     "@vercel/blob": { get: async (_path, options) => {
       fetches++;
       requestedRange = options.headers?.Range;
@@ -209,6 +211,9 @@ test("playback authorizes each request and forwards valid byte ranges privately"
         stream: new ReadableStream({ start(controller) { controller.enqueue(new Uint8Array([1, 2, 3, 4])); controller.close(); } }),
       };
     } },
+  });
+  const route = loadModule("app/api/moments/[id]/video/route.ts", {
+    "@/lib/moment-media-stream": stream,
     "@/lib/auth": { getCurrentUser: async () => ({ id: "viewer" }) },
     "@/lib/moment-access": { getAccessibleMoment: async (viewer, id, includePhoto) => {
       assert.equal(viewer, "viewer");

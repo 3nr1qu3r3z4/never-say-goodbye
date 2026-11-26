@@ -4,7 +4,7 @@ import MomentActionsMenu from "./moment-actions-menu";
 import VideoPreview from "./video-preview";
 
 type CardMoment = Pick<AccessibleMoment,
-  "id" | "title" | "story" | "writtenMessage" | "hasVideo" | "hasPhoto" | "authorName" | "isAuthor"
+  "id" | "title" | "story" | "writtenMessage" | "hasVideo" | "hasAudio" | "hasPhoto" | "authorName" | "isAuthor"
 >;
 
 export default function MomentCard({ moment }: { moment: CardMoment }) {
@@ -31,6 +31,7 @@ export default function MomentCard({ moment }: { moment: CardMoment }) {
         <span className="min-w-0">
           <span className="block min-h-11 break-words font-serif text-xl leading-7 text-white">{moment.title}</span>
           <span className="mt-1 block text-sm text-slate-400">By {moment.authorName}</span>
+          {moment.hasAudio && <span className="mt-2 block text-sm text-slate-300">🎵 Audio</span>}
           {moment.hasVideo ? (
             <span className="mt-2 block text-sm text-slate-300">Video Moment</span>
           ) : !moment.hasPhoto && text ? (

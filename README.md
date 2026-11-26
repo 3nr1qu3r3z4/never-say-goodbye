@@ -18,8 +18,12 @@ unspecified, and a plan's video limit replaces its parent's video limit. Before
 enabling billing, resolve how future deliveries relate to Cannot Open Until
 quotas, and define legacy membership mappings, payment lifecycle and cancellation,
 grandfathering, quota accounting, and enforcement. Reminder notifications,
-scheduled deliveries, voice uploads, and other features marked Coming Soon
+scheduled deliveries, and other features marked Coming Soon
 also require implementation.
+
+Family Calendar currently displays shared family dates and events. Reminder
+preferences can be saved, but automated notifications are not sent. Support
+is available to every family.
 
 ## Homepage video
 
@@ -57,19 +61,22 @@ Inputs up to 20 MB are optimized to at most 640 KB. Shared Moments also support
 one MP4, MOV, or M4V video up to 100 MiB, uploaded directly to private Blob
 storage. Playback uses the same Shared Moment access check and depends on the
 browser supporting the video's codec; no transcoding is performed. Older
-filename-only video selections must be uploaded again. Protected and scheduled
-unlocks, Future Moment Maker recipients, and audio uploads are not implemented.
+filename-only video selections must be uploaded again. Shared Moments can also
+include one MP3, M4A, or WAV audio file up to 100 MiB, alone or with other
+content. Playback depends on browser codec support. Older filename-only audio
+selections must be uploaded again; published moments cannot currently be edited.
+Protected and scheduled unlocks and Future Moment Maker recipients are not implemented.
 
-### Video deployment
+### Video and audio deployment
 
-Apply migration 021 before deploying. Connect a **private** Vercel Blob store
+Apply migrations 021 and 026 before deploying. Connect a **private** Vercel Blob store
 and configure `BLOB_READ_WRITE_TOKEN` for each environment: the client upload
 token flow requires it. Configure `CRON_SECRET` and verify the daily
-`/api/cron/moment-videos` job succeeds. On other hosts, invoke that endpoint
-daily with `Authorization: Bearer <CRON_SECRET>`.
+`/api/cron/moment-videos` and `/api/cron/moment-audio` jobs succeed. On other
+hosts, invoke both endpoints daily with `Authorization: Bearer <CRON_SECRET>`.
 
-Uploaded videos are kept with saved Shared Moment drafts or published moments.
-Deleting a moment makes its video inaccessible immediately; physical Blob
+Uploaded videos and audio are kept with saved Shared Moment drafts or published moments.
+Deleting a moment makes its media inaccessible immediately; physical Blob
 deletion occurs on the next successful cleanup job. Unreferenced uploads are
 removed after seven days. Monitor and retry failed jobs. Blob storage and
 playback incur provider charges.
@@ -77,7 +84,7 @@ playback incur provider charges.
 The Moments in the Making card on My Legacy shows up to five recent Shared
 Moments from accepted Connected Lives and members of a shared Legacy Tree,
 subject to the same viewing permissions, and Family Shout-Outs from the viewer's trees.
-The feed identifies uploaded videos, photos, and written messages within each
+The feed identifies uploaded videos, photos, audio, and written messages within each
 moment; it does not include drafts, private moments, or separate messages.
 
 Legacy Reflection on My Legacy changes between available personal
@@ -153,7 +160,9 @@ create a local data directory or write account data to the app filesystem.
      then
      `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/024_site_theme.sql`
      then
-     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/025_tree_family_lines.sql`.
+     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/025_tree_family_lines.sql`
+     then
+     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/026_moment_audio.sql`.
    - In Bash, export `DATABASE_URL` and run
      `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/001_initial_schema.sql`
      then
@@ -203,7 +212,9 @@ create a local data directory or write account data to the app filesystem.
      then
      `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/024_site_theme.sql`
      then
-     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/025_tree_family_lines.sql`.
+     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/025_tree_family_lines.sql`
+     then
+     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/026_moment_audio.sql`.
    - In the Neon Console, open the SQL Editor for the intended database. Run
      [`db/migrations/001_initial_schema.sql`](./db/migrations/001_initial_schema.sql)
      first, then run
@@ -231,6 +242,7 @@ create a local data directory or write account data to the app filesystem.
      then [`db/migrations/023_tree_milestones.sql`](./db/migrations/023_tree_milestones.sql)
      then [`db/migrations/024_site_theme.sql`](./db/migrations/024_site_theme.sql)
      then [`db/migrations/025_tree_family_lines.sql`](./db/migrations/025_tree_family_lines.sql)
+     then [`db/migrations/026_moment_audio.sql`](./db/migrations/026_moment_audio.sql)
      in order.
 3. Set `DATABASE_URL` to the same pooled connection string in local
    `.env.local` and in Vercel Project Settings → Environment Variables for each
@@ -283,7 +295,7 @@ WHERE version IN (
   '015_connected_lives_directory', '016_account_status', '017_profile_visits',
   '018_email_preferences', '019_site_analytics', '020_honored_lives',
   '021_moment_videos', '022_family_bulletins', '023_tree_milestones',
-  '024_site_theme', '025_tree_family_lines'
+  '024_site_theme', '025_tree_family_lines', '026_moment_audio'
 )
 ORDER BY version;
 

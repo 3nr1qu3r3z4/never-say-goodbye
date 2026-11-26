@@ -3,7 +3,7 @@ export const emailPreferenceOptions = [
   { name: "connectionRequestAccepted", label: "Connection Request Accepted" },
   { name: "newPhotoShared", label: "New Photo Shared" },
   { name: "newVideoShared", label: "New Video Shared" },
-  { name: "newAudioMessageShared", label: "New Audio Message Shared" },
+  { name: "newAudioMessageShared", label: "New Audio Moment Shared" },
   { name: "sharedMoments", label: "Shared Moments" },
   { name: "legacySuccessorUpdates", label: "Legacy Successor Updates" },
 ] as const;

@@ -49,7 +49,7 @@ const sections = [
       {
         title: "⏳ Cannot Open Until™",
         description:
-          "Deliver a moment on a future date, milestone, or life event.",
+          "Save a moment with a future date or milestone. Timed unlocking and delivery are not yet available.",
       },
       {
         title: "🖼 Legacy Frame™",

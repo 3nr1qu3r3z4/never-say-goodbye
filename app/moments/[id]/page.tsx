@@ -22,7 +22,7 @@ export default async function MomentPage({
   const attachments = [
     { label: "Photo", name: moment.photoData ? null : moment.photoName },
     { label: "Video", name: moment.hasVideo ? null : moment.videoName },
-    { label: "Voice recording", name: moment.voiceName },
+    { label: "Audio", name: moment.hasAudio ? null : moment.voiceName },
   ].filter((attachment) => attachment.name);
 
   return (
@@ -69,6 +69,17 @@ export default async function MomentPage({
           >
             Your browser does not support video playback.
           </video>
+        )}
+        {moment.hasAudio && (
+          <audio
+            controls
+            preload="metadata"
+            src={`/api/moments/${encodeURIComponent(moment.id)}/audio`}
+            aria-label={`Audio for ${moment.title}`}
+            className="mt-8 w-full"
+          >
+            Your browser does not support audio playback.
+          </audio>
         )}
         {moment.tags && <p className="mt-6 break-words text-sm text-slate-400">Tags: {moment.tags}</p>}
         {attachments.length > 0 && (

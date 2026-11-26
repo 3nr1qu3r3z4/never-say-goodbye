@@ -27,7 +27,7 @@ const momentTypes = [
     href: "/create-moment/cannot-open-until",
     icon: "⏳",
     title: "Cannot Open Until™",
-    description: "Save a moment for a future date or meaningful milestone.",
+    description: "Save a moment with a future date or milestone. Timed unlocking and delivery are not yet available.",
   },
   {
     href: "/create-moment/future-moment-maker",

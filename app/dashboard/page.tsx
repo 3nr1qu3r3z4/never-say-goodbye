@@ -176,10 +176,11 @@ export default async function DashboardPage() {
                   const types = [
                     activity.hasVideo && "video",
                     activity.hasPhoto && "photo",
+                    activity.hasAudio && "audio",
                     activity.hasMessage && "message",
                   ].filter(Boolean);
                   const description = types.length ? types.join(", ").replace(/, ([^,]+)$/, " and $1") : "memory";
-                  const icon = activity.hasVideo ? "🎥" : activity.hasPhoto ? "📷" : "💬";
+                  const icon = activity.hasVideo ? "🎥" : activity.hasPhoto ? "📷" : activity.hasAudio ? "🎵" : "💬";
                   return (
                     <li key={`moment-${activity.id}`} className="flex gap-3 py-3">
                       <span aria-hidden="true" className="text-xl">{icon}</span>

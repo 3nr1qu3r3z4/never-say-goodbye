@@ -26,7 +26,7 @@ export default function PricingPage() {
           <p className="mt-4 leading-7 text-slate-300">Choose the future plan that feels right for your story.</p>
         </header>
         <div className="mx-auto mt-8 max-w-4xl rounded-2xl border border-[color:var(--nsg-accent)]/30 bg-[color:var(--nsg-accent)]/[0.07] p-5 text-sm leading-6 text-slate-200">
-          These plans are a preview of our future membership model. During beta, existing access stays the same and plan limits are not enforced. Only Free Legacy signup is available; paid plans and billing are coming soon. Features marked Coming Soon are not available yet.
+          These plans are a preview of our future membership model. During beta, everyone keeps their current access without the listed plan limits. Only Free Legacy signup is available; paid plans are coming soon.
         </div>
         <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
           {membershipPlans.map((plan) => (
@@ -52,8 +52,7 @@ export default function PricingPage() {
         </div>
         <section className="mt-12 rounded-3xl border border-[color:var(--nsg-accent)]/25 bg-white/[0.03] p-6 sm:p-8">
           <h2 className="font-serif text-3xl text-white">Never Forget™ Family Calendar</h2>
-          <p className="mt-4 max-w-3xl leading-7 text-slate-300">Never miss another birthday, anniversary, graduation, milestone, or special occasion.</p>
-          <p className="mt-3 text-sm leading-6 text-slate-400">Family dates and events are available in the current calendar. Automated reminders and deliveries are planned and are not sent today.</p>
+          <p className="mt-4 max-w-3xl leading-7 text-slate-300">Keep track of shared birthdays, anniversaries, graduations, and family milestones.</p>
           <ul className="mt-5 grid gap-3 text-sm text-slate-200 sm:grid-cols-2">
             {spotlight.map((feature) => <li key={feature.text}><span aria-hidden="true" className="mr-2 text-[color:var(--nsg-accent)]">{feature.planned ? "◷" : "✓"}</span>{feature.text}{feature.planned && <span className="text-slate-400"> (Coming Soon)</span>}</li>)}
           </ul>

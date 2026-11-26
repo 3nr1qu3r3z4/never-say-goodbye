@@ -11,6 +11,10 @@
     {
       "path": "/api/cron/moment-videos",
       "schedule": "30 0 * * *"
+    },
+    {
+      "path": "/api/cron/moment-audio",
+      "schedule": "45 0 * * *"
     }
   ]
 }

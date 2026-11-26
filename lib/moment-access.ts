@@ -12,6 +12,7 @@ export type AccessibleMoment = {
   photoData: string | null;
   videoName: string | null;
   hasVideo: boolean;
+  hasAudio: boolean;
   hasPhoto: boolean;
   hasMessage: boolean;
   createdAt: string;
@@ -32,6 +33,8 @@ async function findAccessibleMoments(viewerId: string | null, momentId: string |
            m.details_json::jsonb -> 'attachmentNames' ->> 'video' AS "videoName",
            EXISTS (SELECT 1 FROM moment_videos AS mv
                    WHERE mv.moment_id = m.id AND mv.state = 'attached') AS "hasVideo",
+           EXISTS (SELECT 1 FROM moment_audio AS ma
+                   WHERE ma.moment_id = m.id AND ma.state = 'attached') AS "hasAudio",
            COALESCE(m.details_json::jsonb ->> 'photoData', '') <> '' AS "hasPhoto",
            BTRIM(COALESCE(m.details_json::jsonb ->> 'writtenMessage', '')) <> '' AS "hasMessage",
            m.created_at AS "createdAt",

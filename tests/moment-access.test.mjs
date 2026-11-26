@@ -36,6 +36,7 @@ test("moment page authorizes before rendering and hides denied or missing moment
   let signedIn = true;
   let photoData = null;
   let hasVideo = false;
+  let hasAudio = false;
   const calls = [];
   const page = loadModule("app/moments/[id]/page.tsx", {
     "react/jsx-runtime": jsxRuntime,
@@ -48,9 +49,9 @@ test("moment page authorizes before rendering and hides denied or missing moment
         calls.push(args);
         return allowed
           ? {
-            id: "moment", title: "A story", authorName: "Author", authorId: "author", hasVideo,
+            id: "moment", title: "A story", authorName: "Author", authorId: "author", hasVideo, hasAudio,
             story: "Memory", writtenMessage: "Message", tags: "family",
-            photoName: "photo.jpg", photoData, videoName: "video.mp4", voiceName: null,
+            photoName: "photo.jpg", photoData, videoName: "video.mp4", voiceName: "old.mp3",
           }
           : null;
       },
@@ -66,6 +67,7 @@ test("moment page authorizes before rendering and hides denied or missing moment
   assert.match(html, /Message/);
   assert.match(html, /Tags: family/);
   assert.match(html, /Photo: photo.jpg/);
+  assert.match(html, /Audio: old.mp3/);
   assert.match(html, /files were not uploaded/);
   photoData = "data:image/jpeg;base64,/9j/2Q==";
   const withPhoto = renderToStaticMarkup(await page({ params: Promise.resolve({ id: "moment" }) }));
@@ -77,9 +79,14 @@ test("moment page authorizes before rendering and hides denied or missing moment
   const withVideo = renderToStaticMarkup(await page({ params: Promise.resolve({ id: "moment" }) }));
   assert.match(withVideo, /<video[^>]*src="\/api\/moments\/moment\/video"/);
   assert.doesNotMatch(withVideo, /Video: video.mp4/);
+  hasAudio = true;
+  const withAudio = renderToStaticMarkup(await page({ params: Promise.resolve({ id: "moment" }) }));
+  assert.match(withAudio, /<audio[^>]*controls=""/);
+  assert.match(withAudio, /src="\/api\/moments\/moment\/audio"/);
+  assert.doesNotMatch(withAudio, /Audio: old.mp3/);
   signedIn = false;
   await page({ params: Promise.resolve({ id: "moment" }) });
-  assert.deepEqual(calls[4], [null, "moment"]);
+  assert.deepEqual(calls[5], [null, "moment"]);
 });
 
 test("shared moment cards link their previews and titles without enclosing the actions menu", async () => {
@@ -88,6 +95,7 @@ test("shared moment cards link their previews and titles without enclosing the a
     { id: "video", title: "Family video", story: "", writtenMessage: null, hasPhoto: false, hasVideo: true, authorName: "Sam", isAuthor: false },
     { id: "text", title: "A story", story: "Today we celebrated together.", writtenMessage: null, hasPhoto: false, hasVideo: false, authorName: "Lee", isAuthor: true },
     { id: "message", title: "A note", story: " ", writtenMessage: "Thinking of you.", hasPhoto: false, hasVideo: false, authorName: "Lee", isAuthor: true },
+    { id: "audio", title: "Family recording", story: "", writtenMessage: null, hasPhoto: false, hasVideo: false, hasAudio: true, authorName: "Sam", isAuthor: false },
   ];
   const card = loadModule("app/moments/moment-card.tsx", {
     "react/jsx-runtime": jsxRuntime,
@@ -103,6 +111,7 @@ test("shared moment cards link their previews and titles without enclosing the a
     "./moment-card": { default: card },
   }).default;
   const html = renderToStaticMarkup(await page());
+  assert.match(html, /🎵 Audio/);
   assert.match(html, /<button>Actions for Turning 5<\/button><a href="\/moments\/photo%2Fid"[\s\S]*?<img[^>]*src="\/api\/moments\/photo%2Fid\/photo"[\s\S]*?Turning 5[\s\S]*?<\/a>/);
   assert.match(html, /href="\/moments\/video"[\s\S]*?data-video="video"[\s\S]*?Family video[\s\S]*?Video Moment[\s\S]*?<\/a>/);
   assert.match(html, /href="\/moments\/text"[\s\S]*?Today we celebrated together\.[\s\S]*?<\/a>/);
@@ -433,16 +442,26 @@ test("moment audiences are enforced against current relationships in PostgreSQL"
     const [withoutPhotoRow] = (await db.query("SELECT details_json FROM moments WHERE title = 'No photo'")).rows;
     assert.equal(JSON.parse(withoutPhotoRow.details_json).photoData, null);
     assert.equal(JSON.parse(withoutPhotoRow.details_json).attachmentNames.photo, undefined);
-    const { photoData: ignored, videoUploadId: ignoredVideo, ...legacyDraft } = photoDraft;
+    const { photoData: ignored, videoUploadId: ignoredVideo, audioUploadId: ignoredAudio, ...legacyDraft } = photoDraft;
     assert.ok(ignored);
     assert.equal(ignoredVideo, "");
+    assert.equal(ignoredAudio, "");
     await db.query(`INSERT INTO drafts (id, user_id, kind, title, payload_json, created_at, updated_at)
       VALUES ('old-draft', 'author', 'shared', 'Old', $1, '2026-01-01', '2026-01-01')`, [JSON.stringify(legacyDraft)]);
     const restored = await editor.loadMomentDraft("shared");
     assert.equal(restored.draft.photoData, "");
     assert.equal(restored.draft.videoUploadId, "");
+    assert.equal(restored.draft.audioUploadId, "");
     assert.equal(restored.draft.attachmentNames.photo, "family.png");
     assert.match((await editor.publishMoment("shared", restored.draftId, restored.draft)).error, /Choose a photo/);
+    await db.query(`INSERT INTO drafts (id, user_id, kind, title, payload_json, created_at, updated_at)
+      VALUES ('old-audio-draft', 'author', 'shared', 'Old audio', $1, '9999-01-01', '9999-01-01')`,
+    [JSON.stringify({ ...legacyDraft, content: ["voice"], photoData: "", videoUploadId: "", attachmentNames: { voice: "old.mp3" } })]);
+    const restoredAudio = await editor.loadMomentDraft("shared");
+    assert.equal(restoredAudio.draft.attachmentNames.voice, "old.mp3");
+    assert.equal(restoredAudio.draft.audioUploadId, "");
+    assert.match((await editor.publishMoment("shared", restoredAudio.draftId, restoredAudio.draft)).error, /Upload audio/);
+    await db.exec("DELETE FROM drafts WHERE id = 'old-audio-draft'");
 
     await db.exec(`
       INSERT INTO moment_videos (id, user_id, pathname, filename, content_type, size_bytes, state)
@@ -475,6 +494,67 @@ test("moment audiences are enforced against current relationships in PostgreSQL"
     assert.equal(raceResults.filter((result) => result.error).length, 1);
 
     await db.exec(`
+      INSERT INTO moment_audio (id, user_id, pathname, filename, content_type, size_bytes, state)
+      VALUES ('audio-own', 'author', 'moment-audio/own.mp3', 'own.mp3', 'audio/mpeg', 100, 'ready'),
+             ('audio-mixed', 'author', 'moment-audio/mixed.wav', 'mixed.wav', 'audio/wav', 100, 'ready'),
+             ('audio-race', 'author', 'moment-audio/race.mp3', 'race.mp3', 'audio/mpeg', 100, 'ready'),
+             ('audio-other', 'outsider', 'moment-audio/other.m4a', 'other.m4a', 'audio/mp4', 100, 'ready');
+      INSERT INTO moment_videos (id, user_id, pathname, filename, content_type, size_bytes, state)
+      VALUES ('video-mixed', 'author', 'moment-videos/mixed.mp4', 'mixed.mp4', 'video/mp4', 100, 'ready');
+    `);
+    const audioDraft = {
+      ...initialMomentDraft, title: "Audio memory", content: ["voice"],
+      attachmentNames: { voice: "own.mp3" }, audioUploadId: "audio-own", audience: "family",
+    };
+    assert.match((await editor.publishMoment("shared", "", { ...audioDraft, audioUploadId: "" })).error, /Upload audio/);
+    assert.match((await editor.saveMomentDraft("shared", "", { ...audioDraft, audioUploadId: "audio-other" })).error, /no longer available/);
+    const savedAudio = await editor.saveMomentDraft("shared", "", audioDraft);
+    assert.equal((await editor.loadMomentDraft("shared")).draft.audioUploadId, "audio-own");
+    assert.equal((await editor.publishMoment("shared", savedAudio.draftId, audioDraft)).success, true);
+    const [audioMoment] = (await db.query("SELECT id FROM moments WHERE title = 'Audio memory'")).rows;
+    assert.equal((await access.getAccessibleMoment("relative", audioMoment.id)).hasAudio, true);
+    assert.equal(await access.getAccessibleMoment("outsider", audioMoment.id), null);
+    assert.match((await editor.publishMoment("shared", "", audioDraft)).error, /no longer available/);
+    const audioRaceDraft = { ...audioDraft, title: "Concurrent audio", audioUploadId: "audio-race" };
+    const audioRaceResults = await Promise.all([
+      editor.publishMoment("shared", "", audioRaceDraft),
+      editor.publishMoment("shared", "", audioRaceDraft),
+    ]);
+    assert.equal(audioRaceResults.filter((result) => result.success).length, 1);
+    assert.equal(audioRaceResults.filter((result) => result.error).length, 1);
+
+    const mixedDraft = {
+      ...audioDraft, title: "Mixed memory", story: "A story", content: ["voice", "video", "photo"],
+      photoData, attachmentNames: { voice: "mixed.wav", video: "mixed.mp4", photo: "family.png" },
+      audioUploadId: "audio-mixed", videoUploadId: "video-mixed",
+    };
+    assert.match((await editor.publishMoment("shared", "", { ...mixedDraft, audioUploadId: "audio-other" })).error, /no longer available/);
+    assert.equal((await db.query("SELECT state FROM moment_videos WHERE id = 'video-mixed'")).rows[0].state, "ready");
+    assert.match((await editor.publishMoment("shared", "", { ...mixedDraft, videoUploadId: "video-other" })).error, /no longer available/);
+    assert.equal((await db.query("SELECT state FROM moment_audio WHERE id = 'audio-mixed'")).rows[0].state, "ready");
+    assert.equal((await editor.publishMoment("shared", "", mixedDraft)).success, true);
+    const [mixedMoment] = (await db.query("SELECT id FROM moments WHERE title = 'Mixed memory'")).rows;
+    const accessibleMixed = await access.getAccessibleMoment("relative", mixedMoment.id);
+    assert.equal(accessibleMixed.hasAudio, true);
+    assert.equal(accessibleMixed.hasVideo, true);
+    assert.equal(accessibleMixed.hasPhoto, true);
+
+    let audioViewer = { id: "relative" };
+    let audioStreams = 0;
+    const audioRoute = loadModule("app/api/moments/[id]/audio/route.ts", {
+      "@/lib/auth": { getCurrentUser: async () => audioViewer },
+      "@/lib/moment-access": access,
+      "@/lib/db": { getSql: () => sql },
+      "@/lib/moment-media-stream": { streamMomentMedia: async () => { audioStreams++; return new Response("audio"); } },
+    });
+    const getAudio = () => audioRoute.GET(new Request("https://example.test/audio"), { params: Promise.resolve({ id: audioMoment.id }) });
+    assert.equal((await getAudio()).status, 200);
+    audioViewer = { id: "outsider" };
+    assert.equal((await getAudio()).status, 404);
+    assert.equal(audioStreams, 1);
+    audioViewer = { id: "relative" };
+
+    await db.exec(`
       UPDATE connected_lives SET status = 'declined' WHERE id = 'accepted';
       DELETE FROM legacy_tree_members WHERE tree_id = 'shared-tree' AND user_id = 'relative';
     `);
@@ -482,6 +562,8 @@ test("moment audiences are enforced against current relationships in PostgreSQL"
     assert.equal(await access.getAccessibleMoment("relative", "family"), null);
     assert.equal(await access.getAccessibleMoment("relative", published.id), null);
     assert.equal(await access.getAccessibleMoment("relative", videoMoment.id), null);
+    assert.equal(await access.getAccessibleMoment("relative", audioMoment.id), null);
+    assert.equal((await getAudio()).status, 404);
     assert.equal((await access.getAccessibleMoments("relative")).length, 0);
 
     let currentUser = null;
@@ -504,6 +586,11 @@ test("moment audiences are enforced against current relationships in PostgreSQL"
     assert.equal(revalidated.length, 0);
     assert.equal((await actions.deleteSharedMoment("family")).success, true);
     assert.equal((await actions.deleteSharedMoment(videoMoment.id)).success, true);
+    assert.equal((await actions.deleteSharedMoment(audioMoment.id)).success, true);
+    assert.equal((await getAudio()).status, 404);
+    const [detachedAudio] = (await db.query("SELECT moment_id, state FROM moment_audio WHERE id = 'audio-own'")).rows;
+    assert.equal(detachedAudio.moment_id, null);
+    assert.equal(detachedAudio.state, "attached");
     const [detachedVideo] = (await db.query("SELECT moment_id, state FROM moment_videos WHERE id = 'video-own'")).rows;
     assert.equal(detachedVideo.moment_id, null);
     assert.equal(detachedVideo.state, "attached");
@@ -544,6 +631,38 @@ test("moment audiences are enforced against current relationships in PostgreSQL"
       assert.ok(deletedBlobs.includes("moment-videos/abandoned.mp4"));
       assert.equal(deletedBlobs.includes("moment-videos/kept.mp4"), false);
       assert.equal((await db.query("SELECT COUNT(*)::int AS n FROM moment_videos WHERE id = 'kept'")).rows[0].n, 1);
+    } finally {
+      if (originalSecret === undefined) delete process.env.CRON_SECRET;
+      else process.env.CRON_SECRET = originalSecret;
+    }
+
+    await db.exec(`
+      INSERT INTO moment_audio (id, user_id, pathname, filename, content_type, size_bytes, state, last_used_at)
+      VALUES ('audio-abandoned', 'author', 'moment-audio/abandoned.mp3', 'old.mp3', 'audio/mpeg', 100, 'ready', CURRENT_TIMESTAMP - INTERVAL '8 days'),
+             ('audio-kept', 'author', 'moment-audio/kept.mp3', 'kept.mp3', 'audio/mpeg', 100, 'ready', CURRENT_TIMESTAMP - INTERVAL '8 days');
+      INSERT INTO drafts (id, user_id, kind, title, payload_json, created_at, updated_at)
+      VALUES ('audio-kept-draft', 'author', 'shared', 'Kept', '{"audioUploadId":"audio-kept"}', '2026-01-01', '2026-01-01');
+    `);
+    let audioCleanupFails = true;
+    const deletedAudio = [];
+    const audioRetention = loadModule("app/api/cron/moment-audio/route.ts", {
+      "@vercel/blob": { del: async (pathname) => {
+        if (audioCleanupFails) throw new Error("storage unavailable");
+        deletedAudio.push(pathname);
+      } },
+      "next/server": { connection: async () => {} },
+      "@/lib/db": { getSql: () => sql },
+    });
+    process.env.CRON_SECRET = "test-secret";
+    try {
+      assert.equal((await audioRetention.GET(new Request("https://example.test/cron"))).status, 401);
+      const request = () => new Request("https://example.test/cron", { headers: { Authorization: "Bearer test-secret" } });
+      assert.equal((await audioRetention.GET(request())).status, 500);
+      audioCleanupFails = false;
+      assert.equal((await audioRetention.GET(request())).status, 204);
+      assert.ok(deletedAudio.includes("moment-audio/own.mp3"));
+      assert.ok(deletedAudio.includes("moment-audio/abandoned.mp3"));
+      assert.equal(deletedAudio.includes("moment-audio/kept.mp3"), false);
     } finally {
       if (originalSecret === undefined) delete process.env.CRON_SECRET;
       else process.env.CRON_SECRET = originalSecret;

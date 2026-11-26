@@ -36,6 +36,7 @@ function isMomentDraft(value: unknown): value is MomentDraft {
     Object.values(attachments).every((name) => typeof name === "string") &&
     typeof draft.photoData === "string" &&
     typeof draft.videoUploadId === "string" &&
+    (draft.audioUploadId === undefined || typeof draft.audioUploadId === "string") &&
     typeof draft.writtenMessage === "string" &&
     audiences.includes(draft.audience as Audience) &&
     typeof draft.accessCodeRequired === "boolean" &&
@@ -83,6 +84,7 @@ export async function loadMomentDraft(kind: MomentKind) {
       ...(!("familyPlaceholderId" in parsed) ? { familyPlaceholderId: "" } : {}),
       ...(!("photoData" in parsed) ? { photoData: "" } : {}),
       ...(!("videoUploadId" in parsed) ? { videoUploadId: "" } : {}),
+      ...(!("audioUploadId" in parsed) ? { audioUploadId: "" } : {}),
     };
   }
   if (!isMomentDraft(parsed)) {
@@ -145,6 +147,14 @@ export async function saveMomentDraft(
     `;
     if (!video) return { error: "This video is no longer available. Please upload it again." };
   }
+  if (kind === "shared" && draft.content.includes("voice") && draft.audioUploadId) {
+    const [audio] = await sql`
+      UPDATE moment_audio SET last_used_at = CURRENT_TIMESTAMP
+      WHERE id = ${draft.audioUploadId} AND user_id = ${user.id} AND state = 'ready'
+      RETURNING id
+    `;
+    if (!audio) return { error: "This audio is no longer available. Please upload it again." };
+  }
   const id = draftId || randomUUID();
   const [existing] = (await sql`
     SELECT kind, access_code_hash AS "accessCodeHash"
@@ -169,6 +179,7 @@ export async function saveMomentDraft(
     attachmentNames,
     photoData: draft.content.includes("photo") ? draft.photoData : "",
     videoUploadId: kind === "shared" && draft.content.includes("video") ? draft.videoUploadId : "",
+    audioUploadId: kind === "shared" && draft.content.includes("voice") ? draft.audioUploadId || "" : "",
     accessCode: "",
   };
   if (existing) {
@@ -216,9 +227,13 @@ export async function publishMoment(
   if (kind === "shared" && draft.content.includes("video") && !draft.videoUploadId) {
     return { error: "Upload a video before publishing, or deselect Video." };
   }
+  if (kind === "shared" && draft.content.includes("voice") && !draft.audioUploadId) {
+    return { error: "Upload audio before publishing, or deselect Audio." };
+  }
   if (!draft.story.trim() && !draft.writtenMessage.trim() && !draft.content.includes("photo") &&
-      !(kind === "shared" && draft.content.includes("video") && draft.videoUploadId)) {
-    return { error: "Add a written story, message, photo, or video before publishing." };
+      !(kind === "shared" && draft.content.includes("video") && draft.videoUploadId) &&
+      !(kind === "shared" && draft.content.includes("voice") && draft.audioUploadId)) {
+    return { error: "Add a written story, message, photo, video, or audio before publishing." };
   }
   if (
     draft.story.length > 50_000 ||
@@ -290,6 +305,7 @@ export async function publishMoment(
   const now = new Date().toISOString();
   const momentId = randomUUID();
   const videoUploadId = kind === "shared" && draft.content.includes("video") ? draft.videoUploadId : null;
+  const audioUploadId = kind === "shared" && draft.content.includes("voice") ? draft.audioUploadId || null : null;
   const futureMakerId =
     kind === "future-moment-maker" ? randomUUID() : null;
   const attachmentNames = { ...draft.attachmentNames };
@@ -321,9 +337,23 @@ export async function publishMoment(
   }
   const momentStatementIndex = statements.length;
   statements.push(sql`
-      WITH claimed_video AS (
-        UPDATE moment_videos SET state = 'attached', moment_id = ${momentId}
+      WITH eligible_video AS (
+        SELECT id FROM moment_videos
         WHERE id = ${videoUploadId} AND user_id = ${user.id} AND state = 'ready'
+        FOR UPDATE
+      ), eligible_audio AS (
+        SELECT id FROM moment_audio
+        WHERE id = ${audioUploadId} AND user_id = ${user.id} AND state = 'ready'
+        FOR UPDATE
+      ), claimed_video AS (
+        UPDATE moment_videos SET state = 'attached', moment_id = ${momentId}
+        WHERE id IN (SELECT id FROM eligible_video)
+          AND (${audioUploadId}::text IS NULL OR EXISTS (SELECT 1 FROM eligible_audio))
+        RETURNING id
+      ), claimed_audio AS (
+        UPDATE moment_audio SET state = 'attached', moment_id = ${momentId}
+        WHERE id IN (SELECT id FROM eligible_audio)
+          AND (${videoUploadId}::text IS NULL OR EXISTS (SELECT 1 FROM eligible_video))
         RETURNING id
       )
       INSERT INTO moments (
@@ -343,7 +373,8 @@ export async function publishMoment(
           : null},
         ${draft.familyPlaceholderId || null},
         ${now}, ${now}
-      WHERE ${videoUploadId}::text IS NULL OR EXISTS (SELECT 1 FROM claimed_video)
+      WHERE (${videoUploadId}::text IS NULL OR EXISTS (SELECT 1 FROM claimed_video))
+        AND (${audioUploadId}::text IS NULL OR EXISTS (SELECT 1 FROM claimed_audio))
       RETURNING id
     `);
   if (draftId) {
@@ -353,8 +384,8 @@ export async function publishMoment(
     `);
   }
   const results = await sql.transaction(statements);
-  if (videoUploadId && !results[momentStatementIndex]?.length) {
-    return { error: "This video is no longer available. Please upload it again." };
+  if ((videoUploadId || audioUploadId) && !results[momentStatementIndex]?.length) {
+    return { error: "An attached audio or video file is no longer available. Please upload it again." };
   }
 
   return { success: true };

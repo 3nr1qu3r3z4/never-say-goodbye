@@ -18,6 +18,7 @@ export type MomentDraft = {
   attachmentNames: AttachmentNames;
   photoData: string;
   videoUploadId: string;
+  audioUploadId?: string;
   writtenMessage: string;
   audience: Audience;
   accessCodeRequired: boolean;
@@ -40,6 +41,7 @@ export const initialMomentDraft: MomentDraft = {
   attachmentNames: {},
   photoData: "",
   videoUploadId: "",
+  audioUploadId: "",
   writtenMessage: "",
   audience: "connections",
   accessCodeRequired: false,

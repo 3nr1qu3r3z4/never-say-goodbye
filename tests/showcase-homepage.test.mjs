@@ -152,16 +152,29 @@ test("pricing displays the requested roadmap without implying paid access or del
   for (const text of [
     "Free Legacy", "Free Forever", "Legacy Plus", "$4.99/month", "Family Legacy", "$7.99/month",
     "Most Popular", "Legacy Forever", "$299 One-Time", "3 Public Videos", "2 Private Videos",
-    "25 Photos", "10 Stories", "5 Voice Messages", "2 Cannot Open Until™ Messages",
-    "50 Total Videos", "50 Voice Messages", "25 Cannot Open Until™ Messages",
+    "25 Photos", "10 Stories", "5 Audio Moments", "2 Cannot Open Until™ Messages",
+    "50 Total Videos", "50 Audio Moments", "25 Cannot Open Until™ Messages",
     "Up to 5 Family Profiles", "250 Videos", "Up to 10 Family Profiles", "1,000 Videos",
     "Never Forget™ Family Calendar", "Legacy Vault Export", "Digital Executor Designation",
   ]) assert.ok(html.includes(text), text);
-  assert.match(html, /plan limits are not enforced/);
-  assert.match(html, /paid plans and billing are coming soon/);
-  for (const text of ["Automatic reminders", "Birthday video delivery", "Anniversary message delivery", "Custom milestone scheduling", "Scheduled Message Delivery", "Unlimited Future Deliveries", "Legacy Vault Export"]) {
+  assert.match(html, /current access without the listed plan limits/);
+  assert.match(html, /paid plans are coming soon/);
+  for (const text of [
+    "Automatic reminders",
+    "Birthday video delivery", "Anniversary message delivery", "Custom milestone scheduling",
+    "5 Audio Moments",
+    "2 Cannot Open Until™ Messages",
+    "Birthday, Anniversary, and Custom Reminders",
+    "Scheduled Message Delivery",
+    "Unlimited Future Deliveries", "Legacy Vault Export",
+  ]) {
     assert.ok(html.includes(`${text}<span class="text-slate-400"> (Coming Soon)</span>`), text);
   }
+  for (const text of ["Family Calendar™ with Shared Dates", "Legacy Tree™ PDF Export"]) {
+    assert.ok(html.includes(text));
+    assert.ok(!html.includes(`${text}<span class="text-slate-400"> (Coming Soon)</span>`));
+  }
+  assert.doesNotMatch(html, /Priority (Support|Preservation Services)|preferences can be saved|notifications not sent|audio uploads not available|delivery not available|unlocking not available/i);
   assert.match(html, /Shared family dates/);
   assert.match(html, /href="\/signup"[^>]*>Create a Free Account/);
   assert.equal((html.match(/Create a Free Account/g) ?? []).length, 1);
@@ -174,10 +187,11 @@ test("pricing displays the requested roadmap without implying paid access or del
       { text: "2 Private Videos" },
       { text: "25 Photos" },
       { text: "10 Stories" },
-      { text: "5 Voice Messages", planned: true },
+      { text: "5 Audio Moments", planned: true },
       { text: "2 Cannot Open Until™ Messages", planned: true },
       { text: "Legacy Tree™ Preview" },
-      { text: "Never Forget™ Calendar Preview", planned: true },
+      { text: "Legacy Tree™ PDF Export" },
+      { text: "Family Calendar™ with Shared Dates" },
     ],
     [
       { text: "Everything in Free Legacy plus:" },
@@ -185,7 +199,7 @@ test("pricing displays the requested roadmap without implying paid access or del
       { text: "50 Total Videos" },
       { text: "Unlimited Photos" },
       { text: "Unlimited Stories" },
-      { text: "50 Voice Messages", planned: true },
+      { text: "50 Audio Moments", planned: true },
       { text: "25 Cannot Open Until™ Messages", planned: true },
       { text: "Personal Never Forget™ Calendar", planned: true },
       { text: "Birthday, Anniversary, and Custom Reminders", planned: true },
@@ -199,14 +213,13 @@ test("pricing displays the requested roadmap without implying paid access or del
       { text: "Connected Lives™" },
       { text: "Full Legacy Tree™" },
       { text: "250 Videos" },
-      { text: "Unlimited Voice Messages", planned: true },
+      { text: "Unlimited Audio Moments", planned: true },
       { text: "Unlimited Future Deliveries", planned: true },
       { text: "Full Never Forget™ Family Calendar", planned: true },
       { text: "Shared Birthdays, Anniversaries, and Family Milestones" },
       { text: "Family Event Tracking" },
       { text: "Family Sharing & Management", planned: true },
       { text: "Legacy Vault Export", planned: true },
-      { text: "Priority Support", planned: true },
     ],
     [
       { text: "Everything in Family Legacy plus:" },
@@ -218,7 +231,6 @@ test("pricing displays the requested roadmap without implying paid access or del
       { text: "Digital Executor Designation", planned: true },
       { text: "Permanent Family Stewardship Tools", planned: true },
       { text: "Complete Legacy Vault Export", planned: true },
-      { text: "Priority Preservation Services", planned: true },
       { text: "Early Access to Premium Features", planned: true },
     ],
   ]);
@@ -335,7 +347,7 @@ test("homepage feature cards explain each feature and retain their links", () =>
     ["/connected-lives", "Connected Lives™", "Build meaningful connections with family, friends, mentors, and the people who matter most."],
     ["/legacy-tree", "Legacy Tree™", "Preserve family relationships across generations and keep your story connected."],
     ["/future-moment-maker", "Future Moment Makers™", "Create moments today for children, grandchildren, and family members whose stories are still unfolding."],
-    ["/create-moment/cannot-open-until", "Cannot Open Until™", "Deliver memories, letters, photos, videos, and messages on a future date or life milestone."],
+    ["/create-moment/cannot-open-until", "Cannot Open Until™", "Save a Moment with a future date or milestone. Timed unlocking and delivery are not yet available."],
   ]);
 });
 

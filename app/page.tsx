@@ -149,7 +149,7 @@ export default function Page() {
           <h3 className="mt-7 font-serif text-2xl text-white">Cannot Open Until™</h3>
           <p className="mt-1 text-sm font-semibold text-[color:var(--nsg-accent-light)]">(NSG Time Capsule)</p>
           <p className="mx-auto mt-3 max-w-2xl leading-7 text-slate-400">
-            Preserve messages, stories, videos, and memories for the moments that matter most.
+            Save a message or story with a future date or milestone. Timed unlocking and delivery are not yet available.
           </p>
         </div>
       </section>
@@ -294,7 +294,7 @@ export default function Page() {
               A Window Into Your Family&apos;s Story
             </h2>
             <p className="mt-5 leading-7 text-slate-300">
-              Display your favorite moments, photos, videos, and voice messages
+              Display your favorite moments, photos, videos, and audio
               from the people who matter most.
               <br />
               Always connected.
@@ -334,7 +334,7 @@ export default function Page() {
             {
               name: "Cannot Open Until™",
               href: "/create-moment/cannot-open-until",
-              description: "Deliver memories, letters, photos, videos, and messages on a future date or life milestone.",
+              description: "Save a Moment with a future date or milestone. Timed unlocking and delivery are not yet available.",
             },
           ].map((feature) => (
             <Link

@@ -6,14 +6,14 @@ import LegacyFrameWaitlist from "./waitlist";
 export const metadata: Metadata = {
   title: "Legacy Frame™ | Never Say Goodbye",
   description:
-    "Display your family's moments, photos, videos, and voice messages at home with Legacy Frame™.",
+    "Display your family's moments, photos, videos, and audio at home with Legacy Frame™.",
 };
 
 const frameContents = [
   { icon: "❤️", label: "Messages From Family" },
   { icon: "📷", label: "Shared Photos" },
   { icon: "🎥", label: "Family Videos" },
-  { icon: "🎤", label: "Voice Messages" },
+  { icon: "🎤", label: "Audio Moments" },
   { icon: "⏳", label: "Cannot Open Until™ Deliveries" },
   { icon: "✨", label: "Future Moment Maker™ Milestones" },
 ];
@@ -62,7 +62,7 @@ export default function LegacyFramePage() {
             A Window Into Your Family&apos;s Story
           </h1>
           <p className="mt-6 max-w-xl leading-7 text-slate-300 sm:text-lg sm:leading-8">
-            Display your favorite moments, photos, videos, and voice messages
+            Display your favorite moments, photos, videos, and audio
             from the people who matter most.
           </p>
           <p className="mt-5 font-serif text-xl leading-relaxed text-[color:var(--nsg-accent-light)]">

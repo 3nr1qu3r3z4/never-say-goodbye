@@ -22,6 +22,8 @@ import {
 import { prepareMomentPhoto } from "@/lib/prepare-moment-photo";
 import { beginMomentVideoUpload, completeMomentVideoUpload } from "@/lib/moment-video-actions";
 import { getMomentVideoFormat, MAX_MOMENT_VIDEO_BYTES } from "@/lib/moment-video";
+import { beginMomentAudioUpload, completeMomentAudioUpload } from "@/lib/moment-audio-actions";
+import { getMomentAudioFormat, MAX_MOMENT_AUDIO_BYTES } from "@/lib/moment-audio";
 
 const contentOptions: {
   value: ContentKind;
@@ -36,7 +38,7 @@ const contentOptions: {
     accept: "image/*,.heic,.heif",
   },
   { value: "video", icon: "🎥", label: "Video", accept: ".mp4,.mov,.m4v,video/mp4,video/quicktime,video/x-m4v" },
-  { value: "voice", icon: "🎤", label: "Voice Recording", accept: "audio/*" },
+  { value: "voice", icon: "🎤", label: "Audio", accept: ".mp3,.m4a,.wav,audio/mpeg,audio/mp4,audio/wav" },
   { value: "written", icon: "✍", label: "Written Message" },
 ];
 
@@ -74,7 +76,7 @@ const config: Record<
   "cannot-open-until": {
     title: "Cannot Open Until™",
     icon: "⏳",
-    subtitle: "Send a message forward to a day or milestone that matters.",
+    subtitle: "Save a message with a future date or milestone. Timed unlocking and delivery are not yet available.",
     prompt: "What would you like to tell them when that day arrives?",
   },
   "future-moment-maker": {
@@ -109,6 +111,9 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
   const [familyPlaceholders, setFamilyPlaceholders] = useState<
     { id: string; name: string; relationship: string }[]
   >([]);
+  const [isAudioUploading, setIsAudioUploading] = useState(false);
+  const [audioProgress, setAudioProgress] = useState(0);
+  const [audioError, setAudioError] = useState("");
   const momentConfig = config[kind];
 
   useEffect(() => {
@@ -165,10 +170,11 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
   function toggleContent(content: ContentKind) {
     if (content === "photo") setPhotoError("");
     if (content === "video") setVideoError("");
+    if (content === "voice") setAudioError("");
     setDraft((current) => {
       const removing = current.content.includes(content);
       const attachmentNames = { ...current.attachmentNames };
-      if ((content === "photo" || content === "video") && removing) delete attachmentNames[content];
+      if ((content === "photo" || content === "video" || content === "voice") && removing) delete attachmentNames[content];
       return {
         ...current,
         content: removing
@@ -177,6 +183,7 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
         attachmentNames,
         photoData: content === "photo" && removing ? "" : current.photoData,
         videoUploadId: content === "video" && removing ? "" : current.videoUploadId,
+        audioUploadId: content === "voice" && removing ? "" : current.audioUploadId,
       };
     });
     setStatusMessage("");
@@ -241,20 +248,41 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
         return;
       }
 
-      setDraft((current) => ({
-        ...current,
-        attachmentNames: { ...current.attachmentNames, [option.value]: file.name },
-      }));
+      if (option.value === "voice" && kind === "shared") {
+        setIsAudioUploading(true);
+        setAudioProgress(0);
+        setAudioError("");
+        if (!getMomentAudioFormat(file.name)) throw new Error("Choose an MP3, M4A, or WAV audio file.");
+        if (!file.size || file.size > MAX_MOMENT_AUDIO_BYTES) throw new Error("Choose audio up to 100 MiB.");
+        const reservation = await beginMomentAudioUpload(file.name, file.size);
+        if ("error" in reservation) throw new Error(reservation.error);
+        await upload(reservation.pathname, file, {
+          access: "private",
+          handleUploadUrl: "/api/moment-audio-upload",
+          contentType: reservation.contentType,
+          onUploadProgress: ({ percentage }) => setAudioProgress(Math.round(percentage)),
+        });
+        const completed = await completeMomentAudioUpload(reservation.id);
+        if ("error" in completed) throw new Error(completed.error);
+        setDraft((current) => ({
+          ...current,
+          audioUploadId: reservation.id,
+          attachmentNames: { ...current.attachmentNames, voice: file.name },
+        }));
+        setStatusMessage("Audio is ready to add.");
+      }
     } catch (cause) {
       const message = cause instanceof Error
         ? cause.message
         : "The selected file could not be prepared. Please try again.";
       if (option.value === "photo") setPhotoError(message);
       if (option.value === "video") setVideoError(message);
+      if (option.value === "voice") setAudioError(message);
       setStatusMessage(message);
     } finally {
       if (option.value === "photo") setIsPhotoPreparing(false);
       if (option.value === "video") setIsVideoUploading(false);
+      if (option.value === "voice") setIsAudioUploading(false);
     }
   }
 
@@ -269,7 +297,7 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
         setAccessCodeSaved(result.accessCodeSaved);
         setDraft((current) => ({ ...current, accessCode: "" }));
         setStatusMessage(
-          "Draft saved to your account. Photos and Shared Moment videos are kept; audio uploads are not yet available.",
+          "Draft saved to your account. Photos and Shared Moment videos and audio are kept.",
         );
       }
     } catch {
@@ -394,7 +422,9 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
                     checked={draft.content.includes(option.value)}
                     disabled={(option.value === "photo" && isPhotoPreparing) ||
                       (option.value === "video" && (isVideoUploading ||
-                        (kind !== "shared" && !draft.content.includes("video"))))}
+                        (kind !== "shared" && !draft.content.includes("video")))) ||
+                      (option.value === "voice" && (isAudioUploading ||
+                        (kind !== "shared" && !draft.content.includes("voice"))))}
                     onChange={() => toggleContent(option.value)}
                     className="h-4 w-4 shrink-0 accent-[color:var(--nsg-accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--nsg-accent)]"
                   />
@@ -402,7 +432,7 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
                     {option.icon}
                   </span>
                   {option.label}
-                  {option.value === "video" && kind !== "shared" && (
+                  {(option.value === "video" || option.value === "voice") && kind !== "shared" && (
                     <span className="text-xs text-slate-400">(Shared Moments only)</span>
                   )}
                 </label>
@@ -423,7 +453,7 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
                     htmlFor={`moment-${option.value}`}
                     className="block text-sm text-slate-300"
                   >
-                    {option.icon} Add a {option.label.toLowerCase()}
+                    {option.icon} Add {option.value === "voice" ? "audio" : `a ${option.label.toLowerCase()}`}
                   </label>
                   <input
                     id={`moment-${option.value}`}
@@ -431,7 +461,8 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
                     accept={option.accept}
                     disabled={!isReady || isSaving ||
                       (option.value === "photo" && isPhotoPreparing) ||
-                      (option.value === "video" && (isVideoUploading || kind !== "shared"))}
+                      (option.value === "video" && (isVideoUploading || kind !== "shared")) ||
+                      (option.value === "voice" && (isAudioUploading || kind !== "shared"))}
                     onChange={(event) =>
                       void handleMediaSelection(option, event.currentTarget)
                     }
@@ -474,6 +505,20 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
                   )}
                   {option.value === "video" && kind === "shared" && draft.attachmentNames.video && !draft.videoUploadId && (
                     <p className="mt-2 text-xs text-amber-300">This older draft saved only the file name. Choose the video again to include it.</p>
+                  )}
+                  {option.value === "voice" && kind === "shared" && (
+                    <p className="mt-2 text-xs text-slate-400">MP3, M4A, or WAV, up to 100 MiB. Playback depends on your browser and audio codec.</p>
+                  )}
+                  {option.value === "voice" && isAudioUploading && (
+                    <p className="mt-2 text-xs text-slate-400" role="status">Uploading audio: {audioProgress}%</p>
+                  )}
+                  {option.value === "voice" && audioError && (
+                    <p className="mt-2 text-xs text-amber-300" role="alert">{audioError}</p>
+                  )}
+                  {option.value === "voice" && draft.attachmentNames.voice && !draft.audioUploadId && (
+                    <p className="mt-2 text-xs text-amber-300">
+                      This older draft saved only the file name. {kind === "shared" ? "Choose the audio again to include it." : "Audio uploads are available for Shared Moments."}
+                    </p>
                   )}
                 </div>
               ))}
@@ -748,7 +793,7 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
               <button
                 type="button"
-                disabled={!isReady || isSaving || isPhotoPreparing || isVideoUploading}
+                disabled={!isReady || isSaving || isPhotoPreparing || isVideoUploading || isAudioUploading}
                 onClick={saveDraft}
                 className={secondaryButtonClassName}
               >
@@ -773,7 +818,7 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
 
           <button
             type="submit"
-            disabled={!isReady || isSaving || isPhotoPreparing || isVideoUploading}
+            disabled={!isReady || isSaving || isPhotoPreparing || isVideoUploading || isAudioUploading}
             className="min-h-14 w-full rounded-full bg-[color:var(--nsg-accent)] px-8 py-4 text-sm font-semibold tracking-wide text-[color:var(--nsg-background)] shadow-lg shadow-[color:var(--nsg-accent)]/10 transition hover:bg-[color:var(--nsg-accent-hover)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)] sm:text-base"
           >
             {isSaving ? "Saving..." : "Publish Moment"}
