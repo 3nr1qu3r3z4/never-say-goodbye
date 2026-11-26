@@ -45,9 +45,9 @@ function Checkbox({ name, label, checked }: { name: string; label: string; check
   return <label className="flex items-center gap-3 text-sm text-slate-200"><input name={name} type="checkbox" defaultChecked={checked} className="h-4 w-4 accent-[color:var(--nsg-accent)]" />{label}</label>;
 }
 
-export function ProfileDates({ profile }: { profile: CalendarProfile }) {
+export function ProfileDates({ profile, open = false }: { profile: CalendarProfile; open?: boolean }) {
   return (
-    <details className="rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5">
+    <details open={open} className="rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5">
       <summary className="cursor-pointer font-serif text-xl text-white">My Family Dates &amp; Sharing</summary>
       <p className="my-4 text-sm leading-6 text-slate-400">Your full birthday and memorial date are private until you choose to share them with your tree members. A birth year alone cannot appear on the calendar; a full date is required. Anniversaries and relationship milestones require both connected people to share and belong to the same tree.</p>
       <ActionForm action={saveCalendarProfile} label="Save My Dates">
@@ -113,42 +113,32 @@ export function BulletinForm({ treeId }: { treeId: string }) {
   );
 }
 
-export function SourceDates({ treeId, records }: { treeId: string; records: SourceRecord[] }) {
+export function SourceDateEditor({ treeId, record }: { treeId: string; record: SourceRecord }) {
   return (
-    <details id="family-dates" className="scroll-mt-6 rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5">
-      <summary className="cursor-pointer font-serif text-xl text-white">Manage Family Dates</summary>
-      <p className="my-4 text-sm leading-6 text-slate-400">Tree owners and admins can add full dates to family placeholders and Future Moment Makers™, and manage shared account birthdays when the account holder has granted editing permission. Account birthday changes apply across trees. A birth year alone cannot appear on a calendar day. These dates are visible to all members of this tree. Anniversaries and relationship milestones require an accepted Connected Lives™ connection, both people in this tree, and both to share the relevant dates.</p>
-      {!records.length && <p className="text-sm text-slate-400">No editable family records are available in this tree yet.</p>}
-      <div className="space-y-5">
-        {records.map((record) => (
-          <div key={`${record.type}-${record.id}`} className="rounded-xl border border-[color:var(--nsg-border)]/10 p-4">
-            <h3 className="font-serif text-lg text-white">{record.name}</h3>
-            {(record.type !== "connection" || record.canAnniversary) && (
-              <ActionForm action={saveTreeSourceDate} label="Save Dates">
-                <input type="hidden" name="treeId" value={treeId} />
-                <input type="hidden" name="sourceId" value={record.id} />
-                <input type="hidden" name="sourceType" value={record.type} />
-                <label className="block text-sm text-slate-200">
-                  {record.type === "placeholder" || record.type === "user" ? "Birthday" : record.type === "future" ? "Expected Birth Date" : "Anniversary Date"}
-                  <input type="date" name="firstDate" defaultValue={record.firstDate} className={fieldClass} />
-                </label>
-                {record.type === "placeholder" && <label className="block text-sm text-slate-200">Memorial Date <input type="date" name="secondDate" defaultValue={record.secondDate} className={fieldClass} /></label>}
-              </ActionForm>
-            )}
-            {record.type === "connection" && record.canMilestones && (
-              <div className="mt-4 border-t border-[color:var(--nsg-border)]/10 pt-4">
-                <ActionForm action={addRelationshipMilestone} label="Add Relationship Milestone">
-                  <input type="hidden" name="treeId" value={treeId} />
-                  <input type="hidden" name="sourceId" value={record.id} />
-                  <label className="block text-sm text-slate-200">Milestone <input name="title" required maxLength={120} className={fieldClass} /></label>
-                  <label className="block text-sm text-slate-200">Date <input type="date" name="date" required className={fieldClass} /></label>
-                  <Checkbox name="repeatsYearly" label="Repeat yearly" />
-                </ActionForm>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    </details>
+    <div>
+      {(record.type !== "connection" || record.canAnniversary) && (
+        <ActionForm action={saveTreeSourceDate} label="Save Changes">
+          <input type="hidden" name="treeId" value={treeId} />
+          <input type="hidden" name="sourceId" value={record.id} />
+          <input type="hidden" name="sourceType" value={record.type} />
+          <label className="block text-sm text-slate-200">
+            {record.type === "placeholder" || record.type === "user" ? "Birthday" : record.type === "future" ? "Expected Birth Date" : "Anniversary Date"}
+            <input type="date" name="firstDate" defaultValue={record.firstDate} className={fieldClass} />
+          </label>
+          {record.type === "placeholder" && <label className="block text-sm text-slate-200">Memorial Date <input type="date" name="secondDate" defaultValue={record.secondDate} className={fieldClass} /></label>}
+        </ActionForm>
+      )}
+      {record.type === "connection" && record.canMilestones && (
+        <div className={record.canAnniversary ? "mt-4 border-t border-[color:var(--nsg-border)]/10 pt-4" : ""}>
+          <ActionForm action={addRelationshipMilestone} label="Add Relationship Milestone">
+            <input type="hidden" name="treeId" value={treeId} />
+            <input type="hidden" name="sourceId" value={record.id} />
+            <label className="block text-sm text-slate-200">Milestone <input name="title" required maxLength={120} className={fieldClass} /></label>
+            <label className="block text-sm text-slate-200">Date <input type="date" name="date" required className={fieldClass} /></label>
+            <Checkbox name="repeatsYearly" label="Repeat yearly" />
+          </ActionForm>
+        </div>
+      )}
+    </div>
   );
 }

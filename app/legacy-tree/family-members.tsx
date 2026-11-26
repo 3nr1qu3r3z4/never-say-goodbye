@@ -6,6 +6,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSql } from "@/lib/db";
 import { orderTreePeople, positionRelationship, treeReferenceKey } from "@/lib/tree-positioning";
 import FamilyMemberForm from "./family-member-form";
+import FamilyDateLink from "./family-date-link";
 import TreeMilestonesPanel from "./tree-milestones-panel";
 
 type FamilyTree = { id: string; name: string; ownerId: string; ownerName: string };
@@ -353,12 +354,6 @@ async function FamilyMembersForUser({ userId }: { userId: string }) {
           );
 
           function renderPerson(person: (typeof layout.generations)[number]["members"][number], needsReview: boolean) {
-            const reference = treeReferenceKey(person);
-            const relativeNotice = reference && (
-              <p className="mt-1 text-xs text-slate-400">
-                Relationship to {namesByPerson.get(reference) ?? "an unavailable family member"}
-              </p>
-            );
             const autoNotice = !person.isOwner && !needsReview && (
               <p className="mt-1 text-xs text-slate-400">Auto Placed</p>
             );
@@ -379,8 +374,8 @@ async function FamilyMembersForUser({ userId }: { userId: string }) {
                         {person.isOwner ? (member.id === userId ? "Tree owner · You" : "Tree owner") : member.id === userId ? `You · ${member.relationship || "Family Member"}` : member.relationship || "Family Member"}
                       </p>
                       {autoNotice}
-                      {relativeNotice}
                       {reviewNotice}
+                      {(member.id === userId || (isAdmin && member.allowAdmin)) && <FamilyDateLink treeId={tree.id} type="user" id={member.id} name={member.displayName} />}
                     </li>
               );
             }
@@ -394,11 +389,11 @@ async function FamilyMembersForUser({ userId }: { userId: string }) {
                       <p className="mt-3 font-serif text-lg text-white">{member.name}</p>
                       <p className="mt-1 text-sm text-slate-400">{member.relationship}</p>
                       {autoNotice}
-                      {relativeNotice}
                       <p className="mt-2 text-xs text-[color:var(--nsg-accent-light)]">
                         {member.status === "claimed" ? "Claimed" : "Awaiting Claim"}
                       </p>
                       {reviewNotice}
+                      {isAdmin && <FamilyDateLink treeId={tree.id} type="future" id={member.id} name={member.name} />}
                     </li>
               );
             }
@@ -418,7 +413,6 @@ async function FamilyMembersForUser({ userId }: { userId: string }) {
                           ? ` · ${member.birthYear ?? "?"}–${member.deathYear ?? "?"}` : ""}
                       </p>
                       {autoNotice}
-                      {relativeNotice}
                       {member.isHonored && (member.birthDate || member.passingDate) && (
                         <p className="mt-2 text-sm text-slate-400">
                           {member.birthDate && `Born: ${member.birthDate}`}
@@ -451,6 +445,7 @@ async function FamilyMembersForUser({ userId }: { userId: string }) {
                         Create a moment
                       </Link>
                       {reviewNotice}
+                      {isAdmin && <FamilyDateLink treeId={tree.id} type="placeholder" id={member.id} name={member.name} />}
                     </li>
             );
           }

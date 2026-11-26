@@ -431,6 +431,10 @@ milestones already saved; the account holder can remove them.
 Existing full birthdays, memorial dates and relationship milestones remain in
 their original records and are managed from Legacy Tree. A previously saved
 full birthday must be managed there instead of creating a second birthday.
+Under Family Milestones, choose a family member or shared relationship in
+Manage Family Dates to view the applicable editor and their existing
+milestones. Eligible person cards also offer Edit Dates. Previously saved and
+shared family-date lists are available in collapsed sections.
 Month-and-day birthdays can omit the year, and month/year or undated milestones
 are shown separately in the calendar without inventing a day. Birthdays and
 anniversaries with a day repeat yearly; other dated milestones can optionally

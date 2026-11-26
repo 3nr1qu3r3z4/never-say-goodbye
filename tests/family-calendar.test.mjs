@@ -12,7 +12,7 @@ import ts from "typescript";
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 
-function loadModule(relativePath, dependencies = {}) {
+function loadModule(relativePath, dependencies = {}, globals = {}) {
   const source = fs.readFileSync(path.join(root, relativePath), "utf8");
   const compiled = ts.transpileModule(source, {
     compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX },
@@ -25,7 +25,7 @@ function loadModule(relativePath, dependencies = {}) {
       return dependencies[name];
     },
     Date,
-    URLSearchParams,
+    URLSearchParams, ...globals,
   });
   return exports;
 }
@@ -82,7 +82,7 @@ test("calendar places exact milestones and separately shows partial or unknown d
   assert.doesNotMatch(html, /2035-06-01/);
 });
 
-test("tree milestone panel shows editable family milestones and consent controls", async () => {
+test("tree milestone panel keeps family dates and consent available without an expanded bulk list", async () => {
   const formComponents = loadModule("app/legacy-tree/milestone-forms.tsx", {
     "react/jsx-runtime": jsxRuntime,
     react: { ...React, useActionState: () => [{}, () => {}, false] },
@@ -92,18 +92,20 @@ test("tree milestone panel shows editable family milestones and consent controls
   });
   const panel = loadModule("app/legacy-tree/tree-milestones-panel.tsx", {
     "react/jsx-runtime": jsxRuntime,
-    "@/lib/tree-milestones": milestones,
     "@/lib/tree-milestones-data": { getTreeMilestones: async () => [{
       id: "grad", subjectType: "placeholder", subjectId: "child", title: "Graduation",
       kind: "graduation", year: 2035, month: 6, day: null, repeatsYearly: false, canEdit: true,
     }] },
     "@/lib/family-calendar-data": {
-      getCalendarEvents: async () => [],
+      getCalendarEvents: async () => [
+        { id: "birthday:one", title: "Courtney Birthday", date: "2010-05-01", source: "Legacy Tree™" },
+        { id: "anniversary:two", title: "Family Anniversary", date: "2012-06-01", source: "Connected Lives™" },
+      ],
       getCalendarSettings: async () => ({ profile: {} }),
       getEditableCalendarSources: async () => [],
     },
-    "@/app/family-calendar/calendar-forms": { ProfileDates: () => null, SourceDates: () => null },
     "./milestone-forms": formComponents,
+    "./family-dates-manager": { default: () => React.createElement("div", null, "Family date selector") },
   }).default;
   const html = renderToStaticMarkup(await panel({
     treeId: "tree", userId: "owner", isAdmin: true, allowAdmin: false,
@@ -111,12 +113,110 @@ test("tree milestone panel shows editable family milestones and consent controls
   }));
   assert.match(html, /Family Milestones/);
   assert.match(html, /My milestone editing permission/);
-  assert.match(html, /Courtney[\s\S]*Graduation[\s\S]*June 2035/);
+  assert.match(html, /Family date selector/);
+  assert.match(html, /<details[^>]*><summary[^>]*>View Existing Family Dates →<\/summary>[\s\S]*Courtney Birthday/);
+  assert.match(html, /<details[^>]*><summary[^>]*>View Shared Family Dates →<\/summary>[\s\S]*Family Anniversary/);
+  assert.doesNotMatch(html, /<details[^>]* open/);
+});
+
+test("family date selector shows only the chosen person's editor and preserves relationship controls", () => {
+  let selected = "";
+  let listening = false;
+  const listeners = new Set();
+  class CustomEvent {
+    constructor(type, options) { this.type = type; this.detail = options.detail; }
+  }
+  const window = {
+    addEventListener: (_name, listener) => listeners.add(listener),
+    removeEventListener: (_name, listener) => listeners.delete(listener),
+    dispatchEvent: (event) => { for (const listener of listeners) listener(event); },
+  };
+  const react = {
+    ...React,
+    useState: () => [selected, (value) => { selected = value; }],
+    useEffect: (effect) => { if (!listening) { listening = true; effect(); } },
+    useActionState: () => [{}, () => {}, false],
+  };
+  const calendarForms = loadModule("app/family-calendar/calendar-forms.tsx", {
+    "react/jsx-runtime": jsxRuntime, react,
+    "@/app/actions/family-calendar": Object.fromEntries(
+      ["addRelationshipMilestone", "createCalendarEvent", "createFamilyBulletin", "enableCalendarImports", "saveCalendarProfile",
+        "saveCalendarReminders", "saveTreeSourceDate"].map((name) => [name, () => {}]),
+    ),
+  });
+  const milestoneForms = loadModule("app/legacy-tree/milestone-forms.tsx", {
+    "react/jsx-runtime": jsxRuntime, react,
+    "@/app/actions/tree-milestones": {
+      saveTreeMilestone: () => {}, deleteTreeMilestone: () => {}, saveMilestoneAdminConsent: () => {},
+    },
+  });
+  const manager = loadModule("app/legacy-tree/family-dates-manager.tsx", {
+    "react/jsx-runtime": jsxRuntime, react,
+    "@/app/family-calendar/calendar-forms": calendarForms,
+    "@/lib/tree-milestones": milestones,
+    "./milestone-forms": milestoneForms,
+  }, { window, CustomEvent }).default;
+  const props = {
+    treeId: "tree", userId: "owner", profile: {},
+    people: [
+      { type: "user", id: "owner", name: "Alex", canEdit: true },
+      { type: "placeholder", id: "child", name: "Courtney", canEdit: true },
+      { type: "future", id: "future", name: "Bun", canEdit: true },
+      { type: "user", id: "private", name: "Private", canEdit: false },
+    ],
+    sources: [
+      { type: "placeholder", id: "child", name: "Courtney", firstDate: "2010-05-01", secondDate: "", canAnniversary: false, canMilestones: false },
+      { type: "future", id: "future", name: "Bun", firstDate: "2030-01-01", secondDate: "", canAnniversary: false, canMilestones: false },
+      { type: "connection", id: "pair", name: "Alex & Sam", firstDate: "", secondDate: "", canAnniversary: false, canMilestones: true },
+    ],
+    milestones: [{
+      id: "grad", subjectType: "placeholder", subjectId: "child", title: "Graduation",
+      kind: "graduation", year: 2035, month: 6, day: null, repeatsYearly: false, canEdit: true,
+    }],
+  };
+  const nodes = (node) => !React.isValidElement(node) ? [] :
+    [node, ...React.Children.toArray(node.props.children).flatMap(nodes)];
+  const choose = (type, id) => {
+    const select = nodes(manager(props)).find((node) => node.type === "select");
+    select.props.onChange({ target: { value: JSON.stringify([type, id]) } });
+  };
+  let html = renderToStaticMarkup(manager(props));
+  assert.match(html, /Who would you like to update\?/);
+  assert.doesNotMatch(html, /name="firstDate"|Add a milestone for/);
+  choose("placeholder", "child");
+  html = renderToStaticMarkup(manager(props));
+  assert.match(html, /<h5[^>]*>Courtney<\/h5>/);
+  assert.match(html, /name="sourceId" value="child"/);
+  assert.match(html, /name="firstDate" value="2010-05-01"/);
+  assert.match(html, /name="secondDate"/);
+  assert.match(html, /Manage Existing Dates →[\s\S]*Graduation[\s\S]*June 2035/);
   assert.match(html, /Add a milestone for Courtney/);
-  assert.match(html, /Wedding Anniversary/);
-  assert.match(html, /Custom Family Milestone/);
-  assert.match(html, /name="subjectId" value="child"/);
-  assert.match(html, /Saving shares this milestone/);
+  assert.doesNotMatch(html, /<h5[^>]*>Bun<\/h5>/);
+  choose("future", "future");
+  html = renderToStaticMarkup(manager(props));
+  assert.match(html, /Expected Birth Date/);
+  assert.match(html, /name="firstDate" value="2030-01-01"/);
+  assert.doesNotMatch(html, /name="secondDate"|name="sourceId" value="child"/);
+  choose("connection", "pair");
+  html = renderToStaticMarkup(manager(props));
+  assert.match(html, /Add Relationship Milestone/);
+  assert.doesNotMatch(html, /Anniversary Date|name="firstDate"/);
+  choose("user", "owner");
+  html = renderToStaticMarkup(manager(props));
+  assert.match(html, /My Family Dates &amp; Sharing/);
+  assert.match(html, /Share Birthday/);
+  choose("user", "private");
+  html = renderToStaticMarkup(manager(props));
+  assert.match(html, /cannot edit this person/);
+  assert.doesNotMatch(html, /name="firstDate"|Add a milestone for/);
+  const link = loadModule("app/legacy-tree/family-date-link.tsx", { "react/jsx-runtime": jsxRuntime }, { window, CustomEvent }).default;
+  const element = link({ treeId: "tree", type: "placeholder", id: "child", name: "Courtney" });
+  assert.equal(element.props.href, "#family-dates-tree");
+  element.props.onClick();
+  assert.match(renderToStaticMarkup(manager(props)), /name="sourceId" value="child"/);
+  const otherTree = link({ treeId: "other", type: "future", id: "future", name: "Bun" });
+  otherTree.props.onClick();
+  assert.match(renderToStaticMarkup(manager(props)), /name="sourceId" value="child"/);
 });
 
 test("calendar renders month, week and agenda views with source labels", async () => {
@@ -193,9 +293,6 @@ test("calendar forms explain sync, privacy, and full-date requirements", () => {
   const sharing = renderToStaticMarkup(React.createElement(forms.ProfileDates, { profile: {} }));
   assert.match(sharing, /private until you choose to share/);
   assert.match(sharing, /birth year alone cannot appear on the calendar/);
-  const sources = renderToStaticMarkup(React.createElement(forms.SourceDates, { treeId: "tree", records: [] }));
-  assert.match(sources, /visible to all members of this tree/);
-  assert.match(sources, /accepted Connected Lives™ connection, both people in this tree, and both to share/);
   const shoutOut = renderToStaticMarkup(React.createElement(forms.BulletinForm, { treeId: "tree" }));
   assert.match(shoutOut, /What&#x27;s happening with the family today\?/);
   assert.match(shoutOut, /<textarea[^>]*aria-describedby="shout-out-limit"[\s\S]*?<\/textarea>[\s\S]*?<p id="shout-out-limit"[^>]*>300 characters maximum<\/p>/);

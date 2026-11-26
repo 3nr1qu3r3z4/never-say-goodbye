@@ -145,6 +145,7 @@ test("Honored Lives creation, access and atomicity in PostgreSQL", {
       "@/lib/db": dependencies["@/lib/db"],
       "@/lib/tree-positioning": loadModule("lib/tree-positioning.ts", {}),
       "./family-member-form": { default: () => null },
+      "./family-date-link": { default: () => null },
       "./tree-milestones-panel": { default: () => null },
     }).default;
     async function renderTree() {

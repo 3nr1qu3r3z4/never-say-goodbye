@@ -39,6 +39,7 @@ function familyComponent(user, sql) {
     "@/lib/db": { getSql: () => sql },
     "@/lib/tree-positioning": loadModule("lib/tree-positioning.ts", {}),
     "./family-member-form": { default: () => React.createElement("div", null, "Family management form") },
+    "./family-date-link": { default: ({ name }) => React.createElement("a", null, `Edit dates for ${name}`) },
     "./tree-milestones-panel": { default: ({ treeId }) => React.createElement("div", null, `Milestones for ${treeId}`) },
   }).default;
 }
@@ -121,6 +122,24 @@ test("a tree containing only the viewer invites them to add family", async () =>
   assert.match(html, /Family management form/);
 });
 
+test("date shortcuts appear only for people the viewer can manage", async () => {
+  const sql = () => ({});
+  sql.transaction = async () => [
+    [{ id: "tree", name: "Family", ownerId: "owner", ownerName: "Owner" }],
+    [
+      { id: "owner", treeId: "tree", displayName: "Owner", role: "owner", relationship: null },
+      { id: "allowed", treeId: "tree", displayName: "Allowed", allowAdmin: true, relationship: "Son" },
+      { id: "private", treeId: "tree", displayName: "Private", allowAdmin: false, relationship: "Daughter" },
+    ],
+    [{ id: "future", treeId: "tree", name: "Future", relationship: "Grandchild", status: "awaiting-claim" }],
+    [{ id: "placeholder", treeId: "tree", name: "Family", relationship: "Mother" }],
+    [],
+  ];
+  const html = await renderFamily(familyComponent({ id: "owner" }, sql));
+  for (const name of ["Owner", "Allowed", "Future", "Family"]) assert.ok(html.includes(`Edit dates for ${name}`));
+  assert.doesNotMatch(html, /Edit dates for Private/);
+});
+
 test("family generations are based on owner-relative labels, not entry order", async () => {
   const sql = () => ({});
   sql.transaction = async () => [
@@ -198,14 +217,18 @@ test("parent and grandparent lines retain their owner or specific partner", asyn
       { id: "missing-parent", treeId: "tree", displayName: "Other Parent", relationship: "Father", linePartnerType: "member", linePartnerId: "removed" },
     ],
     [{ id: "grandparent", treeId: "tree", name: "Partner Grandparent", relationship: "Grandmother", status: "awaiting-claim", linePartnerType: "member", linePartnerId: "partner" }],
-    [{ id: "father", treeId: "tree", name: "Owner Father", relationship: "Father" }],
+    [
+      { id: "father", treeId: "tree", name: "Owner Father", relationship: "Father" },
+      { id: "partner-father", treeId: "tree", name: "Partner Father", relationship: "Father", birthYear: 1925, deathYear: 2016, notes: "Mi Papa", linePartnerType: "member", linePartnerId: "partner" },
+    ],
     [],
   ];
   const html = await renderFamily(familyComponent({ id: "owner" }, sql));
   assert.match(html, /Alex&#x27;s Parents<\/h3>[\s\S]*?Owner Father[\s\S]*?Owner Mother/);
-  assert.match(html, /Sam&#x27;s Parents<\/h3>[\s\S]*?Partner Mother/);
+  assert.match(html, /Sam&#x27;s Parents<\/h3>[\s\S]*?Partner Father[\s\S]*?Father · 1925–2016[\s\S]*?Auto Placed[\s\S]*?Mi Papa[\s\S]*?Create a moment[\s\S]*?Partner Mother/);
   assert.match(html, /Sam&#x27;s Grandparents<\/h3>[\s\S]*?Partner Grandparent/);
-  assert.match(html, /Relationships to review[\s\S]*?Other Parent[\s\S]*?unavailable family member/);
+  assert.match(html, /Relationships to review[\s\S]*?Other Parent[\s\S]*?Relationship needs review/);
+  assert.doesNotMatch(html, /Relationship to /);
   assert.doesNotMatch(html, /Link a written moment to this person/);
   assert.match(html, /Create a moment/);
 });
