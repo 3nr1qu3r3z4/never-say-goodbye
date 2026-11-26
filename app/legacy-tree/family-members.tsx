@@ -56,8 +56,8 @@ const buttonClassName =
 
 function EmptyLegacyTree({ signedIn }: { signedIn: boolean }) {
   return (
-    <section className="mx-auto max-w-3xl px-4 pb-20 text-center sm:px-8">
-      <div className={`${cardClassName} border-[color:var(--nsg-accent)]/25`}>
+    <div className="mx-auto max-w-6xl px-4 pb-20 sm:px-8">
+      <section className={`${cardClassName} mx-auto max-w-3xl border-[color:var(--nsg-accent)]/25 text-center`}>
         <h2 className="font-serif text-2xl text-white sm:text-3xl">
           Your Legacy Tree is waiting to be built.
         </h2>
@@ -76,8 +76,64 @@ function EmptyLegacyTree({ signedIn }: { signedIn: boolean }) {
             Connect Family
           </Link>
         </div>
-      </div>
-    </section>
+      </section>
+      <section aria-labelledby="tree-showcase-heading" className="mt-16">
+        <h2 id="tree-showcase-heading" className="text-center font-serif text-3xl text-white sm:text-4xl">
+          See What&apos;s Possible
+        </h2>
+        <p className="mt-3 text-center text-sm text-slate-400">A fictional family example</p>
+        <div className="mt-8 grid gap-6 lg:grid-cols-2">
+          <figure className={`${cardClassName} flex flex-col`}>
+            <h3 className="font-serif text-xl text-white">Build Your Legacy Tree</h3>
+            <div
+              role="img"
+              aria-label="Example tree showing Alex Rivera's parents, household, and children across three generations."
+              className="mt-5 rounded-2xl border border-[color:var(--nsg-accent)]/25 bg-slate-950/30 p-3 sm:p-5"
+            >
+              <div aria-hidden="true" className="mx-auto max-w-sm text-center">
+                {[
+                  { label: "Alex's Parents", people: [{ name: "Daniel Rivera", detail: "Father" }, { name: "Elena Rivera", detail: "Mother" }] },
+                  { label: "Your household", people: [{ name: "Alex Rivera", detail: "Tree owner" }, { name: "Jordan Rivera", detail: "Partner" }] },
+                  { label: "Children", people: [{ name: "Morgan Rivera", detail: "Child" }, { name: "Sam Rivera", detail: "Child" }] },
+                ].map((generation, index) => (
+                  <div key={generation.label}>
+                    {index > 0 && <div className="mx-auto h-4 w-px bg-[color:var(--nsg-accent)]/40" />}
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">{generation.label}</p>
+                    <div className="relative mt-2 grid grid-cols-2 gap-2">
+                      {index === 1 && <span className="absolute left-1/2 top-1/2 h-px w-2 -translate-x-1/2 bg-[color:var(--nsg-accent)]/40" />}
+                      {generation.people.map((person) => (
+                        <div key={person.name} className="min-w-0 rounded-xl border border-[color:var(--nsg-border)]/15 bg-white/[0.03] px-2 py-3">
+                          <p className="break-words font-serif text-sm text-white sm:text-base">{person.name}</p>
+                          <p className="mt-1 text-xs text-slate-400">{person.detail}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <figcaption className="mt-5 leading-7 text-slate-400">
+              Connect generations, preserve family history, and watch your family tree grow over time.
+            </figcaption>
+          </figure>
+          <figure className={`${cardClassName} flex flex-col`}>
+            <h3 className="font-serif text-xl text-white">Export Your Family Tree PDF</h3>
+            <a href="/images/legacy-tree-pdf-preview.png" className="mt-5 block rounded-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]" aria-label="View a larger image of the sample family tree PDF">
+              <Image
+                src="/images/legacy-tree-pdf-preview.png"
+                alt="Sample Rivera family PDF keepsake showing parents, household, and children."
+                width={1057}
+                height={817}
+                className="h-auto w-full rounded-xl"
+              />
+            </a>
+            <figcaption className="mt-5 leading-7 text-slate-400">
+              Create a printable keepsake for family reunions, genealogy projects, memorials, and future generations.
+            </figcaption>
+          </figure>
+        </div>
+      </section>
+    </div>
   );
 }
 

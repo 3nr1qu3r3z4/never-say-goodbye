@@ -4,7 +4,7 @@ import path from "node:path";
 import { createRequire } from "node:module";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
+import { getDocument, OPS } from "pdfjs-dist/legacy/build/pdf.mjs";
 import ts from "typescript";
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
@@ -24,6 +24,7 @@ const exportData = loadModule("lib/legacy-tree-export.ts", { "@/lib/tree-positio
 const pdf = loadModule("lib/legacy-tree-pdf.ts", {
   "server-only": {},
   "@/lib/legacy-tree-export": exportData,
+  "@/lib/tree-positioning": positioning,
 });
 const person = (id, name, relationship, extra = {}) => ({
   kind: "placeholder",
@@ -40,6 +41,44 @@ async function readPdf(bytes) {
     pages.push({ page, items: (await page.getTextContent()).items });
   }
   return { document, pages };
+}
+
+async function drawing(page) {
+  const operators = await page.getOperatorList();
+  const stack = [];
+  let translation = [0, 0];
+  const cards = [];
+  const lines = [];
+  for (let index = 0; index < operators.fnArray.length; index++) {
+    const operation = operators.fnArray[index];
+    const args = operators.argsArray[index];
+    if (operation === OPS.save) stack.push([...translation]);
+    if (operation === OPS.restore) translation = stack.pop();
+    if (operation === OPS.transform) translation = [translation[0] + args[4], translation[1] + args[5]];
+    if (operation === OPS.constructPath && args[0].length === 3) lines.push(args[2]);
+    if (operation === OPS.constructPath && args[0].length === 5 && args[2][2] === 210) {
+      cards.push({ x: translation[0] + 105, bottom: translation[1], top: translation[1] + args[2][3] });
+    }
+  }
+  return { cards, lines };
+}
+
+function cardFor(name, items, cards) {
+  const text = items.find((item) => item.str === name);
+  assert.ok(text, `Missing ${name}`);
+  const center = text.transform[4] + text.width / 2;
+  const card = cards.find((entry) => Math.abs(entry.x - center) < 1 &&
+    text.transform[5] > entry.bottom && text.transform[5] < entry.top);
+  assert.ok(card, `Missing card for ${name}`);
+  return card;
+}
+
+function vertical(lines, x, low, high) {
+  return lines.some(([x1, y1, x2, y2]) => x1 === x && x2 === x && y1 <= low && y2 >= high);
+}
+
+function horizontal(lines, y, left, right) {
+  return lines.some(([x1, y1, x2, y2]) => y1 === y && y2 === y && x1 <= left && x2 >= right);
 }
 
 test("export retains family lines, positioning, uncertain relatives and actual PDF text", async () => {
@@ -67,6 +106,183 @@ test("export retains family lines, positioning, uncertain relatives and actual P
     assert.ok(text.includes(expected), `PDF missing ${expected}: ${text}`);
   }
   assert.doesNotMatch(text, /Auto Placed|Review|Create a Moment|Admin|Legacy Tree™/);
+  assert.doesNotMatch(text, /Mother|Father/);
+  assert.match(text, /Cousin/);
+});
+
+test("person cards are centered and only supported household connectors are drawn", async () => {
+  const owner = person("owner", "Alex Owner", "", { kind: "member", isOwner: true });
+  const partner = person("partner", "Jordan Owner", "Partner");
+  const child = person("child", "Morgan Owner", "Child", { birthYear: 2005 });
+  const create = async (people) => (await readPdf(await pdf.createLegacyTreePdf("Alex Owner", "", people, new Date("2026-11-26T12:00:00Z")))).pages;
+  const pages = await create([owner, partner, child]);
+  const items = pages[0].items;
+  const center = (name) => {
+    const item = items.find((entry) => entry.str === name);
+    assert.ok(item, `Missing ${name}`);
+    return item.transform[4] + item.width / 2;
+  };
+  assert.ok(Math.abs((center("Alex Owner") + center("Jordan Owner")) / 2 - 396) < 1);
+  assert.ok(Math.abs(center("Morgan Owner") - 396) < 1);
+  assert.ok(items.some((item) => item.str.includes("Born 2005")));
+  assert.ok(!items.some((item) => item.str === "Child"));
+  const { cards, lines } = await drawing(pages[0].page);
+  const ownerCard = cardFor("Alex Owner", items, cards);
+  const childCard = cardFor("Morgan Owner", items, cards);
+  assert.ok(vertical(lines, ownerCard.x, ownerCard.bottom - 10, ownerCard.bottom));
+  assert.ok(horizontal(lines, ownerCard.bottom - 10, ownerCard.x, 396));
+  assert.ok(vertical(lines, 396, childCard.top + 5, ownerCard.bottom - 10));
+  assert.ok(vertical(lines, childCard.x, childCard.top, childCard.top + 5));
+  assert.ok(!vertical(lines, 396, (ownerCard.top + ownerCard.bottom) / 2, (ownerCard.top + ownerCard.bottom) / 2));
+  assert.ok(lines.some(([x1, y1, x2, y2]) =>
+    x1 === ownerCard.x + 105 && x2 === ownerCard.x + 123 && y1 === y2));
+
+  const multiplePartners = await create([owner, partner, person("second", "Taylor Owner", "Spouse"), child]);
+  const multiDrawing = await drawing(multiplePartners[0].page);
+  assert.ok(!multiDrawing.lines.some(([x1, y1, x2, y2]) => y1 === y2 && x2 - x1 === 18));
+  assert.ok(multiDrawing.lines.length > 0);
+  const onlyPartner = await create([owner, partner]);
+  assert.equal((await drawing(onlyPartner[0].page)).lines.length, 1);
+});
+
+test("known parents and multiple children branch to the referenced person", async () => {
+  const people = [
+    person("owner", "Alex Owner", "", { kind: "member", isOwner: true }),
+    person("partner", "Jordan Owner", "Partner"),
+    person("parent1", "Dora Parent", "Mother"),
+    person("parent2", "Elias Parent", "Father"),
+    person("child1", "Bun Child", "Child"),
+    person("child2", "Courtney Child", "Child"),
+    person("child3", "Kalo Child", "Child"),
+  ];
+  const { pages } = await readPdf(await pdf.createLegacyTreePdf("Alex Owner", "", people, new Date("2026-11-26T12:00:00Z")));
+  assert.equal(pages.length, 1);
+  const { cards, lines } = await drawing(pages[0].page);
+  const card = (name) => cardFor(name, pages[0].items, cards);
+  const owner = card("Alex Owner");
+  const parents = [card("Dora Parent"), card("Elias Parent")];
+  const children = [card("Bun Child"), card("Courtney Child"), card("Kalo Child")];
+  assert.ok(parents[0].bottom - owner.top >= 70);
+  assert.ok(owner.bottom - children[0].top >= 70);
+  for (const parent of parents) assert.ok(vertical(lines, parent.x, parent.bottom - 5, parent.bottom));
+  assert.ok(vertical(lines, 396, owner.top + 10, parents[0].bottom - 5));
+  assert.ok(horizontal(lines, owner.top + 10, owner.x, 396));
+  assert.ok(vertical(lines, owner.x, owner.top, owner.top + 10));
+  assert.ok(vertical(lines, owner.x, owner.bottom - 10, owner.bottom));
+  assert.ok(horizontal(lines, owner.bottom - 10, owner.x, 396));
+  assert.ok(vertical(lines, 396, children[0].top + 5, owner.bottom - 10));
+  for (const child of children) assert.ok(vertical(lines, child.x, child.top, child.top + 5));
+});
+
+test("unresolved references remain in Additional Family without speculative connectors", async () => {
+  const people = [
+    person("owner", "Alex Owner", "", { kind: "member", isOwner: true }),
+    person("relative", "Casey Relative", "Child", {
+      data: { id: "relative", linePartnerType: "placeholder", linePartnerId: "missing" },
+    }),
+  ];
+  const { pages } = await readPdf(await pdf.createLegacyTreePdf("Alex Owner", "", people, new Date()));
+  const { cards, lines } = await drawing(pages[0].page);
+  const relative = cardFor("Casey Relative", pages[0].items, cards);
+  assert.ok(pages[0].items.some((item) => item.str.includes("Additional")));
+  assert.ok(pages[0].items.some((item) => item.str === "Child"));
+  assert.ok(!lines.some(([x1, y1, x2, y2]) =>
+    x1 === relative.x && x2 === relative.x && (y1 === relative.top || y2 === relative.bottom)));
+});
+
+test("a referenced parent's line connects to the partner, not the owner", async () => {
+  const people = [
+    person("owner", "Alex Owner", "", { kind: "member", isOwner: true }),
+    person("partner", "Jordan Owner", "Partner"),
+    person("parent", "Pat Parent", "Mother", { data: { id: "parent", linePartnerType: "placeholder", linePartnerId: "partner" } }),
+  ];
+  const { pages } = await readPdf(await pdf.createLegacyTreePdf("Alex Owner", "", people, new Date()));
+  const { cards, lines } = await drawing(pages[0].page);
+  const partner = cardFor("Jordan Owner", pages[0].items, cards);
+  const owner = cardFor("Alex Owner", pages[0].items, cards);
+  const parent = cardFor("Pat Parent", pages[0].items, cards);
+  assert.ok(vertical(lines, 396, partner.top + 10, parent.bottom - 5));
+  assert.ok(horizontal(lines, partner.top + 10, 396, partner.x));
+  assert.ok(vertical(lines, partner.x, partner.top, partner.top + 10));
+  assert.ok(!vertical(lines, owner.x, owner.top, parent.bottom - 5));
+});
+
+test("both family lines connect to the appropriate household member", async () => {
+  const people = [
+    person("owner", "Alex Owner", "", { kind: "member", isOwner: true }),
+    person("partner", "Jordan Owner", "Partner"),
+    person("ownerParent", "Dora Parent", "Mother"),
+    person("partnerParent", "Pat Parent", "Father", { data: { id: "partnerParent", linePartnerType: "placeholder", linePartnerId: "partner" } }),
+  ];
+  const { pages } = await readPdf(await pdf.createLegacyTreePdf("Alex Owner", "", people, new Date()));
+  assert.equal(pages.length, 1);
+  const { cards, lines } = await drawing(pages[0].page);
+  const card = (name) => cardFor(name, pages[0].items, cards);
+  const owner = card("Alex Owner");
+  const partner = card("Jordan Owner");
+  const ownerParent = card("Dora Parent");
+  const partnerParent = card("Pat Parent");
+  assert.ok(vertical(lines, ownerParent.x, ownerParent.bottom - 5, ownerParent.bottom));
+  assert.ok(vertical(lines, owner.x, owner.top, owner.top + 5));
+  assert.ok(vertical(lines, partnerParent.x, partnerParent.bottom - 5, partnerParent.bottom));
+  assert.ok(vertical(lines, 396, partner.top + 10, partnerParent.bottom - 5));
+  assert.ok(horizontal(lines, partner.top + 10, 396, partner.x));
+  assert.ok(vertical(lines, partner.x, partner.top, partner.top + 10));
+});
+
+test("a child referenced to the partner branches from that partner", async () => {
+  const people = [
+    person("owner", "Alex Owner", "", { kind: "member", isOwner: true }),
+    person("partner", "Jordan Owner", "Partner"),
+    person("child", "Morgan Child", "Child", { data: { id: "child", linePartnerType: "placeholder", linePartnerId: "partner" } }),
+  ];
+  const { pages } = await readPdf(await pdf.createLegacyTreePdf("Alex Owner", "", people, new Date()));
+  const { cards, lines } = await drawing(pages[0].page);
+  const owner = cardFor("Alex Owner", pages[0].items, cards);
+  const partner = cardFor("Jordan Owner", pages[0].items, cards);
+  const child = cardFor("Morgan Child", pages[0].items, cards);
+  assert.ok(vertical(lines, partner.x, partner.bottom - 10, partner.bottom));
+  assert.ok(horizontal(lines, partner.bottom - 10, 396, partner.x));
+  assert.ok(vertical(lines, 396, child.top + 5, partner.bottom - 10));
+  assert.ok(!vertical(lines, owner.x, child.top + 5, owner.bottom));
+});
+
+test("multiple child rows stay connected without lines crossing person cards", async () => {
+  const people = [
+    person("owner", "Alex Owner", "", { kind: "member", isOwner: true }),
+    ...Array.from({ length: 6 }, (_, index) => person(`child${index}`, `Child ${index}`, "Child")),
+  ];
+  const { pages } = await readPdf(await pdf.createLegacyTreePdf("Alex Owner", "", people, new Date()));
+  assert.equal(pages.length, 1);
+  const { cards, lines } = await drawing(pages[0].page);
+  for (let index = 0; index < 6; index++) {
+    const child = cardFor(`Child ${index}`, pages[0].items, cards);
+    assert.ok(vertical(lines, child.x, child.top, child.top + 5));
+  }
+  for (const [x1, y1, x2, y2] of lines) {
+    for (const card of cards) {
+      const crosses = x1 === x2
+        ? x1 > card.x - 105 && x1 < card.x + 105 && y1 < card.top && y2 > card.bottom
+        : y1 > card.bottom && y1 < card.top && x1 < card.x + 105 && x2 > card.x - 105;
+      assert.equal(crosses, false, "connector must not cross a card");
+    }
+  }
+});
+
+test("household connector does not cross a page break", async () => {
+  const people = [
+    person("owner", "Alex Owner", "", { kind: "member", isOwner: true }),
+    person("partner", "Jordan Owner", "Partner"),
+    person("child", "Morgan Owner", "Child"),
+    ...Array.from({ length: 9 }, (_, index) => person(`parent${index}`, `Parent ${index}`, "Parent")),
+  ];
+  const { pages } = await readPdf(await pdf.createLegacyTreePdf("Alex Owner", "", people, new Date("2026-11-26T12:00:00Z")));
+  assert.ok(pages.length > 1);
+  assert.ok(pages[0].items.some((item) => item.str === "Alex Owner"));
+  assert.ok(pages[1].items.some((item) => item.str === "Morgan Owner"));
+  const paths = await Promise.all(pages.map(async ({ page }) => (await drawing(page)).lines));
+  assert.ok(paths[0].some(([x1, y1, x2, y2]) => y1 === y2 && x2 - x1 === 18));
+  assert.equal(paths[1].length, 0);
 });
 
 test("large trees continue across readable landscape pages without losing people", async () => {

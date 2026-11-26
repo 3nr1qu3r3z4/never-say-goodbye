@@ -33,7 +33,7 @@ function familyComponent(user, sql) {
     "react/jsx-runtime": jsxRuntime,
     react: React,
     "next/link": { default: ({ children, href, ...props }) => React.createElement("a", { href, ...props }, children) },
-    "next/image": { default: () => null },
+    "next/image": { default: (props) => React.createElement("img", props) },
     "@/app/actions/family-tree": { createLegacyTree: async () => {} },
     "@/lib/auth": { getCurrentUser: async () => user },
     "@/lib/db": { getSql: () => sql },
@@ -78,6 +78,14 @@ test("guests and users without a tree receive the empty state", async () => {
     else assert.match(html, /<form/);
     assert.ok(html.includes(`href="${connectTarget}"`));
     assert.doesNotMatch(html, /John Michael Doe|Debbie Doe/);
+    assert.ok(html.indexOf("See What&#x27;s Possible") > html.indexOf("Your Legacy Tree is waiting to be built."));
+    assert.match(html, /A fictional family example/);
+    assert.match(html, /Build Your Legacy Tree/);
+    assert.match(html, /Daniel Rivera/);
+    assert.match(html, /Connect generations, preserve family history, and watch your family tree grow over time\./);
+    assert.match(html, /Export Your Family Tree PDF/);
+    assert.match(html, /src="\/images\/legacy-tree-pdf-preview\.png"/);
+    assert.match(html, /Create a printable keepsake for family reunions, genealogy projects, memorials, and future generations\./);
   }
 });
 
@@ -91,6 +99,7 @@ test("membership maps and tree navigation remain scoped and distinguish relation
     [],
   ];
   const html = await renderFamily(familyComponent({ id: "owner" }, sql));
+  assert.doesNotMatch(html, /See What&#x27;s Possible/);
   assert.doesNotMatch(html, /View My Tree/);
   assert.match(html, /href="#family-members"[^>]*>Add Family Member/);
   assert.match(html, /href="#legacy-tree-item-first"/);
