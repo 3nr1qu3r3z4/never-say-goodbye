@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getSql } from "@/lib/db";
+import { positionRelationship } from "@/lib/tree-positioning";
 
 export type AddFamilyMemberState = {
   error?: string;
@@ -80,6 +81,37 @@ export async function addFamilyMember(
   `) as { id: string }[];
   if (!tree) return { error: "You can only add members to a tree you belong to." };
 
+  const linePartner = formData.get("linePartner");
+  let partnerType: string | null = null;
+  let partnerId: string | null = null;
+  if (linePartner !== null && linePartner !== "" && linePartner !== "owner") {
+    if (typeof linePartner !== "string") return { error: "Choose a valid family line." };
+    const separator = linePartner.indexOf(":");
+    partnerType = linePartner.slice(0, separator);
+    partnerId = linePartner.slice(separator + 1);
+    const position = positionRelationship(normalizedRelationship);
+    if (separator < 0 || !["member", "placeholder", "future"].includes(partnerType) || !partnerId ||
+        !position || position.generation < 1) {
+      return { error: "Choose a valid partner line for a parent or grandparent." };
+    }
+    const [partner] = await sql`
+      SELECT relationship FROM (
+        SELECT 'member' AS kind, user_id AS id, relationship FROM legacy_tree_members
+        WHERE tree_id = ${tree.id} AND user_id <> (SELECT owner_user_id FROM legacy_trees WHERE id = ${tree.id})
+        UNION ALL
+        SELECT 'placeholder' AS kind, id, relationship FROM family_placeholders WHERE legacy_tree_id = ${tree.id}
+        UNION ALL
+        SELECT 'future' AS kind, id, relationship FROM future_moment_makers WHERE legacy_tree_id = ${tree.id} AND status <> 'archived'
+      ) AS candidates
+      WHERE kind = ${partnerType} AND id = ${partnerId}
+    ` as { relationship: string }[];
+    if (!partner || !positionRelationship(partner.relationship)?.partner) {
+      return { error: "That partner is not available in the selected tree." };
+    }
+  } else if (linePartner !== null && typeof linePartner !== "string") {
+    return { error: "Choose a valid family line." };
+  }
+
   const now = new Date().toISOString();
   if (memberType === "existing") {
     const existingUserId = formData.get("existingUserId");
@@ -100,8 +132,8 @@ export async function addFamilyMember(
     }
 
     const added = await sql`
-      INSERT INTO legacy_tree_members (tree_id, user_id, role, relationship, joined_at)
-      VALUES (${tree.id}, ${target.id}, 'member', ${normalizedRelationship}, ${now})
+      INSERT INTO legacy_tree_members (tree_id, user_id, role, relationship, joined_at, line_partner_type, line_partner_id)
+      VALUES (${tree.id}, ${target.id}, 'member', ${normalizedRelationship}, ${now}, ${partnerType}, ${partnerId})
       ON CONFLICT (tree_id, user_id) DO NOTHING
       RETURNING user_id
     `;
@@ -122,10 +154,10 @@ export async function addFamilyMember(
   if (memberType === "future") {
     await sql`
       INSERT INTO future_moment_makers (
-        id, owner_user_id, legacy_tree_id, name, relationship, created_at, updated_at
+        id, owner_user_id, legacy_tree_id, name, relationship, created_at, updated_at, line_partner_type, line_partner_id
       ) VALUES (
         ${randomUUID()}, ${user.id}, ${tree.id}, ${name.trim()},
-        ${normalizedRelationship}, ${now}, ${now}
+        ${normalizedRelationship}, ${now}, ${now}, ${partnerType}, ${partnerId}
       )
     `;
     revalidatePath("/legacy-tree");
@@ -153,11 +185,11 @@ export async function addFamilyMember(
   await sql`
     INSERT INTO family_placeholders (
       id, legacy_tree_id, created_by_user_id, name, relationship,
-      birth_year, death_year, notes, created_at, updated_at
+      birth_year, death_year, notes, created_at, updated_at, line_partner_type, line_partner_id
     ) VALUES (
       ${randomUUID()}, ${tree.id}, ${user.id}, ${name.trim()},
       ${normalizedRelationship}, ${birthYear}, ${deathYear},
-      ${notesValue?.trim() || null}, ${now}, ${now}
+      ${notesValue?.trim() || null}, ${now}, ${now}, ${partnerType}, ${partnerId}
     )
   `;
   revalidatePath("/legacy-tree");

@@ -144,7 +144,9 @@ create a local data directory or write account data to the app filesystem.
      then
      `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/023_tree_milestones.sql`
      then
-     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/024_site_theme.sql`.
+     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/024_site_theme.sql`
+     then
+     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/025_tree_family_lines.sql`.
    - In Bash, export `DATABASE_URL` and run
      `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/001_initial_schema.sql`
      then
@@ -192,7 +194,9 @@ create a local data directory or write account data to the app filesystem.
      then
      `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/023_tree_milestones.sql`
      then
-     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/024_site_theme.sql`.
+     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/024_site_theme.sql`
+     then
+     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/025_tree_family_lines.sql`.
    - In the Neon Console, open the SQL Editor for the intended database. Run
      [`db/migrations/001_initial_schema.sql`](./db/migrations/001_initial_schema.sql)
      first, then run
@@ -219,6 +223,7 @@ create a local data directory or write account data to the app filesystem.
      then [`db/migrations/022_family_bulletins.sql`](./db/migrations/022_family_bulletins.sql)
      then [`db/migrations/023_tree_milestones.sql`](./db/migrations/023_tree_milestones.sql)
      then [`db/migrations/024_site_theme.sql`](./db/migrations/024_site_theme.sql)
+     then [`db/migrations/025_tree_family_lines.sql`](./db/migrations/025_tree_family_lines.sql)
      in order.
 3. Set `DATABASE_URL` to the same pooled connection string in local
    `.env.local` and in Vercel Project Settings → Environment Variables for each
@@ -271,7 +276,7 @@ WHERE version IN (
   '015_connected_lives_directory', '016_account_status', '017_profile_visits',
   '018_email_preferences', '019_site_analytics', '020_honored_lives',
   '021_moment_videos', '022_family_bulletins', '023_tree_milestones',
-  '024_site_theme'
+  '024_site_theme', '025_tree_family_lines'
 )
 ORDER BY version;
 

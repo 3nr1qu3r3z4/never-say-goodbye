@@ -38,6 +38,7 @@ function createActions(treeExists = true, existingAlreadyAdded = false) {
     "next/cache": { revalidatePath: () => {} },
     "next/navigation": { redirect: () => { throw new Error("redirect"); } },
     "@/lib/auth": { getCurrentUser: async () => ({ id: "author" }) },
+    "@/lib/tree-positioning": loadModule("lib/tree-positioning.ts", {}),
     "@/lib/db": {
       getSql: () => async (strings, ...values) => {
         const text = strings.join("?");
@@ -172,6 +173,7 @@ test("linked story query stays author-only and withholds protected content", asy
   const jsx = (type, props) => ({ type, props });
   const components = loadModule("app/legacy-tree/family-members.tsx", {
     "react/jsx-runtime": { jsx, jsxs: jsx },
+    react: { Fragment: Symbol.for("react.fragment") },
     "next/link": { default: () => null },
     "next/image": { default: () => null },
     "@/app/actions/family-tree": { createLegacyTree: async () => {} },

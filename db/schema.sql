@@ -254,8 +254,12 @@ CREATE TABLE IF NOT EXISTS legacy_tree_members (
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   role TEXT NOT NULL DEFAULT 'owner' CHECK (role IN ('owner', 'admin', 'contributor', 'member')),
   relationship TEXT NOT NULL DEFAULT 'Family Member',
+  line_partner_type TEXT,
+  line_partner_id TEXT,
   allow_milestone_admin BOOLEAN NOT NULL DEFAULT FALSE,
   joined_at TEXT NOT NULL,
+  CHECK ((line_partner_type IS NULL AND line_partner_id IS NULL) OR
+         (line_partner_type IS NOT NULL AND line_partner_type IN ('member', 'placeholder', 'future') AND line_partner_id IS NOT NULL)),
   PRIMARY KEY (tree_id, user_id)
 );
 CREATE INDEX IF NOT EXISTS legacy_tree_members_user_idx ON legacy_tree_members(user_id);
@@ -266,6 +270,8 @@ CREATE TABLE IF NOT EXISTS family_placeholders (
   created_by_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   relationship TEXT NOT NULL,
+  line_partner_type TEXT,
+  line_partner_id TEXT,
   birth_year INTEGER,
   death_year INTEGER,
   birth_date DATE,
@@ -273,6 +279,8 @@ CREATE TABLE IF NOT EXISTS family_placeholders (
   notes TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
+  CHECK ((line_partner_type IS NULL AND line_partner_id IS NULL) OR
+         (line_partner_type IS NOT NULL AND line_partner_type IN ('member', 'placeholder', 'future') AND line_partner_id IS NOT NULL)),
   CHECK (birth_year IS NULL OR birth_year BETWEEN 1000 AND 9999),
   CHECK (death_year IS NULL OR death_year BETWEEN 1000 AND 9999),
   CHECK (
@@ -368,10 +376,14 @@ CREATE TABLE IF NOT EXISTS future_moment_makers (
   legacy_tree_id TEXT REFERENCES legacy_trees(id) ON DELETE SET NULL,
   name TEXT NOT NULL,
   relationship TEXT NOT NULL,
+  line_partner_type TEXT,
+  line_partner_id TEXT,
   status TEXT NOT NULL DEFAULT 'awaiting-claim' CHECK (status IN ('awaiting-claim', 'claimed', 'archived')),
   expected_birth_date DATE,
   created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL
+  updated_at TEXT NOT NULL,
+  CHECK ((line_partner_type IS NULL AND line_partner_id IS NULL) OR
+         (line_partner_type IS NOT NULL AND line_partner_type IN ('member', 'placeholder', 'future') AND line_partner_id IS NOT NULL))
 );
 CREATE INDEX IF NOT EXISTS future_moment_makers_owner_idx ON future_moment_makers(owner_user_id, status);
 

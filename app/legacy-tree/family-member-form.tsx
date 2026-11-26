@@ -5,8 +5,9 @@ import {
   addFamilyMember,
   type AddFamilyMemberState,
 } from "@/app/actions/family-tree";
+import { positionRelationship } from "@/lib/tree-positioning";
 
-type FamilyTreeOption = { id: string; name: string };
+type FamilyTreeOption = { id: string; name: string; ownerName: string; partners: { type: string; id: string; name: string }[] };
 type MomentMakerOption = { id: string; displayName: string };
 type MemberType = "existing" | "future" | "placeholder";
 
@@ -21,10 +22,14 @@ export default function FamilyMemberForm({
   momentMakers: MomentMakerOption[];
 }) {
   const [memberType, setMemberType] = useState<MemberType>("placeholder");
+  const [selectedTreeId, setSelectedTreeId] = useState(trees[0]?.id ?? "");
+  const [relationship, setRelationship] = useState("");
   const [state, formAction, isPending] = useActionState<
     AddFamilyMemberState,
     FormData
   >(addFamilyMember, {});
+  const selectedTree = trees.find((tree) => tree.id === selectedTreeId);
+  const position = positionRelationship(relationship);
 
   if (trees.length === 0) {
     return (
@@ -38,7 +43,7 @@ export default function FamilyMemberForm({
     <form action={formAction} className="mt-6 space-y-5">
       <label className="block text-sm font-medium text-slate-200">
         Legacy Tree™
-        <select name="treeId" required className={fieldClassName}>
+        <select name="treeId" required className={fieldClassName} value={selectedTreeId} onChange={(event) => setSelectedTreeId(event.target.value)}>
           {trees.map((tree) => (
             <option key={tree.id} value={tree.id}>
               {tree.name}
@@ -76,7 +81,7 @@ export default function FamilyMemberForm({
       </fieldset>
 
       <p className="text-sm leading-6 text-slate-400">
-        Enter each relationship to the owner of the selected Legacy Tree™.
+        Enter the relationship to the tree owner, or choose a partner&apos;s family line for their parents or grandparents.
       </p>
 
       {memberType === "existing" ? (
@@ -108,6 +113,8 @@ export default function FamilyMemberForm({
               name="relationship"
               required
               maxLength={80}
+              value={relationship}
+              onChange={(event) => setRelationship(event.target.value)}
               className={fieldClassName}
               placeholder="e.g. Sister"
             />
@@ -131,6 +138,8 @@ export default function FamilyMemberForm({
               name="relationship"
               required
               maxLength={80}
+              value={relationship}
+              onChange={(event) => setRelationship(event.target.value)}
               className={fieldClassName}
               placeholder="e.g. Grandmother"
             />
@@ -181,6 +190,20 @@ export default function FamilyMemberForm({
             </>
           )}
         </>
+      )}
+
+      {position && position.generation > 0 && selectedTree && selectedTree.partners.length > 0 && (
+        <label className="block text-sm font-medium text-slate-200">
+          Family line
+          <select key={selectedTreeId} name="linePartner" defaultValue="owner" className={fieldClassName}>
+            <option value="owner">{selectedTree.ownerName}&apos;s family line</option>
+            {selectedTree.partners.map((partner) => (
+              <option key={`${partner.type}:${partner.id}`} value={`${partner.type}:${partner.id}`}>
+                {partner.name}&apos;s family line
+              </option>
+            ))}
+          </select>
+        </label>
       )}
 
       <button

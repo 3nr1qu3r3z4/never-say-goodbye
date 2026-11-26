@@ -31,6 +31,7 @@ function loadModule(relativePath, dependencies) {
 function familyComponent(user, sql) {
   return loadModule("app/legacy-tree/family-members.tsx", {
     "react/jsx-runtime": jsxRuntime,
+    react: React,
     "next/link": { default: ({ children, href, ...props }) => React.createElement("a", { href, ...props }, children) },
     "next/image": { default: () => null },
     "@/app/actions/family-tree": { createLegacyTree: async () => {} },
@@ -96,7 +97,7 @@ test("membership maps and tree navigation remain scoped and distinguish relation
   assert.match(html, /href="#legacy-tree-item-second%20tree"/);
   assert.match(html, /id="legacy-tree-item-first" aria-label="First Tree"/);
   assert.match(html, /id="legacy-tree-item-second tree" aria-label="Second Tree"/);
-  assert.doesNotMatch(html, /Family generations|Family members are grouped by generation\./);
+  assert.doesNotMatch(html, />Family generations<|Family members are grouped by generation\./);
   assert.match(html, />Your household<\/h3>/);
   const first = html.slice(html.indexOf('id="legacy-tree-item-first"'), html.indexOf('id="legacy-tree-item-second tree"'));
   const second = html.slice(html.indexOf('id="legacy-tree-item-second tree"'), html.indexOf('id="family-members"'));
@@ -158,6 +159,92 @@ test("family generations are based on owner-relative labels, not entry order", a
   assert.match(html, /Relationship needs review/);
   assert.match(html, /Future Moment Maker™/);
   assert.match(html, /Family Placeholder/);
+  assert.match(html, />Owner<\/p>[\s\S]*?data-tree-connector="household"[\s\S]*?>Wife<\/p>/);
+  assert.match(html, /data-tree-connector="children"/);
+});
+
+test("household connectors do not invent partners or child branches", async () => {
+  const sql = () => ({});
+  const owner = { id: "owner", treeId: "tree", displayName: "Owner", relationship: null };
+  const partner = { id: "partner", treeId: "tree", displayName: "Partner", relationship: "Partner" };
+  const secondPartner = { id: "other", treeId: "tree", displayName: "Other", relationship: "Spouse" };
+  const render = async (members) => {
+    sql.transaction = async () => [
+      [{ id: "tree", name: "Family", ownerId: "owner", ownerName: "Owner" }],
+      [], members, [], [], [],
+    ];
+    return renderFamily(familyComponent({ id: "owner" }, sql));
+  };
+  assert.doesNotMatch(await render([owner]), /data-tree-connector=/);
+  const couple = await render([owner, partner]);
+  assert.match(couple, /data-tree-connector="household"/);
+  assert.doesNotMatch(couple, /data-tree-connector="children"/);
+  assert.doesNotMatch(await render([owner, partner, secondPartner]), /data-tree-connector=/);
+  sql.transaction = async () => [
+    [{ id: "tree", name: "Family", ownerId: "owner", ownerName: "Owner" }],
+    [], [owner], [],
+    [{ id: "placeholder", treeId: "tree", name: "Remembered Partner", relationship: "Spouse" }],
+    [],
+  ];
+  assert.match(await renderFamily(familyComponent({ id: "owner" }, sql)), /data-tree-connector="household"[\s\S]*?>Remembered Partner<\/p>/);
+});
+
+test("parent and grandparent lines retain their owner or specific partner", async () => {
+  const sql = () => ({});
+  sql.transaction = async () => [
+    [{ id: "tree", name: "Family", ownerId: "owner", ownerName: "Alex" }],
+    [],
+    [
+      { id: "owner", treeId: "tree", displayName: "Alex", relationship: null },
+      { id: "partner", treeId: "tree", displayName: "Sam", relationship: "Spouse" },
+      { id: "mother", treeId: "tree", displayName: "Owner Mother", relationship: "Mother" },
+      { id: "partner-mother", treeId: "tree", displayName: "Partner Mother", relationship: "Mother", linePartnerType: "member", linePartnerId: "partner" },
+      { id: "missing-parent", treeId: "tree", displayName: "Other Parent", relationship: "Father", linePartnerType: "member", linePartnerId: "removed" },
+    ],
+    [{ id: "grandparent", treeId: "tree", name: "Partner Grandparent", relationship: "Grandmother", status: "awaiting-claim", linePartnerType: "member", linePartnerId: "partner" }],
+    [{ id: "father", treeId: "tree", name: "Owner Father", relationship: "Father" }],
+    [],
+  ];
+  const html = await renderFamily(familyComponent({ id: "owner" }, sql));
+  assert.match(html, /Alex&#x27;s Parents<\/h3>[\s\S]*?Owner Father[\s\S]*?Owner Mother/);
+  assert.match(html, /Sam&#x27;s Parents<\/h3>[\s\S]*?Partner Mother/);
+  assert.match(html, /Sam&#x27;s Grandparents<\/h3>[\s\S]*?Partner Grandparent/);
+  assert.match(html, /Partner \(unavailable\)&#x27;s Parents<\/h3>[\s\S]*?Other Parent/);
+  assert.doesNotMatch(html, /Link a written moment to this person/);
+  assert.match(html, /Create a moment/);
+});
+
+test("family line migration keeps existing relatives on the owner line", {
+  skip: process.env.LEGACY_TREE_TEST_PGLITE ? false : "Set LEGACY_TREE_TEST_PGLITE to an installed PGlite package path.",
+}, async () => {
+  const { PGlite } = createRequire(import.meta.url)(process.env.LEGACY_TREE_TEST_PGLITE);
+  const db = new PGlite();
+  try {
+    const migrations = fs.readdirSync(path.join(root, "db", "migrations"))
+      .filter((file) => /^\d+_.+\.sql$/.test(file)).sort();
+    for (const file of migrations.filter((file) => file < "025_")) {
+      await db.exec(fs.readFileSync(path.join(root, "db", "migrations", file), "utf8"));
+    }
+    await db.exec(`
+      INSERT INTO users (id, email, password_hash, first_name, last_name, display_name, display_style, membership, created_at, updated_at)
+      VALUES ('owner', 'owner@example.test', 'hash', 'Owner', 'Test', 'Owner', 'full-name', 'free', '2026-01-01', '2026-01-01');
+      INSERT INTO legacy_trees (id, owner_user_id, name, created_at, updated_at)
+      VALUES ('tree', 'owner', 'Family', '2026-01-01', '2026-01-01');
+      INSERT INTO family_placeholders (id, legacy_tree_id, created_by_user_id, name, relationship, created_at, updated_at)
+      VALUES ('parent', 'tree', 'owner', 'Parent', 'Mother', '2026-01-01', '2026-01-01');
+    `);
+    const migration = fs.readFileSync(path.join(root, "db", "migrations", "025_tree_family_lines.sql"), "utf8");
+    await db.exec(migration);
+    await db.exec(migration);
+    const [parent] = (await db.query("SELECT name, relationship, line_partner_type, line_partner_id FROM family_placeholders WHERE id = 'parent'")).rows;
+    assert.equal(parent.name, "Parent");
+    assert.equal(parent.relationship, "Mother");
+    assert.equal(parent.line_partner_type, null);
+    assert.equal(parent.line_partner_id, null);
+    await assert.rejects(db.exec("UPDATE family_placeholders SET line_partner_id = 'missing' WHERE id = 'parent'"), /check constraint/i);
+  } finally {
+    await db.close();
+  }
 });
 
 test("only recognizable relationship labels receive a generation", () => {
@@ -179,6 +266,7 @@ test("add confirmation links to the tree returned by the server", () => {
   const renderForm = (state, memberType = "placeholder") => {
     const component = loadModule("app/legacy-tree/family-member-form.tsx", {
       "react/jsx-runtime": jsxRuntime,
+      "@/lib/tree-positioning": loadModule("lib/tree-positioning.ts", {}),
       react: {
         ...React,
         useState: () => [memberType, () => {}],
@@ -196,6 +284,31 @@ test("add confirmation links to the tree returned by the server", () => {
   assert.match(renderForm({}, "existing"), /does not create a Connected Lives™ connection or automatically share dates/);
 });
 
+test("ancestor form offers family lines only for the selected tree", () => {
+  let stateIndex = 0;
+  const component = loadModule("app/legacy-tree/family-member-form.tsx", {
+    "react/jsx-runtime": jsxRuntime,
+    "@/lib/tree-positioning": loadModule("lib/tree-positioning.ts", {}),
+    react: {
+      ...React,
+      useState: () => [["placeholder", "second", "Mother"][stateIndex++], () => {}],
+      useActionState: () => [{}, () => {}, false],
+    },
+    "@/app/actions/family-tree": { addFamilyMember: () => {} },
+  }).default;
+  const html = renderToStaticMarkup(React.createElement(component, {
+    trees: [
+      { id: "first", name: "First", ownerName: "Alex", partners: [{ type: "member", id: "wrong", name: "Other" }] },
+      { id: "second", name: "Second", ownerName: "Sam", partners: [{ type: "placeholder", id: "partner", name: "Jamie" }] },
+    ],
+    momentMakers: [],
+  }));
+  assert.match(html, /Sam&#x27;s family line/);
+  assert.match(html, /value="placeholder:partner"/);
+  assert.match(html, /Jamie&#x27;s family line/);
+  assert.doesNotMatch(html, /Other&#x27;s family line/);
+});
+
 test("tree creation and membership-scoped display in disposable PostgreSQL", {
   skip: process.env.LEGACY_TREE_TEST_PGLITE ? false : "Set LEGACY_TREE_TEST_PGLITE to an installed PGlite package path.",
 }, async () => {
@@ -207,7 +320,7 @@ test("tree creation and membership-scoped display in disposable PostgreSQL", {
     for (const file of migrations) {
       await db.exec(fs.readFileSync(path.join(root, "db", "migrations", file), "utf8"));
     }
-    for (const id of ["owner", "relative", "outsider", "orphan", "rollback", "newmember"]) {
+    for (const id of ["owner", "relative", "outsider", "orphan", "rollback", "newmember", "line-member"]) {
       await db.query(`INSERT INTO users (id, email, password_hash, first_name, last_name, display_name, display_style, membership, created_at, updated_at)
         VALUES ($1, $2, 'hash', $1, 'Person', $1, 'full-name', 'free', '2026-01-01', '2026-01-01')`, [id, `${id}@example.test`]);
     }
@@ -233,6 +346,7 @@ test("tree creation and membership-scoped display in disposable PostgreSQL", {
       "next/cache": { revalidatePath: () => {} },
       "next/navigation": { redirect: () => { throw new Error("redirect"); } },
       "@/lib/auth": { getCurrentUser: async () => user },
+      "@/lib/tree-positioning": loadModule("lib/tree-positioning.ts", {}),
       "@/lib/db": { getSql: () => sql },
     });
     await Promise.all([actions.createLegacyTree(), actions.createLegacyTree()]);
@@ -282,6 +396,7 @@ test("tree creation and membership-scoped display in disposable PostgreSQL", {
       "next/cache": { revalidatePath: () => {} },
       "next/navigation": { redirect: () => { throw new Error("redirect"); } },
       "@/lib/auth": { getCurrentUser: async () => user },
+      "@/lib/tree-positioning": loadModule("lib/tree-positioning.ts", {}),
       "@/lib/db": { getSql: () => directSql },
     });
     const add = async (type, extra) => {
@@ -310,6 +425,37 @@ test("tree creation and membership-scoped display in disposable PostgreSQL", {
     for (const name of ["newmember", "Added future", "Added placeholder"]) {
       assert.ok(updatedSecondTree.includes(name), `Expected ${name} in selected tree`);
     }
+    const partnerResult = await add("placeholder", { name: "Partner", relationship: "Wife" });
+    assert.ok(partnerResult.success);
+    const ownerParent = await add("placeholder", { name: "Owner Parent", relationship: "Father" });
+    assert.ok(ownerParent.success);
+    const [partner] = (await db.query("SELECT id FROM family_placeholders WHERE name = 'Partner'")).rows;
+    const linePartner = `placeholder:${partner.id}`;
+    for (const [type, extra] of [
+      ["existing", { existingUserId: "line-member" }],
+      ["future", { name: "Partner Future Parent" }],
+      ["placeholder", { name: "Partner Parent" }],
+    ]) {
+      const result = await add(type, { ...extra, relationship: "Mother", linePartner });
+      assert.ok(result.success, `${type} should be assigned to the partner line`);
+    }
+    const invalid = await add("placeholder", { name: "Invalid", relationship: "Brother", linePartner });
+    assert.match(invalid.error, /parent or grandparent/);
+    const wrongTree = await add("placeholder", { name: "Wrong Tree", relationship: "Mother", linePartner: "placeholder:placeholder" });
+    assert.match(wrongTree.error, /not available/);
+    for (const [table, column, value] of [
+      ["legacy_tree_members", "user_id", "line-member"],
+      ["future_moment_makers", "name", "Partner Future Parent"],
+      ["family_placeholders", "name", "Partner Parent"],
+    ]) {
+      const [row] = (await db.query(`SELECT line_partner_type, line_partner_id FROM ${table} WHERE ${column} = $1`, [value])).rows;
+      assert.equal(row.line_partner_type, "placeholder");
+      assert.equal(row.line_partner_id, partner.id);
+    }
+    const lineHtml = await renderFamily(familyComponent(user, sql));
+    assert.match(lineHtml, /Partner&#x27;s Parents<\/h3>[\s\S]*?Partner Future Parent/);
+    assert.match(lineHtml, /Partner&#x27;s Parents<\/h3>[\s\S]*?Partner Parent/);
+    assert.match(lineHtml, /relative&#x27;s Parents<\/h3>[\s\S]*?Owner Parent/);
     user = { id: "outsider", displayName: "Outsider" };
     const denied = await add("placeholder", { name: "Unauthorized" });
     assert.match(denied.error, /tree you belong to/);
