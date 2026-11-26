@@ -2,8 +2,10 @@ import "server-only";
 
 import { getSql } from "@/lib/db";
 import type { AuthenticatedUser } from "@/lib/auth";
+import { legacyReflection, summarizeReflectionTree, type ReflectionTreePerson } from "@/lib/legacy-reflection";
 
 export type DashboardData = {
+  reflection: string;
   counts: {
     sharedMoments: number;
     personalMoments: number;
@@ -56,6 +58,7 @@ export async function getDashboardData(
     futureMomentMakers,
     momentActivity,
     connectionActivity,
+    treePeople,
   ] = await sql.transaction([
     sql`SELECT COUNT(*)::int AS count FROM moments WHERE user_id = ${user.id} AND kind = 'shared'`,
     sql`SELECT COUNT(*)::int AS count FROM moments WHERE user_id = ${user.id} AND kind = 'personal'`,
@@ -109,6 +112,29 @@ export async function getDashboardData(
         AND cl.status = 'accepted'
       ORDER BY cl.created_at DESC LIMIT 5
     `,
+    sql`
+      WITH selected_tree AS (
+        SELECT t.id, t.owner_user_id
+        FROM legacy_trees t
+        JOIN legacy_tree_members viewer ON viewer.tree_id = t.id AND viewer.user_id = ${user.id}
+        ORDER BY (t.owner_user_id = ${user.id}) DESC, t.created_at, t.id
+        LIMIT 1
+      )
+      SELECT 'member' AS kind, t.owner_user_id AS id, NULL::text AS relationship,
+             NULL::text AS "linePartnerType", NULL::text AS "linePartnerId", TRUE AS "isOwner"
+      FROM selected_tree t
+      UNION ALL
+      SELECT 'member', m.user_id, m.relationship, m.line_partner_type, m.line_partner_id, FALSE
+      FROM legacy_tree_members m JOIN selected_tree t ON t.id = m.tree_id
+      WHERE m.user_id <> t.owner_user_id
+      UNION ALL
+      SELECT 'placeholder', p.id, p.relationship, p.line_partner_type, p.line_partner_id, FALSE
+      FROM family_placeholders p JOIN selected_tree t ON t.id = p.legacy_tree_id
+      UNION ALL
+      SELECT 'future', f.id, f.relationship, f.line_partner_type, f.line_partner_id, FALSE
+      FROM future_moment_makers f JOIN selected_tree t ON t.id = f.legacy_tree_id
+      WHERE f.status <> 'archived'
+    `,
   ]);
   const count = (rows: unknown) =>
     Number((rows as { count: number }[])[0]?.count ?? 0);
@@ -152,5 +178,21 @@ export async function getDashboardData(
     .slice(0, 5)
     .map(({ id, action, detail }) => ({ id, action, detail }));
 
-  return { counts, futureMomentMakers: makers, recentActivity };
+  const familyTree = summarizeReflectionTree((treePeople as {
+    kind: ReflectionTreePerson["kind"];
+    id: string;
+    relationship: string | null;
+    linePartnerType: string | null;
+    linePartnerId: string | null;
+    isOwner: boolean;
+  }[]).map((person) => ({
+    kind: person.kind,
+    data: { id: person.id, linePartnerType: person.linePartnerType, linePartnerId: person.linePartnerId },
+    name: person.id,
+    relationship: person.relationship,
+    isOwner: person.isOwner,
+  })));
+
+  const reflection = legacyReflection(counts, familyTree, Math.floor(Date.now() / 86_400_000));
+  return { counts, reflection, futureMomentMakers: makers, recentActivity };
 }

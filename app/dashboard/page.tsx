@@ -129,6 +129,14 @@ export default async function DashboardPage() {
             <p className="mt-2 text-slate-400">
               Keep building the moments that matter most.
             </p>
+            <section aria-labelledby="legacy-reflection-heading" className="mt-7 max-w-md">
+              <h2 id="legacy-reflection-heading" className="text-sm font-semibold text-[color:var(--nsg-accent-light)]">
+                <span aria-hidden="true">🌳 </span>Legacy Reflection
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-slate-300">
+                {data.reflection}
+              </p>
+            </section>
           </div>
 
           <section

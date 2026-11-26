@@ -38,6 +38,9 @@ const relationships = loadModule("lib/connected-lives.ts");
 const directory = loadModule("lib/connected-lives-directory.ts", {
   "@/lib/connected-lives": relationships,
 });
+const reflection = loadModule("lib/legacy-reflection.ts", {
+  "@/lib/tree-positioning": loadModule("lib/tree-positioning.ts"),
+});
 
 test("directional relationships are reciprocal and legacy relationships are unchanged", () => {
   assert.equal(relationships.relationshipForViewer("parent", "bob", "alice"), "parent");
@@ -71,7 +74,9 @@ function loadDashboard(data, founder = false, familyActivity = [], bulletins = [
     "next/link": { default: ({ children, ...props }) => React.createElement("a", props, children) },
     "@/lib/auth": { requireUser: async () => ({ id: "owner", firstName: "Owner" }) },
     "@/lib/admin": { isFounder: () => founder },
-    "@/lib/account-data": { getDashboardData: async () => data },
+    "@/lib/account-data": { getDashboardData: async () => ({
+      ...data, reflection: reflection.legacyReflection(data.counts, null, 0),
+    }) },
     "@/lib/moment-access": { getRecentFamilyActivity: async (id) => {
       assert.equal(id, "owner");
       return familyActivity;
@@ -82,6 +87,42 @@ function loadDashboard(data, founder = false, familyActivity = [], bulletins = [
     "./frequent-visits": { default: () => null },
   }).default;
 }
+
+test("legacy reflections rotate through real counts and handle incomplete trees", () => {
+  const person = (kind, id, relationship, isOwner = false, reference = null) => ({
+    kind, data: { id, linePartnerType: reference?.type ?? null, linePartnerId: reference?.id ?? null },
+    name: id, relationship, isOwner,
+  });
+  const tree = reflection.summarizeReflectionTree([
+    person("member", "owner", null, true),
+    person("placeholder", "child", "Daughter"),
+    person("future", "grandchild", "Son", false, { type: "placeholder", id: "child" }),
+  ]);
+  assert.equal(tree.people, 3);
+  assert.equal(tree.generations, 3);
+  const counts = { sharedMoments: 1, personalMoments: 2, connectedLives: 1 };
+  assert.equal(reflection.legacyReflection(counts, tree, 0), "Your Legacy Tree™ includes 3 people across 3 generations.");
+  assert.equal(reflection.legacyReflection(counts, tree, 1), "You have preserved 1 shared memory.");
+  assert.equal(reflection.legacyReflection(counts, tree, 2), "You have preserved 2 personal moments.");
+  assert.equal(reflection.legacyReflection(counts, tree, 3), "You are connected with 1 person through Connected Lives™.");
+  assert.equal(reflection.legacyReflection(counts, tree, 4), reflection.legacyReflection(counts, tree, 0));
+  const incomplete = reflection.summarizeReflectionTree([
+    person("member", "owner", null, true), person("placeholder", "cousin", "Cousin"),
+  ]);
+  assert.equal(reflection.legacyReflection(counts, incomplete, 0), "Your Legacy Tree™ includes 2 people.");
+  assert.equal(
+    reflection.legacyReflection({ sharedMoments: 0, personalMoments: 0, connectedLives: 0 }, null, 0),
+    "Every memory and connection helps tell your family's story.",
+  );
+});
+
+test("dashboard places one reflection immediately beneath the welcome", async () => {
+  const data = { counts: { sharedMoments: 1, personalMoments: 0, connectedLives: 0, newLivesRequests: 0,
+    unreadLivesNotifications: 0, futureMomentMakers: 0, drafts: 0 }, recentActivity: [] };
+  const html = renderToStaticMarkup(await loadDashboard(data)());
+  assert.match(html, /Welcome back, Owner\.[\s\S]*?Keep building the moments that matter most\.[\s\S]*?Legacy Reflection<\/h2>[\s\S]*?You have preserved 1 shared memory\./);
+  assert.equal((html.match(/Legacy Reflection/g) ?? []).length, 1);
+});
 
 test("family bulletins share the recent activity limit and link to their calendar", async () => {
   const data = { counts: { sharedMoments: 0, personalMoments: 0, connectedLives: 0, newLivesRequests: 0,
@@ -387,6 +428,19 @@ test("migration, shared tags, privacy and future-record authorization in disposa
       const text = strings.reduce((result, part, index) => result + (index ? `$${index}` : "") + part, "");
       return (await db.query(text, values)).rows;
     };
+    sql.transaction = (queries) => Promise.all(queries);
+    const dashboardData = loadModule("lib/account-data.ts", {
+      "server-only": {},
+      "@/lib/db": { getSql: () => sql },
+      "@/lib/legacy-reflection": reflection,
+    });
+    const aliceDashboard = await dashboardData.getDashboardData({ id: "alice" });
+    const day = Math.floor(Date.now() / 86_400_000);
+    assert.equal(aliceDashboard.reflection, day % 2 === 0
+      ? "Your Legacy Tree™ includes 2 people across 2 generations."
+      : "You are connected with 1 person through Connected Lives™.");
+    const bobDashboard = await dashboardData.getDashboardData({ id: "bob" });
+    assert.equal(bobDashboard.reflection, "Every memory and connection helps tell your family's story.");
     let currentUser = "bob";
     let sequence = 0;
     const deps = {

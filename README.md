@@ -80,6 +80,13 @@ subject to the same viewing permissions, and Family Shout-Outs from the viewer's
 The feed identifies uploaded videos, photos, and written messages within each
 moment; it does not include drafts, private moments, or separate messages.
 
+Legacy Reflection on My Legacy changes between available personal
+moment, Connected Lives, and Legacy Tree counts. It uses the viewer's own tree
+when available, otherwise the first tree they belong to. The reflection is
+selected by UTC day on each page load. Tree counts include
+the owner, members, placeholders, and non-archived Future Moment Makers.
+The generation count is omitted when relationships remain unpositioned.
+
 ## Family Shout-Outs
 
 Apply migration 022 before deploying. Each Family Calendar has Family Shout-Outs
