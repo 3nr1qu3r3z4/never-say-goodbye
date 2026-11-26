@@ -103,8 +103,11 @@ test("membership maps and tree navigation remain scoped and distinguish relation
   const second = html.slice(html.indexOf('id="legacy-tree-item-second tree"'), html.indexOf('id="family-members"'));
   assert.match(first, /Owner/);
   assert.match(first, /Remembered Relative/);
+  assert.match(first, /action="\/api\/legacy-tree\/first\/pdf"[^>]*method="post"/i);
+  assert.match(first, />Export Family Tree PDF<\/button>/);
   assert.doesNotMatch(first, /Future Relative/);
   assert.match(second, /Future Relative/);
+  assert.match(second, /action="\/api\/legacy-tree\/second%20tree\/pdf"[^>]*method="post"/i);
   assert.doesNotMatch(second, /Remembered Relative/);
 });
 
@@ -305,7 +308,7 @@ test("only recognizable relationship labels receive a generation", () => {
   }
 });
 
-function wizard({ userId = "owner", state = {}, search = async () => ({ results: [] }) } = {}) {
+function wizard({ userId = "owner", state = {}, search = async () => ({ results: [] }), additionalPeople = [] } = {}) {
   const values = [];
   let index = 0;
   let pending;
@@ -330,6 +333,7 @@ function wizard({ userId = "owner", state = {}, search = async () => ({ results:
       { id: "first", name: "First", ownerId: "owner", ownerName: "Alex", people: [
         { type: "member", id: "viewer", name: "Viewer", isPartner: true },
         { type: "future", id: "child", name: "Courtney", isPartner: false },
+        ...additionalPeople,
       ] },
       { id: "second", name: "Second", ownerId: "viewer", ownerName: "Viewer", people: [
         { type: "placeholder", id: "partner", name: "Jamie", isPartner: true },
@@ -357,7 +361,7 @@ function wizard({ userId = "owner", state = {}, search = async () => ({ results:
 test("wizard preserves answers when going back and uses the selected person", () => {
   const w = wizard();
   assert.equal(w.input("relationshipTo").props.value, "owner");
-  w.button("My Spouse / Partner · Viewer").props.onClick();
+  w.nodes().filter((node) => node.type === "select")[1].props.onChange({ target: { value: "member:viewer" } });
   w.button("Continue").props.onClick();
   w.button("Father").props.onClick();
   w.button("Continue").props.onClick();
@@ -366,6 +370,9 @@ test("wizard preserves answers when going back and uses the selected person", ()
   fields[1].props.onChange({ target: { value: "Smith" } });
   w.button("Back").props.onClick();
   assert.equal(w.button("Father").props["aria-pressed"], true);
+  w.button("Back").props.onClick();
+  assert.equal(w.nodes().filter((node) => node.type === "select")[1].props.value, "member:viewer");
+  w.button("Continue").props.onClick();
   w.button("Continue").props.onClick();
   assert.equal(w.input("name").props.value, "Robert Smith");
   assert.equal(w.input("relationshipTo").props.value, "member:viewer");
@@ -380,11 +387,30 @@ test("wizard preserves answers when going back and uses the selected person", ()
 test("wizard defaults Me to the signed-in member and limits options to the selected tree", () => {
   const w = wizard({ userId: "viewer" });
   assert.equal(w.input("relationshipTo").props.value, "member:viewer");
-  assert.ok(w.button("My Spouse / Partner · Alex"));
+  let html = renderToStaticMarkup(w.render());
+  assert.match(html, /Alex \(Spouse \/ Partner\)/);
+  assert.match(html, /Viewer \(You\)/);
   w.nodes().find((node) => node.type === "select").props.onChange({ target: { value: "second" } });
   assert.equal(w.input("relationshipTo").props.value, "owner");
-  assert.ok(w.button("My Spouse / Partner · Jamie"));
-  assert.equal(w.nodes().some((node) => node.type === "button" && node.props.children === "Courtney"), false);
+  html = renderToStaticMarkup(w.render());
+  assert.match(html, /Jamie \(Spouse \/ Partner\)/);
+  assert.doesNotMatch(html, /Courtney/);
+});
+
+test("wizard keeps a large family in a compact selector", () => {
+  const additionalPeople = Array.from({ length: 100 }, (_, index) => ({
+    type: "placeholder", id: `person-${index}`, name: `Person ${index}`, isPartner: false,
+  }));
+  const w = wizard({ additionalPeople });
+  const selects = w.nodes().filter((node) => node.type === "select");
+  assert.equal(selects.length, 2);
+  const options = w.nodes(selects[1]).filter((node) => node.type === "option");
+  assert.equal(options.length, 103);
+  assert.equal(options[0].props.value, "owner");
+  assert.equal(w.nodes().filter((node) => node.type === "button").length, 1);
+  selects[1].props.onChange({ target: { value: "placeholder:person-99" } });
+  w.button("Continue").props.onClick();
+  assert.equal(w.input("relationshipTo").props.value, "placeholder:person-99");
 });
 
 test("wizard searches for an existing account and clears old results after revisiting the name", async () => {

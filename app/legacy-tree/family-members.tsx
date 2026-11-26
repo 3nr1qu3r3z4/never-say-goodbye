@@ -4,7 +4,7 @@ import { Fragment } from "react";
 import { createLegacyTree } from "@/app/actions/family-tree";
 import { getCurrentUser } from "@/lib/auth";
 import { getSql } from "@/lib/db";
-import { orderTreePeople, positionRelationship, treeReferenceKey } from "@/lib/tree-positioning";
+import { groupTreeGeneration, orderTreePeople, positionRelationship, treeReferenceKey } from "@/lib/tree-positioning";
 import FamilyMemberForm from "./family-member-form";
 import FamilyDateLink from "./family-date-link";
 import TreeMilestonesPanel from "./tree-milestones-panel";
@@ -253,26 +253,22 @@ async function FamilyMembersForUser({ userId }: { userId: string }) {
               <div className="mx-auto max-w-lg rounded-2xl border border-[color:var(--nsg-accent)]/50 bg-[color:var(--nsg-accent)]/[0.08] px-5 py-5 text-center">
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[color:var(--nsg-accent-light)]">Legacy Tree™</p>
                 <h2 className="mt-2 break-words font-serif text-2xl text-white sm:text-3xl">{tree.name}</h2>
+                <form action={`/api/legacy-tree/${encodeURIComponent(tree.id)}/pdf`} method="post" className="mt-4">
+                  <details className="mb-3 text-left">
+                    <summary className="cursor-pointer text-sm text-[color:var(--nsg-accent-light)]">Use a family name for the title (optional)</summary>
+                    <label className="mt-3 block text-sm text-slate-300">Family name
+                      <input name="familyName" maxLength={80} className="mt-2 min-h-11 w-full rounded-xl border border-[color:var(--nsg-border)]/20 bg-slate-950 px-3 text-white" />
+                    </label>
+                  </details>
+                  <button type="submit" className={buttonClassName}>Export Family Tree PDF</button>
+                </form>
               </div>
               <div aria-hidden="true" className="mx-auto h-8 w-px bg-[color:var(--nsg-accent)]/50" />
               <div className="rounded-3xl border border-[color:var(--nsg-accent)]/25 bg-slate-950/20 p-4 sm:p-6">
                 <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Family generations">
                   <div className="w-max min-w-full">
                     {layout.generations.map(({ generation, members }, index) => {
-                      const ownerGroup = generation <= 0 ? members.filter((person) => person.isOwner || !treeReferenceKey(person)) : [];
-                      const relativeGroups = new Map<string, { reference: string | null; label: string; people: typeof members }>();
-                      for (const person of members) {
-                        if (ownerGroup.includes(person)) continue;
-                        const reference = treeReferenceKey(person);
-                        const position = positionRelationship(person.relationship);
-                        const label = position?.generation === 2 ? "Grandparents" : position?.generation === 1 ? "Parents" :
-                          position?.generation === -1 ? "Children" : position?.generation === -2 ? "Grandchildren" :
-                          position?.partner ? "Partner" : "Siblings";
-                        const key = JSON.stringify([reference, label]);
-                        const group = relativeGroups.get(key) ?? { reference, label, people: [] };
-                        group.people.push(person);
-                        relativeGroups.set(key, group);
-                      }
+                      const { ownerGroup, relativeGroups } = groupTreeGeneration(generation, members);
                       const renderRelativeGroups = () => relativeGroups.size > 0 && (
                         <div className="mx-auto mt-4 flex w-max items-start gap-6">
                           {Array.from(relativeGroups.entries()).sort(([a, first], [b, second]) =>

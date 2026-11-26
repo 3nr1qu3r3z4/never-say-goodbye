@@ -526,7 +526,7 @@ this feature.
 
 The Legacy Tree page shows trees the signed-in user belongs to, including
 members, Future Moment Makers, and placeholders. The Add Family Member wizard
-defaults to the signed-in member and lets them choose another person in the
+defaults to the signed-in member and uses a selector to choose another person in the
 selected tree, select a relationship, and add an existing searchable account or
 a placeholder. Future Moment Makers remain available as a separate option.
 Placeholder years and notes are optional; existing accounts retain their own
@@ -538,6 +538,13 @@ other family members. A successful addition links back to the selected tree.
 New signups normally receive a tree automatically;
 users without a membership can create one from the page. Signed-out visitors
 are prompted to sign up or sign in.
+
+Tree members can download a printable landscape PDF for each tree. An optional
+family name sets the title; otherwise the tree owner's display name is used.
+The export includes family lines, names, relationships, placeholder years and
+Honored Life labels, but not notes, photos or Moments. Long trees continue onto
+additional pages. Some characters are not yet supported by the PDF fonts; an
+export with unsupported characters reports an error instead of omitting them.
 
 To enable account recovery, set these server-side environment variables in
 each deployment environment:

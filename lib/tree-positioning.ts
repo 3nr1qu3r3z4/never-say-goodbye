@@ -21,7 +21,7 @@ export function positionRelationship(relationship: string | null | undefined): T
   return Object.hasOwn(relationships, label) ? relationships[label] : null;
 }
 
-type PositionedPerson = {
+export type PositionedPerson = {
   kind: string;
   data: { id: string; linePartnerType?: string | null; linePartnerId?: string | null };
   name: string;
@@ -36,6 +36,25 @@ export function treePersonKey(person: PositionedPerson): string {
 export function treeReferenceKey(person: PositionedPerson): string | null {
   const { linePartnerType, linePartnerId } = person.data;
   return linePartnerType && linePartnerId ? `${linePartnerType}:${linePartnerId}` : null;
+}
+
+export function groupTreeGeneration<T extends PositionedPerson>(generation: number, members: T[]) {
+  const ownerGroup = generation <= 0 ? members.filter((person) => person.isOwner || !treeReferenceKey(person)) : [];
+  const ownerPeople = new Set(ownerGroup);
+  const relativeGroups = new Map<string, { reference: string | null; label: string; people: T[] }>();
+  for (const person of members) {
+    if (ownerPeople.has(person)) continue;
+    const reference = treeReferenceKey(person);
+    const position = positionRelationship(person.relationship);
+    const label = position?.generation === 2 ? "Grandparents" : position?.generation === 1 ? "Parents" :
+      position?.generation === -1 ? "Children" : position?.generation === -2 ? "Grandchildren" :
+      position?.partner ? "Partner" : "Siblings";
+    const key = JSON.stringify([reference, label]);
+    const group = relativeGroups.get(key) ?? { reference, label, people: [] };
+    group.people.push(person);
+    relativeGroups.set(key, group);
+  }
+  return { ownerGroup, relativeGroups };
 }
 
 export function orderTreePeople<T extends PositionedPerson>(people: T[]) {

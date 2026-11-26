@@ -72,7 +72,7 @@ export default function FamilyMemberForm({
       isMe: person.type === "member" && person.id === userId,
       isPartner: selectedTree.ownerId === userId && person.isPartner,
     })),
-  ].sort((a, b) => Number(b.isMe) - Number(a.isMe));
+  ].sort((a, b) => Number(b.isMe) - Number(a.isMe) || a.name.localeCompare(b.name));
   const selectedPerson = people.find((person) => person.value === reference);
   const relativeName = selectedPerson?.isMe ? "you" : selectedPerson?.name;
   const selectedRelationship = relationship === "Other" ? otherRelationship.trim() : relationship;
@@ -135,14 +135,16 @@ export default function FamilyMemberForm({
               </select>
             </label>
           )}
-          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {people.map((person) => (
-              <button key={person.value} type="button" aria-pressed={reference === person.value}
-                className={choiceClassName} onClick={() => setReference(person.value)}>
-                {person.isMe ? "Me" : person.isPartner ? `My Spouse / Partner · ${person.name}` : person.name}
-              </button>
-            ))}
-          </div>
+          <label className="mt-4 block text-sm text-slate-300">
+            Select Family Member
+            <select value={reference} onChange={(event) => setReference(event.target.value)} className={fieldClassName}>
+              {people.map((person) => (
+                <option key={person.value} value={person.value}>
+                  {person.name}{person.isMe ? " (You)" : person.isPartner ? " (Spouse / Partner)" : ""}
+                </option>
+              ))}
+            </select>
+          </label>
         </fieldset>
       )}
 

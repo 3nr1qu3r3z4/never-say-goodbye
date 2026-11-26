@@ -153,19 +153,75 @@ test("pricing displays the requested roadmap without implying paid access or del
     "Free Legacy", "Free Forever", "Legacy Plus", "$4.99/month", "Family Legacy", "$7.99/month",
     "Most Popular", "Legacy Forever", "$299 One-Time", "3 Public Videos", "2 Private Videos",
     "25 Photos", "10 Stories", "5 Voice Messages", "2 Cannot Open Until™ Messages",
-    "50 total videos", "50 voice messages", "25 Cannot Open Until™ Messages",
-    "Up to 5 family profiles", "250 videos", "Up to 10 family profiles", "1,000 videos",
+    "50 Total Videos", "50 Voice Messages", "25 Cannot Open Until™ Messages",
+    "Up to 5 Family Profiles", "250 Videos", "Up to 10 Family Profiles", "1,000 Videos",
     "Never Forget™ Family Calendar", "Legacy Vault Export", "Digital Executor Designation",
   ]) assert.ok(html.includes(text), text);
   assert.match(html, /plan limits are not enforced/);
   assert.match(html, /paid plans and billing are coming soon/);
-  for (const text of ["Automatic reminders", "Birthday video delivery", "Anniversary message delivery", "Custom milestone scheduling", "Scheduled message delivery", "Unlimited future deliveries", "Legacy Vault Export"]) {
+  for (const text of ["Automatic reminders", "Birthday video delivery", "Anniversary message delivery", "Custom milestone scheduling", "Scheduled Message Delivery", "Unlimited Future Deliveries", "Legacy Vault Export"]) {
     assert.ok(html.includes(`${text}<span class="text-slate-400"> (Coming Soon)</span>`), text);
   }
   assert.match(html, /Shared family dates/);
   assert.match(html, /href="\/signup"[^>]*>Create a Free Account/);
   assert.equal((html.match(/Create a Free Account/g) ?? []).length, 1);
   const [free, plus, family, forever] = planExports.membershipPlans;
+  assert.deepEqual(JSON.parse(JSON.stringify([free, plus, family, forever].map((plan) => plan.features))), [
+    [
+      { text: "1 Moment Maker™ Profile" },
+      { text: "Classic NSG Site Theme" },
+      { text: "3 Public Videos" },
+      { text: "2 Private Videos" },
+      { text: "25 Photos" },
+      { text: "10 Stories" },
+      { text: "5 Voice Messages", planned: true },
+      { text: "2 Cannot Open Until™ Messages", planned: true },
+      { text: "Legacy Tree™ Preview" },
+      { text: "Never Forget™ Calendar Preview", planned: true },
+    ],
+    [
+      { text: "Everything in Free Legacy plus:" },
+      { text: "Evergreen Legacy and Ocean Breeze Themes" },
+      { text: "50 Total Videos" },
+      { text: "Unlimited Photos" },
+      { text: "Unlimited Stories" },
+      { text: "50 Voice Messages", planned: true },
+      { text: "25 Cannot Open Until™ Messages", planned: true },
+      { text: "Personal Never Forget™ Calendar", planned: true },
+      { text: "Birthday, Anniversary, and Custom Reminders", planned: true },
+      { text: "Scheduled Message Delivery", planned: true },
+      { text: "Basic Legacy Tree™" },
+      { text: "Private Family Sharing" },
+    ],
+    [
+      { text: "Everything in Legacy Plus plus:" },
+      { text: "Up to 5 Family Profiles", planned: true },
+      { text: "Connected Lives™" },
+      { text: "Full Legacy Tree™" },
+      { text: "250 Videos" },
+      { text: "Unlimited Voice Messages", planned: true },
+      { text: "Unlimited Future Deliveries", planned: true },
+      { text: "Full Never Forget™ Family Calendar", planned: true },
+      { text: "Shared Birthdays, Anniversaries, and Family Milestones" },
+      { text: "Family Event Tracking" },
+      { text: "Family Sharing & Management", planned: true },
+      { text: "Legacy Vault Export", planned: true },
+      { text: "Priority Support", planned: true },
+    ],
+    [
+      { text: "Everything in Family Legacy plus:" },
+      { text: "Up to 10 Family Profiles", planned: true },
+      { text: "1,000 Videos" },
+      { text: "Expanded Preservation Storage", planned: true },
+      { text: "Future Theme Packs Included", planned: true },
+      { text: "Successor Assignment", planned: true },
+      { text: "Digital Executor Designation", planned: true },
+      { text: "Permanent Family Stewardship Tools", planned: true },
+      { text: "Complete Legacy Vault Export", planned: true },
+      { text: "Priority Preservation Services", planned: true },
+      { text: "Early Access to Premium Features", planned: true },
+    ],
+  ]);
   assert.deepEqual(JSON.parse(JSON.stringify([free.limits, plus.limits, family.limits, forever.limits])), [
     { profiles: 1, videos: { public: 3, private: 2 }, photos: 25, stories: 10, voiceMessages: 5, cannotOpenUntilMessages: 2 },
     { videos: { total: 50 }, photos: null, stories: null, voiceMessages: 50, cannotOpenUntilMessages: 25 },
