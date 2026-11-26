@@ -7,6 +7,7 @@ import { getSql } from "@/lib/db";
 import { groupTreeGeneration, orderTreePeople, positionRelationship, treeReferenceKey } from "@/lib/tree-positioning";
 import FamilyMemberForm from "./family-member-form";
 import FamilyDateLink from "./family-date-link";
+import PrintTreeButton from "./print-tree-button";
 import TreeMilestonesPanel from "./tree-milestones-panel";
 
 type FamilyTree = { id: string; name: string; ownerId: string; ownerName: string };
@@ -239,9 +240,6 @@ async function FamilyMembersForUser({ userId }: { userId: string }) {
 
   return (
     <div className="mx-auto max-w-6xl space-y-12 px-4 pb-20 sm:px-8">
-      <nav aria-label="Legacy Tree navigation" className="flex flex-wrap gap-3">
-        <a href="#family-members" className={buttonClassName}>Add Family Member</a>
-      </nav>
       <div id="tree-map" className="scroll-mt-6 space-y-12">
         {treeRows.length > 1 && (
           <nav aria-label="Choose a tree to view">
@@ -306,25 +304,13 @@ async function FamilyMembersForUser({ userId }: { userId: string }) {
           ];
           return (
             <section key={tree.id} id={`legacy-tree-item-${tree.id}`} aria-label={tree.name} className="scroll-mt-6">
-              <div className="mx-auto max-w-lg rounded-2xl border border-[color:var(--nsg-accent)]/50 bg-[color:var(--nsg-accent)]/[0.08] px-5 py-5 text-center">
+              <nav aria-label={`${tree.name} actions`} className="flex w-fit max-w-full flex-col gap-3">
+                <a href="#family-members" className={`${buttonClassName} w-full`}>Add Family Member</a>
+                <PrintTreeButton treeId={tree.id} className={`${buttonClassName} w-full`} />
+              </nav>
+              <div className="mx-auto mt-6 max-w-lg rounded-2xl border border-[color:var(--nsg-accent)]/50 bg-[color:var(--nsg-accent)]/[0.08] px-5 py-5 text-center">
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[color:var(--nsg-accent-light)]">Legacy Tree™</p>
                 <h2 className="mt-2 break-words font-serif text-2xl text-white sm:text-3xl">{tree.name}</h2>
-                <form action={`/api/legacy-tree/${encodeURIComponent(tree.id)}/pdf`} method="post" className="mt-4">
-                  <details className="mb-3 text-left">
-                    <summary className="cursor-pointer text-sm text-[color:var(--nsg-accent-light)]">Use a different family name for the title (optional)</summary>
-                    <label className="mt-3 block text-sm text-slate-300">Family name override
-                      <input name="familyName" maxLength={80} className="mt-2 min-h-11 w-full rounded-xl border border-[color:var(--nsg-border)]/20 bg-slate-950 px-3 text-white" />
-                    </label>
-                  </details>
-                  <fieldset className="mb-4 text-left text-sm text-slate-300">
-                    <legend className="font-semibold">Include Relationship Labels?</legend>
-                    <div className="mt-2 flex gap-5">
-                      <label className="inline-flex items-center gap-2"><input type="radio" name="includeRelationshipLabels" value="yes" /> Yes</label>
-                      <label className="inline-flex items-center gap-2"><input type="radio" name="includeRelationshipLabels" value="no" defaultChecked /> No</label>
-                    </div>
-                  </fieldset>
-                  <button type="submit" className={buttonClassName}>Export Family Tree PDF</button>
-                </form>
               </div>
               <div aria-hidden="true" className="mx-auto h-8 w-px bg-[color:var(--nsg-accent)]/50" />
               <div className="rounded-3xl border border-[color:var(--nsg-accent)]/25 bg-slate-950/20 p-4 sm:p-6">

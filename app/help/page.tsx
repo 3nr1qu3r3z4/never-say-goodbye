@@ -83,7 +83,7 @@ const guides = [
       },
       {
         question: "How do I export a family tree PDF?",
-        answer: "Tree members can choose Export Family Tree PDF. The title uses the owner's surname only when it appears in their display name, or you can enter a family name. Relationship labels are optional and off by default. Birth years appear only when a passing year is known.",
+        answer: "Tree members can choose Print Tree, then optionally include relationship labels before creating the PDF. The title uses the owner's surname only when it appears in their display name. Birth years appear only when a passing year is known.",
       },
       {
         question: "How do family milestones appear on the calendar?",

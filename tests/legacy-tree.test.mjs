@@ -40,6 +40,7 @@ function familyComponent(user, sql) {
     "@/lib/tree-positioning": loadModule("lib/tree-positioning.ts", {}),
     "./family-member-form": { default: () => React.createElement("div", null, "Family management form") },
     "./family-date-link": { default: ({ name }) => React.createElement("a", null, `Edit dates for ${name}`) },
+    "./print-tree-button": loadModule("app/legacy-tree/print-tree-button.tsx", { "react/jsx-runtime": jsxRuntime, react: React }),
     "./tree-milestones-panel": { default: ({ treeId }) => React.createElement("div", null, `Milestones for ${treeId}`) },
   }).default;
 }
@@ -113,14 +114,43 @@ test("membership maps and tree navigation remain scoped and distinguish relation
   assert.match(first, /Owner/);
   assert.match(first, /Remembered Relative/);
   assert.match(first, /action="\/api\/legacy-tree\/first\/pdf"[^>]*method="post"/i);
-  assert.match(first, /Include Relationship Labels\?/);
+  assert.match(first, /Include relationship labels\?/);
   assert.match(first, /name="includeRelationshipLabels" checked="" value="no"/);
   assert.match(first, /name="includeRelationshipLabels" value="yes"/);
-  assert.match(first, />Export Family Tree PDF<\/button>/);
+  assert.match(first, />Print Tree<\/button>/);
+  assert.match(first, />Create PDF<\/button>/);
+  assert.match(first, />Cancel<\/button>/);
+  assert.match(first, /name="familyName" value=""/);
+  assert.doesNotMatch(first, /Family name override|Use a different family name/);
   assert.doesNotMatch(first, /Future Relative/);
   assert.match(second, /Future Relative/);
   assert.match(second, /action="\/api\/legacy-tree\/second%20tree\/pdf"[^>]*method="post"/i);
   assert.doesNotMatch(second, /Remembered Relative/);
+});
+
+test("print dialog resets, closes on cancel or Escape, and returns focus", () => {
+  const calls = [];
+  const dialog = { showModal: () => calls.push("open"), close: () => calls.push("close") };
+  const trigger = { focus: () => calls.push("focus") };
+  const form = { reset: () => calls.push("reset") };
+  const refs = [dialog, trigger, form];
+  const PrintTreeButton = loadModule("app/legacy-tree/print-tree-button.tsx", {
+    "react/jsx-runtime": jsxRuntime,
+    react: { useId: () => "title", useRef: () => ({ current: refs.shift() }) },
+  }).default;
+  const element = PrintTreeButton({ treeId: "tree", className: "" });
+  const [button, modal] = element.props.children;
+  const [, modalForm] = modal.props.children;
+  const [, , actions] = modalForm.props.children;
+
+  button.props.onClick();
+  assert.deepEqual(calls, ["reset", "open"]);
+  actions.props.children[0].props.onClick();
+  let prevented = false;
+  modal.props.onKeyDown({ key: "Escape", preventDefault: () => { prevented = true; } });
+  modal.props.onClose();
+  assert.equal(prevented, true);
+  assert.deepEqual(calls, ["reset", "open", "close", "close", "focus"]);
 });
 
 test("a tree containing only the viewer invites them to add family", async () => {

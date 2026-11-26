@@ -210,6 +210,7 @@ test("linked story query stays author-only and withholds protected content", asy
     "@/lib/tree-positioning": loadModule("lib/tree-positioning.ts", {}),
     "./family-member-form": { default: () => null },
     "./family-date-link": { default: () => null },
+    "./print-tree-button": { default: () => null },
     "./tree-milestones-panel": { default: () => null },
   });
   const userSection = await components.default();
