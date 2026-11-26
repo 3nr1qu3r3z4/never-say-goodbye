@@ -36,6 +36,7 @@ function familyComponent(user, sql) {
     "@/app/actions/family-tree": { createLegacyTree: async () => {} },
     "@/lib/auth": { getCurrentUser: async () => user },
     "@/lib/db": { getSql: () => sql },
+    "@/lib/tree-positioning": loadModule("lib/tree-positioning.ts", {}),
     "./family-member-form": { default: () => React.createElement("div", null, "Family management form") },
     "./tree-milestones-panel": { default: ({ treeId }) => React.createElement("div", null, `Milestones for ${treeId}`) },
   }).default;
@@ -81,7 +82,7 @@ test("guests and users without a tree receive the empty state", async () => {
 test("membership maps and tree navigation remain scoped and distinguish relationships", async () => {
   const sql = () => ({});
   sql.transaction = async () => [
-    [{ id: "first", name: "First Tree" }, { id: "second tree", name: "Second Tree" }],
+    [{ id: "first", name: "First Tree", ownerId: "owner", ownerName: "Owner" }, { id: "second tree", name: "Second Tree", ownerId: "other", ownerName: "Other Owner" }],
     [],
     [{ id: "owner", treeId: "first", displayName: "Owner", relationship: "Family Member" }],
     [{ id: "future", treeId: "second tree", name: "Future Relative", relationship: "Child", status: "awaiting-claim" }],
@@ -95,7 +96,7 @@ test("membership maps and tree navigation remain scoped and distinguish relation
   assert.match(html, /href="#legacy-tree-item-second%20tree"/);
   assert.match(html, /id="legacy-tree-item-first" aria-label="First Tree"/);
   assert.match(html, /id="legacy-tree-item-second tree" aria-label="Second Tree"/);
-  assert.match(html, /This map shows tree membership, not family relationships/);
+  assert.match(html, /People are grouped relative to the tree owner/);
   assert.match(html, /may reflect another person&#x27;s perspective/);
   const first = html.slice(html.indexOf('id="legacy-tree-item-first"'), html.indexOf('id="legacy-tree-item-second tree"'));
   const second = html.slice(html.indexOf('id="legacy-tree-item-second tree"'), html.indexOf('id="family-members"'));
@@ -109,16 +110,65 @@ test("membership maps and tree navigation remain scoped and distinguish relation
 test("a tree containing only the viewer invites them to add family", async () => {
   const sql = () => ({});
   sql.transaction = async () => [
-    [{ id: "tree", name: "My Tree" }],
+    [{ id: "tree", name: "My Tree", ownerId: "owner", ownerName: "Owner" }],
     [],
     [{ id: "owner", treeId: "tree", displayName: "Owner", relationship: "Family Member" }],
     [], [], [],
   ];
   const html = await renderFamily(familyComponent({ id: "owner" }, sql));
   assert.match(html, /Owner/);
-  assert.match(html, />You<\/p>/);
+  assert.match(html, /Tree owner · You/);
   assert.match(html, /Add family members to begin building this tree/);
   assert.match(html, /Family management form/);
+});
+
+test("family generations are based on owner-relative labels, not entry order", async () => {
+  const sql = () => ({});
+  sql.transaction = async () => [
+    [{ id: "tree", name: "Family", ownerId: "owner", ownerName: "Owner" }],
+    [],
+    [
+      { id: "daughter", treeId: "tree", displayName: "Daughter", relationship: "Daughter" },
+      { id: "owner", treeId: "tree", displayName: "Owner", relationship: null },
+      { id: "brother", treeId: "tree", displayName: "Brother", relationship: "Brother" },
+      { id: "sister", treeId: "tree", displayName: "Sister", relationship: "Sister" },
+      { id: "wife", treeId: "tree", displayName: "Wife", relationship: "Wife" },
+      { id: "mom", treeId: "tree", displayName: "Mom", relationship: "Mom" },
+    ],
+    [{ id: "future", treeId: "tree", name: "Grandchild", relationship: "Grandchild", status: "awaiting-claim" }],
+    [
+      { id: "grandma", treeId: "tree", name: "Grandma", relationship: "Grandmother" },
+      { id: "cousin", treeId: "tree", name: "Cousin", relationship: "Cousin" },
+    ],
+    [],
+  ];
+  const html = await renderFamily(familyComponent({ id: "brother" }, sql));
+  const positions = ["Grandma", "Mom", "Brother", "Owner", "Wife", "Sister", "Daughter", "Grandchild", "Cousin"]
+    .map((name) => html.indexOf(`>${name}</p>`));
+  assert.ok(positions.every((position) => position >= 0));
+  assert.deepEqual(positions, [...positions].sort((a, b) => a - b));
+  assert.match(html, /Tree owner<\/p>/);
+  assert.match(html, /You · Brother/);
+  assert.match(html, /This relationship was automatically positioned based on its label/);
+  assert.match(html, /Relationships to review/);
+  assert.match(html, /Relationship needs review/);
+  assert.match(html, /Future Moment Maker™/);
+  assert.match(html, /Family Placeholder/);
+});
+
+test("only recognizable relationship labels receive a generation", () => {
+  const { positionRelationship } = loadModule("lib/tree-positioning.ts", {});
+  for (const [label, generation, partner] of [
+    ["Grandfather", 2, false], ["Father", 1, false], ["sister", 0, false],
+    ["Partner", 0, true], ["Son", -1, false], ["Granddaughter", -2, false],
+  ]) {
+    const result = positionRelationship(label);
+    assert.equal(result.generation, generation);
+    assert.equal(result.partner, partner);
+  }
+  for (const label of ["Cousin", "stepmother", "son-in-law", "", null]) {
+    assert.equal(positionRelationship(label), null);
+  }
 });
 
 test("add confirmation links to the tree returned by the server", () => {

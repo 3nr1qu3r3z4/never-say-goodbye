@@ -177,6 +177,7 @@ test("linked story query stays author-only and withholds protected content", asy
     "@/app/actions/family-tree": { createLegacyTree: async () => {} },
     "@/lib/auth": { getCurrentUser: async () => ({ id: "author" }) },
     "@/lib/db": { getSql: () => sql },
+    "@/lib/tree-positioning": loadModule("lib/tree-positioning.ts", {}),
     "./family-member-form": { default: () => null },
     "./tree-milestones-panel": { default: () => null },
   });

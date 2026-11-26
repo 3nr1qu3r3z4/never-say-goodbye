@@ -3,10 +3,11 @@ import Image from "next/image";
 import { createLegacyTree } from "@/app/actions/family-tree";
 import { getCurrentUser } from "@/lib/auth";
 import { getSql } from "@/lib/db";
+import { orderTreePeople } from "@/lib/tree-positioning";
 import FamilyMemberForm from "./family-member-form";
 import TreeMilestonesPanel from "./tree-milestones-panel";
 
-type FamilyTree = { id: string; name: string };
+type FamilyTree = { id: string; name: string; ownerId: string; ownerName: string };
 type MomentMaker = { id: string; displayName: string };
 type TreeMember = {
   id: string;
@@ -89,9 +90,10 @@ async function FamilyMembersForUser({ userId }: { userId: string }) {
   const [trees, momentMakers, members, futureMakers, placeholders, linkedMoments] =
     await sql.transaction([
       sql`
-        SELECT lt.id, lt.name
+        SELECT lt.id, lt.name, lt.owner_user_id AS "ownerId", owner.display_name AS "ownerName"
         FROM legacy_trees AS lt
         JOIN legacy_tree_members AS ltm ON ltm.tree_id = lt.id
+        JOIN users AS owner ON owner.id = lt.owner_user_id
         WHERE ltm.user_id = ${userId}
         ORDER BY lt.created_at, lt.id
       `,
@@ -189,6 +191,24 @@ async function FamilyMembersForUser({ userId }: { userId: string }) {
           const treePlaceholders = placeholderRows.filter((member) => member.treeId === tree.id);
           const ownMembership = treeMembers.find((member) => member.id === userId);
           const isAdmin = ownMembership?.role === "owner" || ownMembership?.role === "admin";
+          const owner = treeMembers.find((member) => member.id === tree.ownerId) ?? {
+            id: tree.ownerId, treeId: tree.id, displayName: tree.ownerName,
+            relationship: "", role: "owner", allowAdmin: false,
+          };
+          const layout = orderTreePeople([
+            ...[owner, ...treeMembers.filter((member) => member.id !== tree.ownerId)].map((member) => ({
+              kind: "member" as const, data: member, name: member.displayName,
+              relationship: member.relationship, isOwner: member.id === tree.ownerId,
+            })),
+            ...treeFutureMakers.map((member) => ({
+              kind: "future" as const, data: member, name: member.name,
+              relationship: member.relationship, isOwner: false,
+            })),
+            ...treePlaceholders.map((member) => ({
+              kind: "placeholder" as const, data: member, name: member.name,
+              relationship: member.relationship, isOwner: false,
+            })),
+          ]);
           const people = [
             ...treeMembers.map((member) => ({
               id: member.id, type: "user" as const, name: member.displayName,
@@ -210,25 +230,66 @@ async function FamilyMembersForUser({ userId }: { userId: string }) {
               <div aria-hidden="true" className="mx-auto h-8 w-px bg-[color:var(--nsg-accent)]/50" />
               <div className="rounded-3xl border border-[color:var(--nsg-accent)]/25 bg-slate-950/20 p-4 sm:p-6">
                 <h3 className="text-center text-sm font-semibold uppercase tracking-[0.16em] text-slate-300">
-                  People in this tree
+                  Family generations
                 </h3>
                 <p className="mx-auto mt-3 max-w-2xl text-center text-sm leading-6 text-slate-400">
-                  This map shows tree membership, not family relationships. Relationship labels are recorded as entered and may reflect another person&apos;s perspective.
+                  People are grouped relative to the tree owner. Labels may reflect another person&apos;s perspective; individual family connections are not shown.
                 </p>
-                <ul className="mt-4 grid gap-3 sm:grid-cols-2">
-                  {treeMembers.map((member) => (
-                    <li key={`member-${member.treeId}-${member.id}`} className={cardClassName}>
+                {layout.generations.map(({ generation, members }, index) => (
+                  <div key={generation}>
+                    {index > 0 && <div aria-hidden="true" className="mx-auto h-6 w-px bg-[color:var(--nsg-accent)]/40" />}
+                    <h4 className="mt-4 text-center text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
+                      {generation === 2 ? "Grandparents" : generation === 1 ? "Parents" : generation === 0 ? "Owner's generation" : generation === -1 ? "Children" : "Grandchildren"}
+                    </h4>
+                    <div className="overflow-x-auto">
+                      <ul className="mx-auto mt-3 flex w-max gap-3">
+                        {members.map((person) => renderPerson(person, false))}
+                      </ul>
+                    </div>
+                  </div>
+                ))}
+                {layout.unpositioned.length > 0 && (
+                  <div className="mt-8">
+                    <h4 className="text-center text-sm font-semibold text-slate-300">Relationships to review</h4>
+                    <p className="mt-2 text-center text-sm text-slate-400">These labels could not be positioned confidently. Everyone remains visible here.</p>
+                    <ul className="mt-3 flex flex-wrap justify-center gap-3">
+                      {layout.unpositioned.map((person) => renderPerson(person, true))}
+                    </ul>
+                  </div>
+                )}
+                {treeMembers.every((member) => member.id === userId) && !treeFutureMakers.length && !treePlaceholders.length && (
+                  <p className="mt-4 text-sm text-slate-400">Add family members to begin building this tree.</p>
+                )}
+              </div>
+              <TreeMilestonesPanel treeId={tree.id} userId={userId} people={people} isAdmin={isAdmin} allowAdmin={ownMembership?.allowAdmin ?? false} />
+            </section>
+          );
+
+          function renderPerson(person: (typeof layout.generations)[number]["members"][number], needsReview: boolean) {
+            const notice = person.isOwner ? null : (
+              <p className="mt-3 text-xs leading-5 text-slate-400">
+                {needsReview ? "Relationship needs review." : "This relationship was automatically positioned based on its label."}
+              </p>
+            );
+            if (person.kind === "member") {
+              const member = person.data;
+              return (
+                    <li key={`member-${member.treeId}-${member.id}`} className={`${cardClassName} w-40 shrink-0 sm:w-56`}>
                       <span className="inline-flex rounded-full border border-[color:var(--nsg-border)]/15 px-3 py-1 text-xs font-semibold text-slate-300">
                         Moment Maker™
                       </span>
                       <p className="mt-3 font-serif text-lg text-white">{member.displayName}</p>
                       <p className="mt-1 text-sm text-slate-400">
-                        {member.id === userId ? "You" : member.relationship || "Family Member"}
+                        {person.isOwner ? (member.id === userId ? "Tree owner · You" : "Tree owner") : member.id === userId ? `You · ${member.relationship || "Family Member"}` : member.relationship || "Family Member"}
                       </p>
+                      {notice}
                     </li>
-                  ))}
-                  {treeFutureMakers.map((member) => (
-                    <li key={`future-${member.id}`} className={cardClassName}>
+              );
+            }
+            if (person.kind === "future") {
+              const member = person.data;
+              return (
+                    <li key={`future-${member.id}`} className={`${cardClassName} w-40 shrink-0 sm:w-56`}>
                       <span className="inline-flex rounded-full border border-[color:var(--nsg-accent)]/30 px-3 py-1 text-xs font-semibold text-[color:var(--nsg-accent-light)]">
                         Future Moment Maker™
                       </span>
@@ -237,10 +298,13 @@ async function FamilyMembersForUser({ userId }: { userId: string }) {
                       <p className="mt-2 text-xs text-[color:var(--nsg-accent-light)]">
                         {member.status === "claimed" ? "Claimed" : "Awaiting Claim"}
                       </p>
+                      {notice}
                     </li>
-                  ))}
-                  {treePlaceholders.map((member) => (
-                    <li key={`placeholder-${member.id}`} className={cardClassName}>
+              );
+            }
+            const member = person.data;
+            return (
+                    <li key={`placeholder-${member.id}`} className={`${cardClassName} w-40 shrink-0 sm:w-56`}>
                       <span className="inline-flex rounded-full border border-[color:var(--nsg-accent)]/30 px-3 py-1 text-xs font-semibold text-[color:var(--nsg-accent-light)]">
                         {member.isHonored ? "🕊 Honored Life™" : "Family Placeholder"}
                       </span>
@@ -287,16 +351,10 @@ async function FamilyMembersForUser({ userId }: { userId: string }) {
                       <Link href="/create-moment" className="mt-2 inline-block text-xs font-medium text-[color:var(--nsg-accent-light)] underline decoration-[color:var(--nsg-accent)]/40 underline-offset-4 hover:text-white">
                         Create a moment
                       </Link>
+                      {notice}
                     </li>
-                  ))}
-                </ul>
-                {treeMembers.every((member) => member.id === userId) && !treeFutureMakers.length && !treePlaceholders.length && (
-                  <p className="mt-4 text-sm text-slate-400">Add family members to begin building this tree.</p>
-                )}
-              </div>
-              <TreeMilestonesPanel treeId={tree.id} userId={userId} people={people} isAdmin={isAdmin} allowAdmin={ownMembership?.allowAdmin ?? false} />
-            </section>
-          );
+            );
+          }
         })}
       </div>
 

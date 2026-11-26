@@ -75,6 +75,10 @@ export default function FamilyMemberForm({
         </div>
       </fieldset>
 
+      <p className="text-sm leading-6 text-slate-400">
+        Enter each relationship to the owner of the selected Legacy Tree™.
+      </p>
+
       {memberType === "existing" ? (
         <>
           <p className="text-sm leading-6 text-slate-400">
