@@ -37,7 +37,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <footer className="mt-auto bg-[color:var(--nsg-background)] px-6 py-4 text-center">
           <nav aria-label="Footer navigation" className="flex flex-wrap justify-center gap-x-6">
             <Link href="/pricing" className="inline-flex min-h-11 items-center text-sm text-slate-400 transition hover:text-[color:var(--nsg-accent-light)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]">
-              Plans &amp; Pricing
+              Need more Moment Maker™ tools?
             </Link>
             <Link href="/help" className="inline-flex min-h-11 items-center text-sm text-slate-400 transition hover:text-[color:var(--nsg-accent-light)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]">
               Help Center

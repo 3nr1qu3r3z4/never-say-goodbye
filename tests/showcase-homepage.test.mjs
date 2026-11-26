@@ -126,7 +126,7 @@ test("the shared layout provides Help Center in footer navigation", () => {
     "./globals.css": {},
   });
   const html = renderToStaticMarkup(React.createElement(layout, null, React.createElement("main", null, "Page content")));
-  assert.match(html, /<main>Page content<\/main>[\s\S]*<footer[^>]*><nav aria-label="Footer navigation"[^>]*><a href="\/pricing"[^>]*>Plans &amp; Pricing<\/a>[\s\S]*<a href="\/help"[^>]*>Help Center<\/a>/);
+  assert.match(html, /<main>Page content<\/main>[\s\S]*<footer[^>]*><nav aria-label="Footer navigation"[^>]*><a href="\/pricing"[^>]*>Need more Moment Maker™ tools\?<\/a>[\s\S]*<a href="\/help"[^>]*>Help Center<\/a>/);
 });
 
 test("Help Center presents current guides, limitations and support contact", () => {
