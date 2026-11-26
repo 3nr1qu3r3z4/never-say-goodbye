@@ -137,11 +137,13 @@ test("Honored Lives creation, access and atomicity in PostgreSQL", {
 
     const family = loadModule("app/legacy-tree/family-members.tsx", {
       "react/jsx-runtime": jsxRuntime,
+      react: React,
       "next/link": { default: ({ children, href, ...props }) => React.createElement("a", { href, ...props }, children) },
       "next/image": { default: ({ alt }) => React.createElement("span", { "aria-label": alt }) },
       "@/app/actions/family-tree": { createLegacyTree: async () => {} },
       "@/lib/auth": dependencies["@/lib/auth"],
       "@/lib/db": dependencies["@/lib/db"],
+      "@/lib/tree-positioning": loadModule("lib/tree-positioning.ts", {}),
       "./family-member-form": { default: () => null },
       "./tree-milestones-panel": { default: () => null },
     }).default;

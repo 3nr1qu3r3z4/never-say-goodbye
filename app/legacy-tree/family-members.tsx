@@ -4,13 +4,12 @@ import { Fragment } from "react";
 import { createLegacyTree } from "@/app/actions/family-tree";
 import { getCurrentUser } from "@/lib/auth";
 import { getSql } from "@/lib/db";
-import { orderTreePeople, positionRelationship } from "@/lib/tree-positioning";
+import { orderTreePeople, positionRelationship, treeReferenceKey } from "@/lib/tree-positioning";
 import FamilyMemberForm from "./family-member-form";
 import TreeMilestonesPanel from "./tree-milestones-panel";
 
 type FamilyTree = { id: string; name: string; ownerId: string; ownerName: string };
 type FamilyLine = { linePartnerType: string | null; linePartnerId: string | null };
-type MomentMaker = { id: string; displayName: string };
 type TreeMember = FamilyLine & {
   id: string;
   treeId: string;
@@ -89,7 +88,7 @@ export default async function FamilyMembers() {
 
 async function FamilyMembersForUser({ userId }: { userId: string }) {
   const sql = getSql();
-  const [trees, momentMakers, members, futureMakers, placeholders, linkedMoments] =
+  const [trees, members, futureMakers, placeholders, linkedMoments] =
     await sql.transaction([
       sql`
         SELECT lt.id, lt.name, lt.owner_user_id AS "ownerId", owner.display_name AS "ownerName"
@@ -98,14 +97,6 @@ async function FamilyMembersForUser({ userId }: { userId: string }) {
         JOIN users AS owner ON owner.id = lt.owner_user_id
         WHERE ltm.user_id = ${userId}
         ORDER BY lt.created_at, lt.id
-      `,
-      sql`
-        SELECT id, display_name AS "displayName"
-        FROM users
-        WHERE id <> ${userId}
-          AND discoverability IN ('searchable', 'public')
-        ORDER BY display_name
-        LIMIT 100
       `,
       sql`
         SELECT u.id, ltm.tree_id AS "treeId", u.display_name AS "displayName",
@@ -167,17 +158,20 @@ async function FamilyMembersForUser({ userId }: { userId: string }) {
   const momentRows = linkedMoments as LinkedMoment[];
   const treeOptions = treeRows.map((tree) => ({
     ...tree,
-    partners: [
+    people: [
       ...memberRows.filter((member) => member.treeId === tree.id && member.id !== tree.ownerId).map((member) => ({
-        type: "member", id: member.id, name: member.displayName, relationship: member.relationship,
+        type: "member", id: member.id, name: member.displayName,
+        isPartner: !member.linePartnerType && Boolean(positionRelationship(member.relationship)?.partner),
       })),
       ...futureRows.filter((member) => member.treeId === tree.id).map((member) => ({
-        type: "future", id: member.id, name: member.name, relationship: member.relationship,
+        type: "future", id: member.id, name: member.name,
+        isPartner: !member.linePartnerType && Boolean(positionRelationship(member.relationship)?.partner),
       })),
       ...placeholderRows.filter((member) => member.treeId === tree.id).map((member) => ({
-        type: "placeholder", id: member.id, name: member.name, relationship: member.relationship,
+        type: "placeholder", id: member.id, name: member.name,
+        isPartner: !member.linePartnerType && Boolean(positionRelationship(member.relationship)?.partner),
       })),
-    ].filter((member) => positionRelationship(member.relationship)?.partner),
+    ],
   }));
   const momentsByPlaceholder = new Map<string, LinkedMoment[]>();
   for (const moment of momentRows) {
@@ -228,14 +222,14 @@ async function FamilyMembersForUser({ userId }: { userId: string }) {
               relationship: member.relationship, isOwner: false,
             })),
           ]);
-          const household = layout.generations.find((group) => group.generation === 0);
-          const ownerIndex = household?.members.findIndex((person) => person.isOwner) ?? -1;
-          const partners = household?.members.filter((person) => !person.isOwner && positionRelationship(person.relationship)?.partner) ?? [];
+          const household = layout.generations.find((group) => group.generation === 0)?.members.filter((person) => person.isOwner || !treeReferenceKey(person)) ?? [];
+          const ownerIndex = household.findIndex((person) => person.isOwner);
+          const partners = household.filter((person) => !person.isOwner && positionRelationship(person.relationship)?.partner);
           const hasHouseholdConnector = partners.length === 1 && ownerIndex >= 0 &&
-            household?.members[ownerIndex + 1] === partners[0];
-          const hasChildren = layout.generations.some((group) => group.generation === -1);
+            household[ownerIndex + 1] === partners[0];
+          const hasChildren = layout.generations.some((group) => group.generation === -1 && group.members.some((person) => !treeReferenceKey(person)));
           const leftCount = hasHouseholdConnector ? ownerIndex : 0;
-          const rightCount = hasHouseholdConnector && household ? household.members.length - ownerIndex - 2 : 0;
+          const rightCount = hasHouseholdConnector ? household.length - ownerIndex - 2 : 0;
           const namesByPerson = new Map<string, string>([
             ...treeMembers.map((member) => [`member:${member.id}`, member.displayName] as const),
             ...treeFutureMakers.map((member) => [`future:${member.id}`, member.name] as const),
@@ -263,32 +257,38 @@ async function FamilyMembersForUser({ userId }: { userId: string }) {
               <div className="rounded-3xl border border-[color:var(--nsg-accent)]/25 bg-slate-950/20 p-4 sm:p-6">
                 <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Family generations">
                   <div className="w-max min-w-full">
-                    {layout.generations.map(({ generation, members }, index) => (
-                      <div key={generation}>
-                        {index > 0 && <div aria-hidden="true" className="mx-auto h-6 w-px bg-[color:var(--nsg-accent)]/40" />}
-                        {generation > 0 ? (
-                          <div className="mx-auto mt-4 flex w-max items-start gap-6">
-                            {Array.from(members.reduce((groups, person) => {
-                              const { linePartnerType, linePartnerId } = person.data;
-                              const key = linePartnerType && linePartnerId ? `${linePartnerType}:${linePartnerId}` : "";
-                              const group = groups.get(key) ?? [];
-                              group.push(person);
-                              groups.set(key, group);
-                              return groups;
-                            }, new Map<string, typeof members>()).entries())
-                              .sort(([a], [b]) => a.localeCompare(b))
-                              .map(([key, group]) => (
-                                <div key={key}>
-                                  <h3 className="text-center text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
-                                    {key ? `${namesByPerson.get(key) ?? "Partner (unavailable)"}'s` : `${tree.ownerName}'s`} {generation === 2 ? "Grandparents" : "Parents"}
-                                  </h3>
-                                  <ul className="mt-3 flex w-max gap-3">
-                                    {group.map((person) => renderPerson(person, false))}
-                                  </ul>
-                                </div>
-                              ))}
-                          </div>
-                        ) : (
+                    {layout.generations.map(({ generation, members }, index) => {
+                      const ownerGroup = generation <= 0 ? members.filter((person) => person.isOwner || !treeReferenceKey(person)) : [];
+                      const relativeGroups = new Map<string, { reference: string | null; label: string; people: typeof members }>();
+                      for (const person of members) {
+                        if (ownerGroup.includes(person)) continue;
+                        const reference = treeReferenceKey(person);
+                        const position = positionRelationship(person.relationship);
+                        const label = position?.generation === 2 ? "Grandparents" : position?.generation === 1 ? "Parents" :
+                          position?.generation === -1 ? "Children" : position?.generation === -2 ? "Grandchildren" :
+                          position?.partner ? "Partner" : "Siblings";
+                        const key = JSON.stringify([reference, label]);
+                        const group = relativeGroups.get(key) ?? { reference, label, people: [] };
+                        group.people.push(person);
+                        relativeGroups.set(key, group);
+                      }
+                      const renderRelativeGroups = () => relativeGroups.size > 0 && (
+                        <div className="mx-auto mt-4 flex w-max items-start gap-6">
+                          {Array.from(relativeGroups.entries()).sort(([a, first], [b, second]) =>
+                            Number(Boolean(first.reference)) - Number(Boolean(second.reference)) || a.localeCompare(b)
+                          ).map(([key, group]) => (
+                            <div key={key}>
+                              <h3 className="text-center text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
+                                {group.reference ? `${namesByPerson.get(group.reference) ?? "Family member"}'s` : `${tree.ownerName}'s`} {group.label}
+                              </h3>
+                              <ul className="mt-3 flex w-max gap-3">
+                                {group.people.map((person) => renderPerson(person, false))}
+                              </ul>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                      const renderOwnerGroup = () => ownerGroup.length > 0 && (
                           <>
                             <h3 className={`${generation === -1 && hasHouseholdConnector ? "" : "mt-4 "}text-center text-xs font-semibold uppercase tracking-[0.12em] text-slate-400`}>
                               {generation === 0 ? "Your household" : generation === -1 ? "Children" : "Grandchildren"}
@@ -298,7 +298,7 @@ async function FamilyMembersForUser({ userId }: { userId: string }) {
                               {generation === 0 && hasHouseholdConnector && Array.from({ length: Math.max(0, rightCount - leftCount) }, (_, i) => (
                                 <li key={`left-spacer-${i}`} aria-hidden="true" className="w-40 shrink-0 sm:w-56" />
                               ))}
-                              {members.map((person, memberIndex) => (
+                              {ownerGroup.map((person, memberIndex) => (
                                 <Fragment key={`${person.kind}-${person.data.id}`}>
                                   {generation === 0 && hasHouseholdConnector && memberIndex === ownerIndex + 1 && (
                                     <li data-tree-connector="household" aria-hidden="true" className="relative w-0 shrink-0">
@@ -314,9 +314,25 @@ async function FamilyMembersForUser({ userId }: { userId: string }) {
                               ))}
                             </ul>
                           </>
-                        )}
-                      </div>
-                    ))}
+                      );
+                      return (
+                        <div key={generation}>
+                          {index > 0 && <div aria-hidden="true" className="mx-auto h-6 w-px bg-[color:var(--nsg-accent)]/40" />}
+                          {generation === 0 && relativeGroups.size > 0 ? (
+                            <div className="grid w-max min-w-full grid-cols-[1fr_auto_1fr] items-end">
+                              <div>{renderRelativeGroups()}</div>
+                              <div>{renderOwnerGroup()}</div>
+                              <div aria-hidden="true" />
+                            </div>
+                          ) : (
+                            <>
+                              {renderOwnerGroup()}
+                              {renderRelativeGroups()}
+                            </>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
                 {layout.unpositioned.length > 0 && (
@@ -337,6 +353,12 @@ async function FamilyMembersForUser({ userId }: { userId: string }) {
           );
 
           function renderPerson(person: (typeof layout.generations)[number]["members"][number], needsReview: boolean) {
+            const reference = treeReferenceKey(person);
+            const relativeNotice = reference && (
+              <p className="mt-1 text-xs text-slate-400">
+                Relationship to {namesByPerson.get(reference) ?? "an unavailable family member"}
+              </p>
+            );
             const autoNotice = !person.isOwner && !needsReview && (
               <p className="mt-1 text-xs text-slate-400">Auto Placed</p>
             );
@@ -357,6 +379,7 @@ async function FamilyMembersForUser({ userId }: { userId: string }) {
                         {person.isOwner ? (member.id === userId ? "Tree owner · You" : "Tree owner") : member.id === userId ? `You · ${member.relationship || "Family Member"}` : member.relationship || "Family Member"}
                       </p>
                       {autoNotice}
+                      {relativeNotice}
                       {reviewNotice}
                     </li>
               );
@@ -371,6 +394,7 @@ async function FamilyMembersForUser({ userId }: { userId: string }) {
                       <p className="mt-3 font-serif text-lg text-white">{member.name}</p>
                       <p className="mt-1 text-sm text-slate-400">{member.relationship}</p>
                       {autoNotice}
+                      {relativeNotice}
                       <p className="mt-2 text-xs text-[color:var(--nsg-accent-light)]">
                         {member.status === "claimed" ? "Claimed" : "Awaiting Claim"}
                       </p>
@@ -394,6 +418,7 @@ async function FamilyMembersForUser({ userId }: { userId: string }) {
                           ? ` · ${member.birthYear ?? "?"}–${member.deathYear ?? "?"}` : ""}
                       </p>
                       {autoNotice}
+                      {relativeNotice}
                       {member.isHonored && (member.birthDate || member.passingDate) && (
                         <p className="mt-2 text-sm text-slate-400">
                           {member.birthDate && `Born: ${member.birthDate}`}
@@ -434,11 +459,8 @@ async function FamilyMembersForUser({ userId }: { userId: string }) {
 
       <section id="family-members" aria-labelledby="family-members-heading">
         <h2 id="family-members-heading" className="font-serif text-2xl text-white sm:text-3xl">Add Family Member</h2>
-        <p className="mt-2 text-sm leading-6 text-slate-400">
-          Add an existing Moment Maker™, reserve a place for a Future Moment Maker™, or preserve a relative who will never have an account.
-        </p>
         <div className={`${cardClassName} mt-5 border-[color:var(--nsg-accent)]/25`}>
-          <FamilyMemberForm trees={treeOptions} momentMakers={momentMakers as MomentMaker[]} />
+          <FamilyMemberForm trees={treeOptions} userId={userId} />
         </div>
       </section>
     </div>

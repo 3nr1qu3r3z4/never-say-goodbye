@@ -124,6 +124,34 @@ test("placeholder years and notes are stored when provided", async () => {
   assert.deepEqual(calls[1].values.slice(5, 8), [1942, 2018, "A family story"]);
 });
 
+test("skipping placeholder details does not save previously entered values", async () => {
+  const { actions, calls } = createActions();
+  const result = await actions.addFamilyMember({}, form({
+    treeId: "tree", memberType: "placeholder", name: "Relative", relationship: "Parent",
+    birthYear: "invalid", deathYear: "1900", notes: "Not saved", skipDetails: "yes",
+  }));
+  assert.ok(result.success);
+  assert.deepEqual(calls[1].values.slice(5, 8), [null, null, null]);
+});
+
+test("account search is authenticated and restricted to searchable profiles", async () => {
+  const { actions, calls } = createActions();
+  assert.ok((await actions.searchFamilyMomentMakers(" ")).error);
+  assert.equal(calls.length, 0);
+  await actions.searchFamilyMomentMakers("  Jane%  ");
+  assert.match(calls[0].text, /discoverability IN \('searchable', 'public'\)/);
+  assert.match(calls[0].text, /strpos\(lower\(display_name\), lower\(\?\)\)/);
+  assert.deepEqual(calls[0].values, ["author", "Jane%"]);
+  const signedOut = loadModule("app/actions/family-tree.ts", {
+    "node:crypto": { randomUUID: () => "" },
+    "next/cache": { revalidatePath: () => {} },
+    "next/navigation": { redirect: () => {} },
+    "@/lib/auth": { getCurrentUser: async () => null },
+    "@/lib/db": { getSql: () => { throw new Error("must not query"); } },
+  });
+  assert.match((await signedOut.searchFamilyMomentMakers("Jane")).error, /Sign in/);
+});
+
 test("publishing links only an accessible placeholder and preserves audience", async () => {
   async function publish(available) {
     const calls = [];

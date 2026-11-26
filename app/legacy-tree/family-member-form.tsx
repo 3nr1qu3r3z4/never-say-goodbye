@@ -1,233 +1,271 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useState, useTransition } from "react";
 import {
   addFamilyMember,
+  searchFamilyMomentMakers,
   type AddFamilyMemberState,
 } from "@/app/actions/family-tree";
 import { positionRelationship } from "@/lib/tree-positioning";
 
-type FamilyTreeOption = { id: string; name: string; ownerName: string; partners: { type: string; id: string; name: string }[] };
-type MomentMakerOption = { id: string; displayName: string };
-type MemberType = "existing" | "future" | "placeholder";
+type FamilyTreeOption = {
+  id: string;
+  name: string;
+  ownerId: string;
+  ownerName: string;
+  people: { type: string; id: string; name: string; isPartner: boolean }[];
+};
+type AccountChoice = "existing" | "placeholder" | "future";
+type SearchResult = { id: string; displayName: string };
 
+const relationships = [
+  "Mother", "Father", "Brother", "Sister", "Son", "Daughter",
+  "Grandmother", "Grandfather", "Grandchild", "Aunt", "Uncle", "Cousin",
+  "Spouse", "Partner", "Other",
+];
 const fieldClassName =
   "mt-2 min-h-12 w-full rounded-xl border border-[color:var(--nsg-border)]/10 bg-slate-950/50 px-4 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-[color:var(--nsg-accent)]/70 focus:ring-2 focus:ring-[color:var(--nsg-accent)]/20";
+const choiceClassName =
+  "min-h-12 min-w-0 break-words rounded-xl border border-[color:var(--nsg-border)]/15 px-4 py-3 text-left text-sm text-white transition hover:border-[color:var(--nsg-accent)]/50 aria-pressed:border-[color:var(--nsg-accent)] aria-pressed:bg-[color:var(--nsg-accent)]/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--nsg-accent)]";
+const buttonClassName =
+  "inline-flex min-h-12 items-center justify-center rounded-full bg-[color:var(--nsg-accent)] px-7 py-3 text-sm font-semibold text-[color:var(--nsg-background)] transition hover:bg-[color:var(--nsg-accent-hover)] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]";
+
+function meInTree(tree: FamilyTreeOption, userId: string) {
+  return tree.ownerId === userId ? "owner" : `member:${userId}`;
+}
 
 export default function FamilyMemberForm({
   trees,
-  momentMakers,
+  userId,
 }: {
   trees: FamilyTreeOption[];
-  momentMakers: MomentMakerOption[];
+  userId: string;
 }) {
-  const [memberType, setMemberType] = useState<MemberType>("placeholder");
-  const [selectedTreeId, setSelectedTreeId] = useState(trees[0]?.id ?? "");
+  const [step, setStep] = useState(1);
+  const [treeId, setTreeId] = useState(trees[0]?.id ?? "");
+  const [reference, setReference] = useState(trees[0] ? meInTree(trees[0], userId) : "");
   const [relationship, setRelationship] = useState("");
-  const [state, formAction, isPending] = useActionState<
-    AddFamilyMemberState,
-    FormData
-  >(addFamilyMember, {});
-  const selectedTree = trees.find((tree) => tree.id === selectedTreeId);
-  const position = positionRelationship(relationship);
+  const [otherRelationship, setOtherRelationship] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [accountChoice, setAccountChoice] = useState<AccountChoice | null>(null);
+  const [searchName, setSearchName] = useState("");
+  const [results, setResults] = useState<SearchResult[] | null>(null);
+  const [selectedAccount, setSelectedAccount] = useState("");
+  const [searchError, setSearchError] = useState("");
+  const [searching, startSearch] = useTransition();
+  const [birthYear, setBirthYear] = useState("");
+  const [deathYear, setDeathYear] = useState("");
+  const [notes, setNotes] = useState("");
+  const [state, formAction, isPending] = useActionState<AddFamilyMemberState, FormData>(addFamilyMember, {});
+  const selectedTree = trees.find((tree) => tree.id === treeId);
 
-  if (trees.length === 0) {
+  if (!selectedTree) {
+    return <p className="text-sm text-slate-400">Create or join a Legacy Tree™ before adding family members.</p>;
+  }
+
+  const people = [
+    { value: "owner", name: selectedTree.ownerName, isMe: selectedTree.ownerId === userId, isPartner: selectedTree.people.some((person) => person.type === "member" && person.id === userId && person.isPartner) },
+    ...selectedTree.people.map((person) => ({
+      value: `${person.type}:${person.id}`,
+      name: person.name,
+      isMe: person.type === "member" && person.id === userId,
+      isPartner: selectedTree.ownerId === userId && person.isPartner,
+    })),
+  ].sort((a, b) => Number(b.isMe) - Number(a.isMe));
+  const selectedPerson = people.find((person) => person.value === reference);
+  const relativeName = selectedPerson?.isMe ? "you" : selectedPerson?.name;
+  const selectedRelationship = relationship === "Other" ? otherRelationship.trim() : relationship;
+  const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
+
+  function searchAccounts() {
+    setSearchError("");
+    setResults(null);
+    setSelectedAccount("");
+    startSearch(async () => {
+      try {
+        const response = await searchFamilyMomentMakers(searchName);
+        setSearchError(response.error ?? "");
+        setResults(response.error ? null : response.results);
+      } catch (error) {
+        console.error("[family-tree] Moment Maker search failed.", error);
+        setSearchError("Search could not be completed. Please try again.");
+      }
+    });
+  }
+
+  if (state.success) {
     return (
-      <p className="mt-5 rounded-xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-4 text-sm leading-6 text-slate-400">
-        Create or join a Legacy Tree™ before adding family members.
-      </p>
+      <div role="status" className="space-y-4 text-sm text-[color:var(--nsg-accent-light)]">
+        <p>{state.success}</p>
+        {state.treeId && <a href={`#legacy-tree-item-${encodeURIComponent(state.treeId)}`} className="inline-flex min-h-11 items-center font-semibold underline underline-offset-4">View My Tree</a>}
+        <p><button type="button" onClick={() => window.location.reload()} className="inline-flex min-h-11 items-center font-semibold underline underline-offset-4">Add another family member</button></p>
+      </div>
     );
   }
 
   return (
-    <form action={formAction} className="mt-6 space-y-5">
-      <label className="block text-sm font-medium text-slate-200">
-        Legacy Tree™
-        <select name="treeId" required className={fieldClassName} value={selectedTreeId} onChange={(event) => setSelectedTreeId(event.target.value)}>
-          {trees.map((tree) => (
-            <option key={tree.id} value={tree.id}>
-              {tree.name}
-            </option>
-          ))}
-        </select>
-      </label>
+    <form action={formAction} className="space-y-5" onSubmit={(event) => {
+      if (step < 4 || (step === 4 && (!accountChoice || accountChoice === "placeholder" || (accountChoice === "existing" && !selectedAccount)))) event.preventDefault();
+    }}>
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400" aria-live="polite">
+        Step {step} of 5
+      </p>
+      <input type="hidden" name="treeId" value={treeId} />
+      <input type="hidden" name="relationshipTo" value={reference} />
+      <input type="hidden" name="relationship" value={selectedRelationship} />
+      <input type="hidden" name="name" value={fullName} />
+      <input type="hidden" name="memberType" value={accountChoice ?? ""} />
+      {accountChoice === "existing" && <input type="hidden" name="existingUserId" value={selectedAccount} />}
 
-      <fieldset>
-        <legend className="text-sm font-medium text-slate-200">
-          Add Family Member
-        </legend>
-        <div className="mt-3 grid gap-3 sm:grid-cols-3">
-          {([
-            ["existing", "Existing Moment Maker™"],
-            ["future", "Future Moment Maker™"],
-            ["placeholder", "Family Placeholder 🕊️"],
-          ] as const).map(([value, label]) => (
-            <label
-              key={value}
-              className="flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border border-[color:var(--nsg-border)]/10 bg-white/[0.02] px-4 py-3 text-sm text-white transition hover:border-[color:var(--nsg-accent)]/35 has-[:checked]:border-[color:var(--nsg-accent)]/60 has-[:checked]:bg-[color:var(--nsg-accent)]/[0.06]"
-            >
-              <input
-                type="radio"
-                name="memberType"
-                value={value}
-                checked={memberType === value}
-                onChange={() => setMemberType(value)}
-                className="h-4 w-4 accent-[color:var(--nsg-accent)]"
-              />
-              {label}
+      {step === 1 && (
+        <fieldset>
+          <legend className="font-serif text-xl text-white">Who is this person related to?</legend>
+          {trees.length > 1 && (
+            <label className="mt-4 block text-sm text-slate-300">
+              Choose a Legacy Tree™
+              <select value={treeId} className={fieldClassName} onChange={(event) => {
+                const tree = trees.find((item) => item.id === event.target.value);
+                if (tree) {
+                  setTreeId(tree.id);
+                  setReference(meInTree(tree, userId));
+                }
+              }}>
+                {trees.map((tree) => <option key={tree.id} value={tree.id}>{tree.name}</option>)}
+              </select>
             </label>
-          ))}
-        </div>
-      </fieldset>
-
-      <p className="text-sm leading-6 text-slate-400">
-        Enter the relationship to the tree owner, or choose a partner&apos;s family line for their parents or grandparents.
-      </p>
-
-      {memberType === "existing" ? (
-        <>
-          <p className="text-sm leading-6 text-slate-400">
-            Adding a Moment Maker™ makes them a member of this tree. It does not create a Connected Lives™ connection or automatically share dates.
-          </p>
-          <label className="block text-sm font-medium text-slate-200">
-            Existing Moment Maker™
-            <select
-              name="existingUserId"
-              required
-              className={fieldClassName}
-              defaultValue=""
-            >
-              <option value="" disabled>
-                Select a searchable Moment Maker™
-              </option>
-              {momentMakers.map((maker) => (
-                <option key={maker.id} value={maker.id}>
-                  {maker.displayName}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="block text-sm font-medium text-slate-200">
-            Relationship
-            <input
-              name="relationship"
-              required
-              maxLength={80}
-              value={relationship}
-              onChange={(event) => setRelationship(event.target.value)}
-              className={fieldClassName}
-              placeholder="e.g. Sister"
-            />
-          </label>
-        </>
-      ) : (
-        <>
-          <label className="block text-sm font-medium text-slate-200">
-            Name
-            <input
-              name="name"
-              required
-              maxLength={120}
-              className={fieldClassName}
-              placeholder="Enter their name"
-            />
-          </label>
-          <label className="block text-sm font-medium text-slate-200">
-            Relationship
-            <input
-              name="relationship"
-              required
-              maxLength={80}
-              value={relationship}
-              onChange={(event) => setRelationship(event.target.value)}
-              className={fieldClassName}
-              placeholder="e.g. Grandmother"
-            />
-          </label>
-          {memberType === "placeholder" && (
-            <>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <label className="block text-sm font-medium text-slate-200">
-                  Birth Year <span className="text-slate-500">(Optional)</span>
-                  <input
-                    name="birthYear"
-                    type="number"
-                    min="1000"
-                    max="9999"
-                    step="1"
-                    className={fieldClassName}
-                    placeholder="e.g. 1942"
-                  />
-                </label>
-                <label className="block text-sm font-medium text-slate-200">
-                  Death Year <span className="text-slate-500">(Optional)</span>
-                  <input
-                    name="deathYear"
-                    type="number"
-                    min="1000"
-                    max="9999"
-                    step="1"
-                    className={fieldClassName}
-                    placeholder="e.g. 2018"
-                  />
-                </label>
-              </div>
-              <label className="block text-sm font-medium text-slate-200">
-                Notes <span className="text-slate-500">(Optional)</span>
-                <textarea
-                  name="notes"
-                  maxLength={1000}
-                  rows={3}
-                  className={`${fieldClassName} py-3`}
-                  placeholder="Add a little context for future generations"
-                />
-              </label>
-              <p className="rounded-xl border border-[color:var(--nsg-accent)]/20 bg-[color:var(--nsg-accent)]/[0.05] p-4 text-sm leading-6 text-slate-300">
-                Family Placeholders do not have accounts, cannot log in, and
-                cannot receive email or notifications. They preserve family
-                connections in your Legacy Tree™.
-              </p>
-            </>
           )}
-        </>
-      )}
-
-      {position && position.generation > 0 && selectedTree && selectedTree.partners.length > 0 && (
-        <label className="block text-sm font-medium text-slate-200">
-          Family line
-          <select key={selectedTreeId} name="linePartner" defaultValue="owner" className={fieldClassName}>
-            <option value="owner">{selectedTree.ownerName}&apos;s family line</option>
-            {selectedTree.partners.map((partner) => (
-              <option key={`${partner.type}:${partner.id}`} value={`${partner.type}:${partner.id}`}>
-                {partner.name}&apos;s family line
-              </option>
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {people.map((person) => (
+              <button key={person.value} type="button" aria-pressed={reference === person.value}
+                className={choiceClassName} onClick={() => setReference(person.value)}>
+                {person.isMe ? "Me" : person.isPartner ? `My Spouse / Partner · ${person.name}` : person.name}
+              </button>
             ))}
-          </select>
-        </label>
+          </div>
+        </fieldset>
       )}
 
-      <button
-        type="submit"
-        disabled={isPending}
-        className="inline-flex min-h-12 items-center justify-center rounded-full bg-[color:var(--nsg-accent)] px-7 py-3 text-sm font-semibold text-[color:var(--nsg-background)] transition hover:bg-[color:var(--nsg-accent-hover)] disabled:cursor-wait disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]"
-      >
-        {isPending ? "Adding…" : "Add Family Member"}
-      </button>
-      <p
-        role="status"
-        aria-live="polite"
-        className={`min-h-6 text-sm ${state.error ? "text-rose-300" : "text-[color:var(--nsg-accent-light)]"}`}
-      >
-        {state.error ?? state.success ?? ""}
-      </p>
-      {state.success && state.treeId && (
-        <a
-          href={`#legacy-tree-item-${encodeURIComponent(state.treeId)}`}
-          className="inline-flex min-h-11 items-center text-sm font-semibold text-[color:var(--nsg-accent-light)] underline decoration-[color:var(--nsg-accent)]/40 underline-offset-4 hover:text-white"
-        >
-          View My Tree
-        </a>
+      {step === 2 && (
+        <fieldset>
+          <legend className="font-serif text-xl text-white">How is this person related to {relativeName}?</legend>
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {relationships.map((item) => (
+              <button key={item} type="button" aria-pressed={relationship === item}
+                className={choiceClassName} onClick={() => setRelationship(item)}>{item}</button>
+            ))}
+          </div>
+          {relationship === "Other" && (
+            <label className="mt-4 block text-sm text-slate-300">
+              Describe their relationship
+              <input value={otherRelationship} maxLength={80} onChange={(event) => setOtherRelationship(event.target.value)} className={fieldClassName} />
+            </label>
+          )}
+          {selectedRelationship && !positionRelationship(selectedRelationship) && (
+            <p className="mt-3 text-sm text-slate-400">This relationship will remain visible for review in the tree.</p>
+          )}
+        </fieldset>
       )}
+
+      {step === 3 && (
+        <fieldset className="space-y-4">
+          <legend className="font-serif text-xl text-white">What is their name?</legend>
+          <label className="block text-sm text-slate-300">First Name
+            <input value={firstName} maxLength={120} autoComplete="given-name" onChange={(event) => setFirstName(event.target.value)} className={fieldClassName} />
+          </label>
+          <label className="block text-sm text-slate-300">Last Name
+            <input value={lastName} maxLength={120} autoComplete="family-name" onChange={(event) => setLastName(event.target.value)} className={fieldClassName} />
+          </label>
+          {fullName.length > 120 && <p role="alert" className="text-sm text-rose-300">The full name must be 120 characters or fewer.</p>}
+        </fieldset>
+      )}
+
+      {step === 4 && (
+        <fieldset>
+          <legend className="font-serif text-xl text-white">Do they already have a Never Say Goodbye™ account?</legend>
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <button type="button" aria-pressed={accountChoice === "existing"} className={choiceClassName} onClick={() => setAccountChoice("existing")}>Yes</button>
+            <button type="button" aria-pressed={accountChoice === "placeholder"} className={choiceClassName} onClick={() => setAccountChoice("placeholder")}>No</button>
+          </div>
+          {accountChoice === "existing" && (
+            <div className="mt-5 space-y-3">
+              <label className="block text-sm text-slate-300">Find their Moment Maker™ account
+                <input value={searchName} maxLength={100} disabled={searching} onChange={(event) => {
+                  setSearchName(event.target.value);
+                  setResults(null);
+                  setSelectedAccount("");
+                }} className={fieldClassName} />
+              </label>
+              <button type="button" disabled={searching || !searchName.trim()} onClick={searchAccounts} className={buttonClassName}>
+                {searching ? "Searching…" : "Search"}
+              </button>
+              {searchError && <p role="alert" className="text-sm text-rose-300">{searchError}</p>}
+              {results && results.length === 0 && <p className="text-sm text-slate-400">No searchable accounts found. Try another name.</p>}
+              {results && results.length > 0 && (
+                <div className="grid gap-2">
+                  {results.map((result) => (
+                    <button key={result.id} type="button" aria-pressed={selectedAccount === result.id}
+                      className={choiceClassName} onClick={() => setSelectedAccount(result.id)}>{result.displayName}</button>
+                  ))}
+                </div>
+              )}
+              <p className="text-xs leading-5 text-slate-400">Adding them to this tree does not create a Connected Lives™ connection or share dates.</p>
+            </div>
+          )}
+          {accountChoice === "placeholder" && (
+            <p className="mt-4 text-sm text-slate-400">They won&apos;t need an account or receive notifications.</p>
+          )}
+          <button type="button" onClick={() => setAccountChoice("future")} className="mt-4 min-h-11 text-left text-sm text-[color:var(--nsg-accent-light)] underline underline-offset-4">
+            Add a Future Moment Maker™ instead
+          </button>
+          {accountChoice === "future" && <p className="text-sm text-slate-400">Create a Future Moment Maker™ for this person.</p>}
+        </fieldset>
+      )}
+
+      {step === 5 && (
+        <fieldset className="space-y-4">
+          <legend className="font-serif text-xl text-white">Add More Information <span className="text-sm text-slate-400">(Optional)</span></legend>
+          <label className="block text-sm text-slate-300">Birth Year
+            <input type="number" name="birthYear" min="1000" max="9999" step="1" value={birthYear} onChange={(event) => setBirthYear(event.target.value)} className={fieldClassName} />
+          </label>
+          <label className="block text-sm text-slate-300">Death Year
+            <input type="number" name="deathYear" min="1000" max="9999" step="1" value={deathYear} onChange={(event) => setDeathYear(event.target.value)} className={fieldClassName} />
+          </label>
+          <label className="block text-sm text-slate-300">Notes
+            <textarea name="notes" maxLength={1000} rows={3} value={notes} onChange={(event) => setNotes(event.target.value)} className={`${fieldClassName} py-3`} />
+          </label>
+        </fieldset>
+      )}
+
+      {state.error && <p role="alert" className="text-sm text-rose-300">{state.error}</p>}
+      <div className="flex flex-wrap gap-3">
+        {step > 1 && <button type="button" disabled={isPending || searching} className={choiceClassName} onClick={() => setStep(step - 1)}>Back</button>}
+        {step < 4 && (
+          <button type="button" className={buttonClassName}
+            disabled={step === 1 ? !selectedPerson : step === 2 ? !selectedRelationship : !firstName.trim() || !lastName.trim() || fullName.length > 120}
+            onClick={() => {
+              if (step === 3) {
+                setSearchName(fullName);
+                setResults(null);
+                setSelectedAccount("");
+                setSearchError("");
+              }
+              setStep(step + 1);
+            }}>Continue</button>
+        )}
+        {step === 4 && accountChoice === "placeholder" && <button type="button" className={buttonClassName} onClick={() => setStep(5)}>Continue</button>}
+        {step === 4 && (accountChoice === "existing" || accountChoice === "future") && (
+          <button type="submit" className={buttonClassName} disabled={isPending || (accountChoice === "existing" && !selectedAccount)}>
+            {isPending ? "Adding…" : "Add Family Member"}
+          </button>
+        )}
+        {step === 5 && (
+          <>
+            <button type="submit" className={buttonClassName} disabled={isPending}>{isPending ? "Adding…" : "Add Family Member"}</button>
+            <button type="submit" name="skipDetails" value="yes" formNoValidate className={choiceClassName} disabled={isPending}>Skip and Add</button>
+          </>
+        )}
+      </div>
     </form>
   );
 }

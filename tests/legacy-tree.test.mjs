@@ -63,7 +63,7 @@ test("tree page never renders the hard-coded example family", () => {
 
 test("guests and users without a tree receive the empty state", async () => {
   const sql = () => ({});
-  sql.transaction = async () => [[], [], [], [], [], []];
+  sql.transaction = async () => [[], [], [], [], []];
   for (const [user, createTarget, connectTarget] of [
     [null, "/signup", "/login"],
     [{ id: "owner" }, null, "/connected-lives"],
@@ -84,7 +84,6 @@ test("membership maps and tree navigation remain scoped and distinguish relation
   const sql = () => ({});
   sql.transaction = async () => [
     [{ id: "first", name: "First Tree", ownerId: "owner", ownerName: "Owner" }, { id: "second tree", name: "Second Tree", ownerId: "other", ownerName: "Other Owner" }],
-    [],
     [{ id: "owner", treeId: "first", displayName: "Owner", relationship: "Family Member" }],
     [{ id: "future", treeId: "second tree", name: "Future Relative", relationship: "Child", status: "awaiting-claim" }],
     [{ id: "placeholder", treeId: "first", name: "Remembered Relative", relationship: "Grandparent", birthYear: null, deathYear: null, notes: null }],
@@ -112,7 +111,6 @@ test("a tree containing only the viewer invites them to add family", async () =>
   const sql = () => ({});
   sql.transaction = async () => [
     [{ id: "tree", name: "My Tree", ownerId: "owner", ownerName: "Owner" }],
-    [],
     [{ id: "owner", treeId: "tree", displayName: "Owner", relationship: "Family Member" }],
     [], [], [],
   ];
@@ -127,7 +125,6 @@ test("family generations are based on owner-relative labels, not entry order", a
   const sql = () => ({});
   sql.transaction = async () => [
     [{ id: "tree", name: "Family", ownerId: "owner", ownerName: "Owner" }],
-    [],
     [
       { id: "daughter", treeId: "tree", displayName: "Daughter", relationship: "Daughter" },
       { id: "owner", treeId: "tree", displayName: "Owner", relationship: null },
@@ -171,7 +168,7 @@ test("household connectors do not invent partners or child branches", async () =
   const render = async (members) => {
     sql.transaction = async () => [
       [{ id: "tree", name: "Family", ownerId: "owner", ownerName: "Owner" }],
-      [], members, [], [], [],
+      members, [], [], [],
     ];
     return renderFamily(familyComponent({ id: "owner" }, sql));
   };
@@ -182,7 +179,7 @@ test("household connectors do not invent partners or child branches", async () =
   assert.doesNotMatch(await render([owner, partner, secondPartner]), /data-tree-connector=/);
   sql.transaction = async () => [
     [{ id: "tree", name: "Family", ownerId: "owner", ownerName: "Owner" }],
-    [], [owner], [],
+    [owner], [],
     [{ id: "placeholder", treeId: "tree", name: "Remembered Partner", relationship: "Spouse" }],
     [],
   ];
@@ -193,7 +190,6 @@ test("parent and grandparent lines retain their owner or specific partner", asyn
   const sql = () => ({});
   sql.transaction = async () => [
     [{ id: "tree", name: "Family", ownerId: "owner", ownerName: "Alex" }],
-    [],
     [
       { id: "owner", treeId: "tree", displayName: "Alex", relationship: null },
       { id: "partner", treeId: "tree", displayName: "Sam", relationship: "Spouse" },
@@ -209,9 +205,33 @@ test("parent and grandparent lines retain their owner or specific partner", asyn
   assert.match(html, /Alex&#x27;s Parents<\/h3>[\s\S]*?Owner Father[\s\S]*?Owner Mother/);
   assert.match(html, /Sam&#x27;s Parents<\/h3>[\s\S]*?Partner Mother/);
   assert.match(html, /Sam&#x27;s Grandparents<\/h3>[\s\S]*?Partner Grandparent/);
-  assert.match(html, /Partner \(unavailable\)&#x27;s Parents<\/h3>[\s\S]*?Other Parent/);
+  assert.match(html, /Relationships to review[\s\S]*?Other Parent[\s\S]*?unavailable family member/);
   assert.doesNotMatch(html, /Link a written moment to this person/);
   assert.match(html, /Create a moment/);
+});
+
+test("relationships are positioned relative to the selected person and unresolved references stay visible", async () => {
+  const sql = () => ({});
+  sql.transaction = async () => [
+    [{ id: "tree", name: "Family", ownerId: "owner", ownerName: "Alex" }],
+    [
+      { id: "owner", treeId: "tree", displayName: "Alex", relationship: null },
+      { id: "child", treeId: "tree", displayName: "Courtney", relationship: "Daughter" },
+      { id: "grandmother", treeId: "tree", displayName: "Grandmother", relationship: "Grandmother", linePartnerType: "member", linePartnerId: "child" },
+      { id: "mother", treeId: "tree", displayName: "Courtney Mother", relationship: "Mother", linePartnerType: "member", linePartnerId: "child" },
+      { id: "unknown", treeId: "tree", displayName: "Unknown", relationship: "Cousin" },
+      { id: "dependent", treeId: "tree", displayName: "Dependent", relationship: "Child", linePartnerType: "member", linePartnerId: "unknown" },
+      { id: "cycle1", treeId: "tree", displayName: "Cycle One", relationship: "Parent", linePartnerType: "member", linePartnerId: "cycle2" },
+      { id: "cycle2", treeId: "tree", displayName: "Cycle Two", relationship: "Child", linePartnerType: "member", linePartnerId: "cycle1" },
+    ],
+    [], [], [],
+  ];
+  const html = await renderFamily(familyComponent({ id: "owner" }, sql));
+  assert.match(html, /Courtney&#x27;s Grandparents<\/h3>[\s\S]*?Grandmother/);
+  assert.match(html, /Courtney&#x27;s Parents<\/h3>[\s\S]*?Courtney Mother/);
+  assert.ok(html.indexOf("Courtney&#x27;s Grandparents") < html.indexOf("Your household"));
+  const review = html.slice(html.indexOf("Relationships to review"));
+  for (const name of ["Unknown", "Dependent", "Cycle One", "Cycle Two"]) assert.ok(review.includes(name));
 });
 
 test("family line migration keeps existing relatives on the owner line", {
@@ -262,51 +282,115 @@ test("only recognizable relationship labels receive a generation", () => {
   }
 });
 
-test("add confirmation links to the tree returned by the server", () => {
-  const renderForm = (state, memberType = "placeholder") => {
-    const component = loadModule("app/legacy-tree/family-member-form.tsx", {
-      "react/jsx-runtime": jsxRuntime,
-      "@/lib/tree-positioning": loadModule("lib/tree-positioning.ts", {}),
-      react: {
-        ...React,
-        useState: () => [memberType, () => {}],
-        useActionState: () => [state, () => {}, false],
-      },
-      "@/app/actions/family-tree": { addFamilyMember: () => {} },
-    }).default;
-    return renderToStaticMarkup(React.createElement(component, {
-      trees: [{ id: "first", name: "First Tree" }, { id: "second tree", name: "Second Tree" }],
-      momentMakers: [],
-    }));
-  };
-  assert.match(renderForm({ success: "Added", treeId: "second tree" }), /href="#legacy-tree-item-second%20tree"[^>]*>View My Tree/);
-  assert.doesNotMatch(renderForm({ error: "Cannot add" }), /View My Tree/);
-  assert.match(renderForm({}, "existing"), /does not create a Connected Lives™ connection or automatically share dates/);
-});
-
-test("ancestor form offers family lines only for the selected tree", () => {
-  let stateIndex = 0;
+function wizard({ userId = "owner", state = {}, search = async () => ({ results: [] }) } = {}) {
+  const values = [];
+  let index = 0;
+  let pending;
   const component = loadModule("app/legacy-tree/family-member-form.tsx", {
     "react/jsx-runtime": jsxRuntime,
     "@/lib/tree-positioning": loadModule("lib/tree-positioning.ts", {}),
     react: {
       ...React,
-      useState: () => [["placeholder", "second", "Mother"][stateIndex++], () => {}],
-      useActionState: () => [{}, () => {}, false],
+      useState: (initial) => {
+        const i = index++;
+        if (!(i in values)) values[i] = initial;
+        return [values[i], (value) => { values[i] = value; }];
+      },
+      useTransition: () => [false, (callback) => { pending = callback(); }],
+      useActionState: () => [state, () => {}, false],
     },
-    "@/app/actions/family-tree": { addFamilyMember: () => {} },
+    "@/app/actions/family-tree": { addFamilyMember: () => {}, searchFamilyMomentMakers: search },
   }).default;
-  const html = renderToStaticMarkup(React.createElement(component, {
+  const props = {
+    userId,
     trees: [
-      { id: "first", name: "First", ownerName: "Alex", partners: [{ type: "member", id: "wrong", name: "Other" }] },
-      { id: "second", name: "Second", ownerName: "Sam", partners: [{ type: "placeholder", id: "partner", name: "Jamie" }] },
+      { id: "first", name: "First", ownerId: "owner", ownerName: "Alex", people: [
+        { type: "member", id: "viewer", name: "Viewer", isPartner: true },
+        { type: "future", id: "child", name: "Courtney", isPartner: false },
+      ] },
+      { id: "second", name: "Second", ownerId: "viewer", ownerName: "Viewer", people: [
+        { type: "placeholder", id: "partner", name: "Jamie", isPartner: true },
+      ] },
     ],
-    momentMakers: [],
-  }));
-  assert.match(html, /Sam&#x27;s family line/);
-  assert.match(html, /value="placeholder:partner"/);
-  assert.match(html, /Jamie&#x27;s family line/);
-  assert.doesNotMatch(html, /Other&#x27;s family line/);
+  };
+  function render() { index = 0; return component(props); }
+  function nodes(node = render()) {
+    if (!React.isValidElement(node)) return [];
+    return [node, ...React.Children.toArray(node.props.children).flatMap(nodes)];
+  }
+  function button(label) {
+    const node = nodes().find((item) => item.type === "button" && item.props.children === label);
+    assert.ok(node, `Missing button: ${label}`);
+    return node;
+  }
+  function input(name) {
+    const node = nodes().find((item) => item.type === "input" && item.props.name === name);
+    assert.ok(node, `Missing input: ${name}`);
+    return node;
+  }
+  return { render, nodes, button, input, wait: () => pending };
+}
+
+test("wizard preserves answers when going back and uses the selected person", () => {
+  const w = wizard();
+  assert.equal(w.input("relationshipTo").props.value, "owner");
+  w.button("My Spouse / Partner · Viewer").props.onClick();
+  w.button("Continue").props.onClick();
+  w.button("Father").props.onClick();
+  w.button("Continue").props.onClick();
+  let fields = w.nodes().filter((node) => node.type === "input" && node.props.onChange);
+  fields[0].props.onChange({ target: { value: "Robert" } });
+  fields[1].props.onChange({ target: { value: "Smith" } });
+  w.button("Back").props.onClick();
+  assert.equal(w.button("Father").props["aria-pressed"], true);
+  w.button("Continue").props.onClick();
+  assert.equal(w.input("name").props.value, "Robert Smith");
+  assert.equal(w.input("relationshipTo").props.value, "member:viewer");
+  w.button("Continue").props.onClick();
+  w.button("No").props.onClick();
+  w.button("Continue").props.onClick();
+  assert.ok(w.input("birthYear"));
+  assert.ok(w.button("Skip and Add"));
+  assert.equal(w.input("memberType").props.value, "placeholder");
+});
+
+test("wizard defaults Me to the signed-in member and limits options to the selected tree", () => {
+  const w = wizard({ userId: "viewer" });
+  assert.equal(w.input("relationshipTo").props.value, "member:viewer");
+  assert.ok(w.button("My Spouse / Partner · Alex"));
+  w.nodes().find((node) => node.type === "select").props.onChange({ target: { value: "second" } });
+  assert.equal(w.input("relationshipTo").props.value, "owner");
+  assert.ok(w.button("My Spouse / Partner · Jamie"));
+  assert.equal(w.nodes().some((node) => node.type === "button" && node.props.children === "Courtney"), false);
+});
+
+test("wizard searches for an existing account and clears old results after revisiting the name", async () => {
+  const w = wizard({ search: async (name) => ({ results: [{ id: "account", displayName: name }] }) });
+  w.button("Continue").props.onClick();
+  w.button("Mother").props.onClick();
+  w.button("Continue").props.onClick();
+  const fields = w.nodes().filter((node) => node.type === "input" && node.props.onChange);
+  fields[0].props.onChange({ target: { value: "Jane" } });
+  fields[1].props.onChange({ target: { value: "Doe" } });
+  w.button("Continue").props.onClick();
+  w.button("Yes").props.onClick();
+  w.button("Search").props.onClick();
+  await w.wait();
+  w.button("Jane Doe").props.onClick();
+  assert.equal(w.input("existingUserId").props.value, "account");
+  w.button("Back").props.onClick();
+  w.button("Continue").props.onClick();
+  assert.equal(w.input("existingUserId").props.value, "");
+  assert.equal(w.nodes().some((node) => node.type === "button" && node.props.children === "Jane Doe"), false);
+  w.button("Add a Future Moment Maker™ instead").props.onClick();
+  assert.equal(w.input("memberType").props.value, "future");
+  assert.equal(w.button("Add Family Member").props.disabled, false);
+});
+
+test("add confirmation links to the tree returned by the server", () => {
+  const w = wizard({ state: { success: "Added", treeId: "second tree" } });
+  const html = renderToStaticMarkup(w.render());
+  assert.match(html, /href="#legacy-tree-item-second%20tree"[^>]*>View My Tree/);
 });
 
 test("tree creation and membership-scoped display in disposable PostgreSQL", {
@@ -406,6 +490,11 @@ test("tree creation and membership-scoped display in disposable PostgreSQL", {
       })) form.set(key, value);
       return addActions.addFamilyMember({}, form);
     };
+    await db.query("UPDATE users SET discoverability = 'private' WHERE id = 'outsider'");
+    assert.equal((await addActions.searchFamilyMomentMakers("outsider")).results.length, 0);
+    assert.equal((await addActions.searchFamilyMomentMakers("%")).results.length, 0);
+    assert.ok((await addActions.searchFamilyMomentMakers("line-member")).results.some((result) => result.id === "line-member"));
+    assert.match((await add("existing", { existingUserId: "outsider" })).error, /unavailable/);
     const added = await add("existing", { existingUserId: "newmember" });
     assert.match(added.success, /added/);
     assert.equal(added.treeId, "second-tree");
@@ -439,10 +528,19 @@ test("tree creation and membership-scoped display in disposable PostgreSQL", {
       const result = await add(type, { ...extra, relationship: "Mother", linePartner });
       assert.ok(result.success, `${type} should be assigned to the partner line`);
     }
-    const invalid = await add("placeholder", { name: "Invalid", relationship: "Brother", linePartner });
-    assert.match(invalid.error, /parent or grandparent/);
+    const invalid = await add("placeholder", { name: "Invalid", relationship: "Brother", relationshipTo: "bad-value" });
+    assert.match(invalid.error, /valid person/);
     const wrongTree = await add("placeholder", { name: "Wrong Tree", relationship: "Mother", linePartner: "placeholder:placeholder" });
     assert.match(wrongTree.error, /not available/);
+    const childResult = await add("future", { name: "Courtney", relationship: "Daughter" });
+    assert.ok(childResult.success);
+    const [child] = (await db.query("SELECT id FROM future_moment_makers WHERE name = 'Courtney'")).rows;
+    const grandmother = await add("placeholder", {
+      name: "Courtney Grandmother", relationship: "Grandmother", relationshipTo: `future:${child.id}`,
+    });
+    assert.ok(grandmother.success);
+    const self = await add("existing", { existingUserId: "line-member", relationship: "Sibling", relationshipTo: "member:line-member" });
+    assert.match(self.error, /themselves/);
     for (const [table, column, value] of [
       ["legacy_tree_members", "user_id", "line-member"],
       ["future_moment_makers", "name", "Partner Future Parent"],
@@ -456,6 +554,7 @@ test("tree creation and membership-scoped display in disposable PostgreSQL", {
     assert.match(lineHtml, /Partner&#x27;s Parents<\/h3>[\s\S]*?Partner Future Parent/);
     assert.match(lineHtml, /Partner&#x27;s Parents<\/h3>[\s\S]*?Partner Parent/);
     assert.match(lineHtml, /relative&#x27;s Parents<\/h3>[\s\S]*?Owner Parent/);
+    assert.match(lineHtml, /Courtney&#x27;s Grandparents<\/h3>[\s\S]*?Courtney Grandmother/);
     user = { id: "outsider", displayName: "Outsider" };
     const denied = await add("placeholder", { name: "Unauthorized" });
     assert.match(denied.error, /tree you belong to/);
