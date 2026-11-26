@@ -96,8 +96,8 @@ test("membership maps and tree navigation remain scoped and distinguish relation
   assert.match(html, /href="#legacy-tree-item-second%20tree"/);
   assert.match(html, /id="legacy-tree-item-first" aria-label="First Tree"/);
   assert.match(html, /id="legacy-tree-item-second tree" aria-label="Second Tree"/);
-  assert.match(html, /People are grouped relative to the tree owner/);
-  assert.match(html, /may reflect another person&#x27;s perspective/);
+  assert.match(html, /Family members are grouped by generation\./);
+  assert.match(html, />Your household<\/h4>/);
   const first = html.slice(html.indexOf('id="legacy-tree-item-first"'), html.indexOf('id="legacy-tree-item-second tree"'));
   const second = html.slice(html.indexOf('id="legacy-tree-item-second tree"'), html.indexOf('id="family-members"'));
   assert.match(first, /Owner/);

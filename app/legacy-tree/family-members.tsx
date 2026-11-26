@@ -233,13 +233,13 @@ async function FamilyMembersForUser({ userId }: { userId: string }) {
                   Family generations
                 </h3>
                 <p className="mx-auto mt-3 max-w-2xl text-center text-sm leading-6 text-slate-400">
-                  People are grouped relative to the tree owner. Labels may reflect another person&apos;s perspective; individual family connections are not shown.
+                  Family members are grouped by generation.
                 </p>
                 {layout.generations.map(({ generation, members }, index) => (
                   <div key={generation}>
                     {index > 0 && <div aria-hidden="true" className="mx-auto h-6 w-px bg-[color:var(--nsg-accent)]/40" />}
                     <h4 className="mt-4 text-center text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
-                      {generation === 2 ? "Grandparents" : generation === 1 ? "Parents" : generation === 0 ? "Owner's generation" : generation === -1 ? "Children" : "Grandchildren"}
+                      {generation === 2 ? "Grandparents" : generation === 1 ? "Parents" : generation === 0 ? "Your household" : generation === -1 ? "Children" : "Grandchildren"}
                     </h4>
                     <div className="overflow-x-auto">
                       <ul className="mx-auto mt-3 flex w-max gap-3">
