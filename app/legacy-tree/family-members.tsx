@@ -266,9 +266,12 @@ async function FamilyMembersForUser({ userId }: { userId: string }) {
           );
 
           function renderPerson(person: (typeof layout.generations)[number]["members"][number], needsReview: boolean) {
-            const notice = person.isOwner ? null : (
+            const autoNotice = !person.isOwner && !needsReview && (
+              <p className="mt-1 text-xs text-slate-400">Auto Placed</p>
+            );
+            const reviewNotice = !person.isOwner && needsReview && (
               <p className="mt-3 text-xs leading-5 text-slate-400">
-                {needsReview ? "Relationship needs review." : "This relationship was automatically positioned based on its label."}
+                Relationship needs review.
               </p>
             );
             if (person.kind === "member") {
@@ -282,7 +285,8 @@ async function FamilyMembersForUser({ userId }: { userId: string }) {
                       <p className="mt-1 text-sm text-slate-400">
                         {person.isOwner ? (member.id === userId ? "Tree owner · You" : "Tree owner") : member.id === userId ? `You · ${member.relationship || "Family Member"}` : member.relationship || "Family Member"}
                       </p>
-                      {notice}
+                      {autoNotice}
+                      {reviewNotice}
                     </li>
               );
             }
@@ -295,10 +299,11 @@ async function FamilyMembersForUser({ userId }: { userId: string }) {
                       </span>
                       <p className="mt-3 font-serif text-lg text-white">{member.name}</p>
                       <p className="mt-1 text-sm text-slate-400">{member.relationship}</p>
+                      {autoNotice}
                       <p className="mt-2 text-xs text-[color:var(--nsg-accent-light)]">
                         {member.status === "claimed" ? "Claimed" : "Awaiting Claim"}
                       </p>
-                      {notice}
+                      {reviewNotice}
                     </li>
               );
             }
@@ -317,6 +322,7 @@ async function FamilyMembersForUser({ userId }: { userId: string }) {
                         {member.birthYear || member.deathYear
                           ? ` · ${member.birthYear ?? "?"}–${member.deathYear ?? "?"}` : ""}
                       </p>
+                      {autoNotice}
                       {member.isHonored && (member.birthDate || member.passingDate) && (
                         <p className="mt-2 text-sm text-slate-400">
                           {member.birthDate && `Born: ${member.birthDate}`}
@@ -351,7 +357,7 @@ async function FamilyMembersForUser({ userId }: { userId: string }) {
                       <Link href="/create-moment" className="mt-2 inline-block text-xs font-medium text-[color:var(--nsg-accent-light)] underline decoration-[color:var(--nsg-accent)]/40 underline-offset-4 hover:text-white">
                         Create a moment
                       </Link>
-                      {notice}
+                      {reviewNotice}
                     </li>
             );
           }

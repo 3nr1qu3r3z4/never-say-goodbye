@@ -149,7 +149,11 @@ test("family generations are based on owner-relative labels, not entry order", a
   assert.deepEqual(positions, [...positions].sort((a, b) => a - b));
   assert.match(html, /Tree owner<\/p>/);
   assert.match(html, /You · Brother/);
-  assert.match(html, /This relationship was automatically positioned based on its label/);
+  for (const relationship of ["Wife", "Grandchild", "Grandmother"]) {
+    assert.match(html, new RegExp(`>${relationship}</p><p class="mt-1 text-xs text-slate-400">Auto Placed</p>`));
+  }
+  assert.equal((html.match(/>Auto Placed<\/p>/g) ?? []).length, 7);
+  assert.doesNotMatch(html, /This relationship was automatically positioned based on its label/);
   assert.match(html, /Relationships to review/);
   assert.match(html, /Relationship needs review/);
   assert.match(html, /Future Moment Maker™/);
