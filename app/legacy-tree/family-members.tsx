@@ -229,18 +229,12 @@ async function FamilyMembersForUser({ userId }: { userId: string }) {
               </div>
               <div aria-hidden="true" className="mx-auto h-8 w-px bg-[color:var(--nsg-accent)]/50" />
               <div className="rounded-3xl border border-[color:var(--nsg-accent)]/25 bg-slate-950/20 p-4 sm:p-6">
-                <h3 className="text-center text-sm font-semibold uppercase tracking-[0.16em] text-slate-300">
-                  Family generations
-                </h3>
-                <p className="mx-auto mt-3 max-w-2xl text-center text-sm leading-6 text-slate-400">
-                  Family members are grouped by generation.
-                </p>
                 {layout.generations.map(({ generation, members }, index) => (
                   <div key={generation}>
                     {index > 0 && <div aria-hidden="true" className="mx-auto h-6 w-px bg-[color:var(--nsg-accent)]/40" />}
-                    <h4 className="mt-4 text-center text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
+                    <h3 className="mt-4 text-center text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
                       {generation === 2 ? "Grandparents" : generation === 1 ? "Parents" : generation === 0 ? "Your household" : generation === -1 ? "Children" : "Grandchildren"}
-                    </h4>
+                    </h3>
                     <div className="overflow-x-auto">
                       <ul className="mx-auto mt-3 flex w-max gap-3">
                         {members.map((person) => renderPerson(person, false))}
@@ -250,7 +244,7 @@ async function FamilyMembersForUser({ userId }: { userId: string }) {
                 ))}
                 {layout.unpositioned.length > 0 && (
                   <div className="mt-8">
-                    <h4 className="text-center text-sm font-semibold text-slate-300">Relationships to review</h4>
+                    <h3 className="text-center text-sm font-semibold text-slate-300">Relationships to review</h3>
                     <p className="mt-2 text-center text-sm text-slate-400">These labels could not be positioned confidently. Everyone remains visible here.</p>
                     <ul className="mt-3 flex flex-wrap justify-center gap-3">
                       {layout.unpositioned.map((person) => renderPerson(person, true))}
