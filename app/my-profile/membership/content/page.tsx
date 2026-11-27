@@ -3,7 +3,10 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { getSql } from "@/lib/db";
 import { cannotOpenUntilEnabled } from "@/lib/cannot-open-until";
+import { momentBorderClassName } from "@/lib/moment-card-style";
+import type { Audience, MomentKind } from "@/lib/moment-types";
 import ArchiveButton from "./archive-button";
+import DeleteMomentButton from "./delete-moment-button";
 
 export const metadata: Metadata = { title: "Manage Content | Never Say Goodbye" };
 export const instant = false;
@@ -11,7 +14,9 @@ export const instant = false;
 type Moment = {
   id: string;
   title: string;
-  kind: string;
+  kind: MomentKind;
+  audience: Audience;
+  hasAccessCode: boolean;
   archived: boolean;
   hasStory: boolean;
   hasPhoto: boolean;
@@ -24,7 +29,8 @@ export default async function ManageContentPage() {
   const user = await requireUser();
   const sql = getSql();
   const [moments, makers] = await Promise.all([
-    sql`SELECT m.id, m.title, m.kind, (m.archived_at IS NOT NULL) AS archived,
+    sql`SELECT m.id, m.title, m.kind, m.audience, (m.access_code_hash IS NOT NULL) AS "hasAccessCode",
+               (m.archived_at IS NOT NULL) AS archived,
                (m.story !~ '^[[:space:]]*$') AS "hasStory",
                (COALESCE(m.details_json::jsonb ->> 'photoData', '') <> '') AS "hasPhoto",
                EXISTS (SELECT 1 FROM moment_videos v WHERE v.moment_id = m.id AND v.state = 'attached') AS "hasVideo",
@@ -48,7 +54,7 @@ export default async function ManageContentPage() {
           <p className="mt-2 text-sm text-slate-400">Shared, Personal, Cannot Open Until™ and Future Moment Maker™ Moments are listed here.</p>
           {cannotOpenUntilEnabled(user.id) && <Link href="/cannot-open-until" className="mt-3 inline-block text-sm font-semibold text-[color:var(--nsg-accent-light)] underline">Manage Cannot Open Until™ Moments</Link>}
           {(moments as Moment[]).length ? <ul className="mt-4 space-y-3">
-            {(moments as Moment[]).map((moment) => <li key={moment.id} className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5">
+            {(moments as Moment[]).map((moment) => <li key={moment.id} className={`flex flex-wrap items-center justify-between gap-4 rounded-2xl border ${momentBorderClassName(moment.kind, moment.audience, moment.hasAccessCode)} bg-white/[0.03] p-5`}>
               <div><p className="break-words font-semibold text-white">{moment.title}</p>
                 <p className="mt-1 text-sm capitalize text-slate-400">{moment.kind.replaceAll("-", " ")} · {moment.archived ? "Archived" : "Active"}</p>
                 <p className="mt-1 text-sm text-slate-400">{[
@@ -57,8 +63,11 @@ export default async function ManageContentPage() {
                 ].filter(Boolean).join(" · ") || "No counted media or story"}</p>
                 {cannotOpenUntilEnabled(user.id) && moment.kind === "cannot-open-until" && <Link href={`/cannot-open-until/${encodeURIComponent(moment.id)}`} className="mt-2 inline-block text-sm text-[color:var(--nsg-accent-light)] underline">Manage this Moment</Link>}
               </div>
-              <ArchiveButton id={moment.id} name={moment.title} kind="moment" archived={moment.archived}
-                warnOnRestore={cannotOpenUntilEnabled(user.id) && moment.kind === "cannot-open-until"} />
+              <div className="flex shrink-0 flex-col items-stretch gap-2">
+                <ArchiveButton id={moment.id} name={moment.title} kind="moment" archived={moment.archived}
+                  warnOnRestore={cannotOpenUntilEnabled(user.id) && moment.kind === "cannot-open-until"} />
+                <DeleteMomentButton id={moment.id} name={moment.title} />
+              </div>
             </li>)}
           </ul> : <p className="mt-4 text-sm text-slate-400">You have no published Moments yet.</p>}
         </section>

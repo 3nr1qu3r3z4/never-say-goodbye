@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { cannotOpenUntilEnabled } from "@/lib/cannot-open-until";
 import { getSql } from "@/lib/db";
+import { restrictedMomentBorder } from "@/lib/moment-card-style";
 
 export const instant = false;
 
@@ -42,7 +43,7 @@ export default async function TimeCapsulesPage() {
       ].map((group) => <section key={group.title} className="mt-10">
         <h2 className="font-serif text-2xl text-white">{group.title}</h2>
         {group.items.length ? <ul className="mt-4 space-y-3">{group.items.map((item) =>
-          <li key={item.id} className="rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5">
+          <li key={item.id} className={`rounded-2xl border ${restrictedMomentBorder} bg-white/[0.03] p-5`}>
             <Link href={`/cannot-open-until/${encodeURIComponent(item.id)}`} className="break-words font-semibold text-[color:var(--nsg-accent-light)] hover:underline">{item.title}</Link>
             <p className="mt-2 text-sm text-slate-400">{item.review ? "Review Required" : item.released ? "Released · Read-only" : "Scheduled"}{item.archived ? " · Archived" : ""}</p>
             {!item.review && <p className="mt-1 text-sm text-slate-400">{item.recipient ? `Recipient: ${item.recipient}${item.hasAccess ? "" : " · Awaiting claim or re-authorization"}` : "Recipient unavailable — owner review required"}</p>}

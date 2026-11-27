@@ -49,25 +49,15 @@ export default function ProtectedMoment({ title }: { title: string }) {
       <button
         type="button"
         onClick={() => setDialogOpen(true)}
-        className="group w-full overflow-hidden rounded-2xl border border-[color:var(--nsg-accent)]/20 bg-slate-900 text-left transition hover:-translate-y-1 hover:border-[color:var(--nsg-accent)]/50 hover:shadow-lg hover:shadow-[color:var(--nsg-accent)]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]"
+        className="group w-full overflow-hidden rounded-2xl border border-[#d8a35b]/50 bg-slate-900 text-left transition hover:-translate-y-1 hover:shadow-lg hover:shadow-[color:var(--nsg-accent)]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]"
       >
         <span className="relative block h-36 overflow-hidden">
           <span
             aria-hidden="true"
             className="absolute inset-0 scale-110 bg-gradient-to-br from-[color:var(--nsg-accent)]/25 via-slate-700 to-[color:var(--nsg-background)] blur-xl"
           />
-          <span
-            aria-hidden="true"
-            className="absolute inset-0 flex items-center justify-center text-3xl text-white/70"
-          >
-            🔒
-          </span>
-          <span className="absolute bottom-3 right-4 text-xs uppercase tracking-[0.18em] text-[color:var(--nsg-accent-light)]">
-            Sealed
-          </span>
         </span>
         <span className="flex items-center gap-2 px-5 py-4 font-serif text-lg text-white">
-          <span aria-hidden="true">🔒</span>
           {title}
         </span>
       </button>

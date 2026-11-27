@@ -1,9 +1,11 @@
 import "server-only";
 
 import { getSql } from "@/lib/db";
+import type { Audience } from "@/lib/moment-types";
 
 export type AccessibleMoment = {
   id: string;
+  audience: Audience;
   title: string;
   story: string;
   tags: string;
@@ -25,7 +27,7 @@ export type AccessibleMoment = {
 async function findAccessibleMoments(viewerId: string | null, momentId: string | null, includePhoto: boolean, familyActivity = false, profileAuthorId: string | null = null, ownerOnly = false, searchTerm: string | null = null) {
   const sql = getSql();
   return (await sql`
-    SELECT m.id, m.title, m.story, m.tags,
+    SELECT m.id, m.audience, m.title, m.story, m.tags,
            m.details_json::jsonb ->> 'writtenMessage' AS "writtenMessage",
            m.details_json::jsonb -> 'attachmentNames' ->> 'photo' AS "photoName",
            CASE WHEN ${momentId}::text IS NOT NULL AND ${includePhoto}::boolean

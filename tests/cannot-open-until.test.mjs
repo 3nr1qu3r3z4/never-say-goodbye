@@ -12,6 +12,47 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 
+test("owner and recipient Moment listings use the restricted border", async () => {
+  const load = (file, deps) => {
+    const source = fs.readFileSync(path.join(root, file), "utf8");
+    const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+    const exports = {};
+    vm.runInNewContext(code, { exports, require: (name) => {
+      if (!(name in deps)) throw new Error(`Unexpected import: ${name}`);
+      return deps[name];
+    } });
+    return exports;
+  };
+  const common = {
+    "react/jsx-runtime": jsxRuntime,
+    "next/link": { default: ({ children, href }) => React.createElement("a", { href }, children) },
+    "next/navigation": { notFound: () => { throw new Error("not found"); } },
+    "@/lib/auth": { requireUser: async () => ({ id: "owner" }) },
+    "@/lib/moment-card-style": load("lib/moment-card-style.ts", {}),
+  };
+  const ownerPage = load("app/cannot-open-until/page.tsx", {
+    ...common,
+    "@/lib/cannot-open-until": { cannotOpenUntilEnabled: () => true },
+    "@/lib/db": { getSql: () => async () => [{ id: "one", title: "Owner Moment", review: true }] },
+  }).default;
+  const inboxPage = load("app/cannot-open-until/inbox/page.tsx", {
+    ...common,
+    "@/lib/cannot-open-until": { cannotOpenUntilEnabled: () => true, getReceivedTimeCapsules: async () =>
+      [{ id: "two", title: "Received Moment", sender: "Sender", released: false, unlockAt: "2027-01-01", releaseTimezone: "UTC" }] },
+    "@/lib/time-capsule-schedule": { formatTimeCapsuleInstant: () => "January 1" },
+  }).default;
+  const futurePage = load("app/future-moment-maker/[id]/page.tsx", {
+    ...common,
+    "@/lib/db": { getSql: () => async (strings) => strings.join("").includes("SELECT f.name")
+      ? [{ name: "Future", relationship: "Child", status: "claimed", createdAt: "2026-01-01" }]
+      : [{ id: "three", title: "Future Moment", kind: "future-moment-maker", audience: "private", hasAccessCode: false }] },
+  }).default;
+  for (const [page, title] of [[ownerPage, "Owner Moment"], [inboxPage, "Received Moment"], [futurePage, "Future Moment"]]) {
+    const html = renderToStaticMarkup(await page({ params: Promise.resolve({ id: "future" }) }));
+    assert.match(html, new RegExp(`border-\\[#d8a35b\\]/50[^"]*"[^>]*>[^]*?${title}`));
+  }
+});
+
 test("legacy Moments remain inactive and disconnected recipients require reassignment", {
   skip: process.env.CANNOT_OPEN_TEST_PGLITE ? false : "Set CANNOT_OPEN_TEST_PGLITE to an installed PGlite package path.",
 }, async () => {
@@ -287,6 +328,7 @@ test("recipient pages show only metadata while locked and reauthorize released c
     "next/image": { default: ({ src, alt }) => React.createElement("img", { src, alt }) },
     "next/navigation": { notFound: () => { throw new Error("not found"); } },
     "./locked-countdown": { default: ({ unlockAt }) => React.createElement("p", null, `Countdown to ${unlockAt}`) },
+    "@/lib/moment-card-style": { restrictedMomentBorder: "border-[#d8a35b]/50" },
     "@/lib/time-capsule-schedule": { formatTimeCapsuleInstant: (instant) => instant.slice(0, 10) },
     "@/lib/auth": { requireUser: async () => ({ id: "recipient" }) },
     "@/lib/cannot-open-until": {

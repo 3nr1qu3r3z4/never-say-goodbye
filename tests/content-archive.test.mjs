@@ -47,17 +47,30 @@ test("owner management page identifies counted contents and explains legacy reco
       return user;
     } },
     "@/lib/cannot-open-until": { cannotOpenUntilEnabled: () => false },
+    "@/lib/moment-card-style": loadModule("lib/moment-card-style.ts", {}),
     "@/lib/db": { getSql: () => async (strings, ...values) => {
       calls.push(values);
       return strings.join("").includes("FROM moments")
-        ? [{ id: "moment", title: "Family day", kind: "shared", archived: false, hasStory: true, hasPhoto: true, hasAudio: true, hasVideo: true }]
+        ? [{ id: "moment", title: "Family day", kind: "shared", audience: "public", archived: false, hasStory: true, hasPhoto: true, hasAudio: true, hasVideo: true },
+           { id: "archived", title: "Old Moment", kind: "personal", audience: "private", archived: true },
+           { id: "future", title: "Future Moment", kind: "future-moment-maker", audience: "public", archived: false },
+           { id: "capsule", title: "Scheduled Moment", kind: "cannot-open-until", audience: "public", archived: false },
+           { id: "code", title: "Code Moment", kind: "personal", audience: "public", hasAccessCode: true, archived: false }]
         : [{ id: "old", name: "Older record", archived: true, legacyArchived: true }];
     } },
     "./archive-button": { default: ({ name, archived }) => React.createElement("button", null, `${archived ? "Restore" : "Archive"} ${name}`) },
+    "./delete-moment-button": { default: ({ name }) => React.createElement("button", null, `Delete ${name}`) },
   }).default;
   const html = renderToStaticMarkup(await page());
   assert.match(html, /Story · Photo · Video · Audio/);
   assert.match(html, /Archive Family day/);
+  assert.match(html, /Delete Family day/);
+  assert.match(html, /Restore Old Moment.*Delete Old Moment/);
+  assert.match(html, /border-\[color:var\(--nsg-border\)\]\/10[^"]*"[^>]*><div><p[^>]*>Family day/);
+  assert.match(html, /border-\[#d8a35b\]\/50[^"]*"[^>]*><div><p[^>]*>Old Moment/);
+  for (const title of ["Future Moment", "Scheduled Moment", "Code Moment"]) {
+    assert.match(html, new RegExp(`border-\\[#d8a35b\\]/50[^"]*"[^>]*><div><p[^>]*>${title}`));
+  }
   assert.match(html, /Restore Older record/);
   assert.match(html, /original status is unavailable.*Awaiting Claim/);
   assert.match(html, /Related Moments remain active/);

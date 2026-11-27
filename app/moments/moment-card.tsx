@@ -1,16 +1,17 @@
 import Image from "next/image";
 import type { AccessibleMoment } from "@/lib/moment-access";
+import { momentBorderClassName } from "@/lib/moment-card-style";
 import MomentActionsMenu from "./moment-actions-menu";
 import VideoPreview from "./video-preview";
 
 type CardMoment = Pick<AccessibleMoment,
-  "id" | "title" | "story" | "writtenMessage" | "hasVideo" | "hasAudio" | "hasPhoto" | "authorName" | "isAuthor"
+  "id" | "audience" | "title" | "story" | "writtenMessage" | "hasVideo" | "hasAudio" | "hasPhoto" | "authorName" | "isAuthor"
 >;
 
 export default function MomentCard({ moment }: { moment: CardMoment }) {
   const text = moment.story.trim() || moment.writtenMessage?.trim();
   return (
-    <li className="relative rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03]">
+    <li className={`relative rounded-2xl border ${momentBorderClassName("shared", moment.audience)} bg-white/[0.03]`}>
       <MomentActionsMenu momentId={moment.id} title={moment.title} isAuthor={moment.isAuthor} />
       <a
         href={`/moments/${encodeURIComponent(moment.id)}`}

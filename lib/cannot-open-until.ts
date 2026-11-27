@@ -22,7 +22,7 @@ export async function getAccessibleTimeCapsule(viewerId: string | null, momentId
       WHERE m.id = ${momentId} AND (m.user_id = ${viewerId} OR s.recipient_user_id = ${viewerId})
       FOR SHARE OF s`,
     sql`
-    SELECT m.id, m.title, m.story, m.tags,
+    SELECT m.id, m.audience, m.title, m.story, m.tags,
            m.details_json::jsonb ->> 'writtenMessage' AS "writtenMessage",
            m.details_json::jsonb -> 'attachmentNames' ->> 'photo' AS "photoName",
            m.details_json::jsonb ->> 'photoData' AS "photoData",

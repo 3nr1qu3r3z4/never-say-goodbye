@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
+import { momentBorderClassName } from "@/lib/moment-card-style";
 import { getSql } from "@/lib/db";
 import { getPublicProfileSharedMoments } from "@/lib/moment-access";
 import ProfileLocations from "@/app/profile-locations";
@@ -41,6 +42,7 @@ type Moment = {
   title: string;
   kind: "shared" | "personal";
   audience: "public" | "connections" | "family" | "private";
+  hasAccessCode: boolean;
 };
 
 type Connection = {
@@ -94,7 +96,7 @@ export default async function MyProfilePreviewPage() {
       LIMIT 1
     `,
     sql`
-      SELECT id, title, kind, audience
+      SELECT id, title, kind, audience, (access_code_hash IS NOT NULL) AS "hasAccessCode"
       FROM moments
       WHERE user_id = ${user.id}
         AND kind = 'personal'
@@ -315,13 +317,10 @@ export default async function MyProfilePreviewPage() {
               {personalMoments.map((moment) => (
                 <article
                   key={moment.id}
-                  className="rounded-2xl border border-[color:var(--nsg-accent)]/20 bg-white/[0.03] p-6"
+                  className={`rounded-2xl border ${momentBorderClassName(moment.kind, moment.audience, moment.hasAccessCode)} bg-white/[0.03] p-6`}
                 >
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--nsg-accent)]">
-                    Private Moment
-                  </p>
-                  <h3 className="mt-3 font-serif text-xl text-white">
-                    🔒 {moment.title}
+                  <h3 className="font-serif text-xl text-white">
+                    {moment.title}
                   </h3>
                 </article>
               ))}

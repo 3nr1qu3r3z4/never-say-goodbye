@@ -34,6 +34,7 @@ const ProfileLocations = loadModule("app/profile-locations.tsx", {
 
 const MomentCard = loadModule("app/moments/moment-card.tsx", {
   "react/jsx-runtime": jsxRuntime,
+  "@/lib/moment-card-style": loadModule("lib/moment-card-style.ts", {}),
   "next/image": { default: ({ src, alt }) => React.createElement("img", { src, alt }) },
   "./moment-actions-menu": { default: ({ momentId, isAuthor }) =>
     React.createElement("button", { "data-owner": String(isAuthor) }, `Actions for ${momentId}`) },
@@ -57,6 +58,7 @@ const basicDependencies = {
   "@/app/profile-locations": { default: ProfileLocations },
   "@/app/moments/moment-card": { default: MomentCard },
   "@/lib/moment-access": { getPublicProfileSharedMoments: async () => [] },
+  "@/lib/moment-card-style": loadModule("lib/moment-card-style.ts", {}),
   "@/lib/frequent-visits": { frequentVisitsEnabled: () => false },
   "./visit-tracker": { default: () => null },
 };
@@ -118,9 +120,9 @@ test("profile Shared Moments use the shared cards and respect profile visibility
     "@/lib/moment-access": { getPublicProfileSharedMoments: async (viewer, author) => {
       calls.push([viewer, author]);
       return [
-        { id: "photo", title: "Photo story", story: "", writtenMessage: null, hasPhoto: true, hasVideo: false, authorName: "Jane", isAuthor: viewer === author },
-        { id: "video", title: "Family video", story: "", writtenMessage: null, hasPhoto: false, hasVideo: true, authorName: "Jane", isAuthor: viewer === author },
-        { id: "text", title: "Text story", story: "A family memory.", writtenMessage: null, hasPhoto: false, hasVideo: false, authorName: "Jane", isAuthor: viewer === author },
+        { id: "photo", audience: "public", title: "Photo story", story: "", writtenMessage: null, hasPhoto: true, hasVideo: false, authorName: "Jane", isAuthor: viewer === author },
+        { id: "video", audience: "public", title: "Family video", story: "", writtenMessage: null, hasPhoto: false, hasVideo: true, authorName: "Jane", isAuthor: viewer === author },
+        { id: "text", audience: "public", title: "Text story", story: "A family memory.", writtenMessage: null, hasPhoto: false, hasVideo: false, authorName: "Jane", isAuthor: viewer === author },
       ];
     } },
     "@/lib/db": { getSql: () => sql },
@@ -153,6 +155,31 @@ test("profile Shared Moments use the shared cards and respect profile visibility
   visible = true;
   discoverability = "private";
   assert.doesNotMatch(renderToStaticMarkup(await preview()), /Photo story/);
+});
+
+test("public profile Moment cards use neutral borders unless access-code protected", async () => {
+  const sql = async (strings) => {
+    const text = strings.join("");
+    if (text.includes("FROM users AS u")) return [{ ...profile, publicPersonalMoments: true }];
+    if (text.includes("FROM moments")) return [
+      { id: "public", title: "Public story", kind: "personal", audience: "public", hasAccessCode: false },
+      { id: "protected", title: "Protected story", kind: "personal", audience: "public", hasAccessCode: true },
+    ];
+    return [];
+  };
+  for (const isPreview of [true, false]) {
+    const page = loadModule(isPreview ? "app/my-profile/preview/page.tsx" : "app/moment-maker/[id]/page.tsx", {
+      ...basicDependencies,
+      "next/navigation": { notFound: () => { throw new Error("not found"); } },
+      "@/lib/auth": { requireUser: async () => ({ id: "person" }), getCurrentUser: async () => null },
+      "@/lib/db": { getSql: () => sql },
+      "./connection-request-button": { default: () => null },
+    }).default;
+    const html = renderToStaticMarkup(await page({ params: Promise.resolve({ id: "person" }) }));
+    assert.match(html, /border-\[color:var\(--nsg-border\)\]\/10[^"]*"[^>]*>.*?Public story/);
+    assert.match(html, /border-\[#d8a35b\]\/50[^"]*"[^>]*>.*?Protected story/);
+    assert.doesNotMatch(html, /Private Moment|🔒/);
+  }
 });
 
 test("profile preview displays each location only when its visibility is enabled", async () => {

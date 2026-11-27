@@ -57,7 +57,10 @@ test("usage indicators apply the exact 80% and 95% thresholds without implying e
   assert.match(card(html, "Stories"), /Approaching plan allowance/);
   assert.match(card(html, "Audio Moments"), /Approaching plan allowance/);
   assert.match(card(html, "Future Moment Makers™"), /Near plan allowance/);
-  assert.match(card(html, "Cannot Open Until™ Messages"), /At or above plan allowance/);
+  const cannotOpenUntil = card(html, "Cannot Open Until™ Moments");
+  assert.match(cannotOpenUntil, /100.*\/.*100/);
+  assert.match(cannotOpenUntil, /At or above plan allowance/);
+  assert.doesNotMatch(cannotOpenUntil, /Scheduled opening is coming soon/);
   assert.match(card(html, "Videos"), /12.*\/.*50/);
   assert.doesNotMatch(html, /Grandfathered Beta Access/);
 });

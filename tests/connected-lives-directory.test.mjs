@@ -15,7 +15,7 @@ const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 function loadModule(relativePath, dependencies = {}) {
   const source = fs.readFileSync(path.join(root, relativePath), "utf8");
   const compiled = ts.transpileModule(source, {
-    compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX },
+    compilerOptions: { target: ts.ScriptTarget.ES2017, module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX },
   }).outputText;
   const exports = {};
   vm.runInNewContext(compiled, {
@@ -65,6 +65,81 @@ test("directory searches and combines relationship and tag filters; sorts unknow
   assert.deepEqual(ids("", "all", "all", "recent"), ["3", "1", "4", "2"]);
   assert.deepEqual(ids("", "all", "all", "oldest"), ["4", "1", "3", "2"]);
   assert.deepEqual(ids("", "all", "all", "za"), ["1", "4", "3", "2"]);
+});
+
+test("directory toggles between grid and compact list without losing filters or profile privacy", () => {
+  const states = [];
+  let stateIndex = 0;
+  let controls = [];
+  const react = {
+    useState(initial) {
+      const index = stateIndex++;
+      if (!(index in states)) states[index] = initial;
+      return [states[index], (value) => { states[index] = value; }];
+    },
+    useMemo: (calculate) => calculate(),
+  };
+  const capture = (factory) => (type, props, key) => {
+    if (type === "button" || type === "input" || type === "select") controls.push({ elementType: type, ...props });
+    return factory(type, props, key);
+  };
+  const component = loadModule("app/connected-lives/directory.tsx", {
+    "react/jsx-runtime": { ...jsxRuntime, jsx: capture(jsxRuntime.jsx), jsxs: capture(jsxRuntime.jsxs) },
+    react,
+    "next/link": { default: ({ children, ...props }) => React.createElement("a", props, children) },
+    "next/image": { default: ({ src, alt }) => React.createElement("img", { src, alt }) },
+    "@/lib/connected-lives": relationships,
+    "@/lib/connected-lives-directory": directory,
+    "./relationship-editor": { default: () => React.createElement("span", null, "Edit relationship") },
+    "./shared-tags": { default: () => React.createElement("span", null, "Manage Shared Tags") },
+  }).default;
+  const connections = [
+    { id: "z", personId: "person/z", displayName: "Zoe", relationshipType: "parent",
+      acceptedAt: "2025-01-02T00:00:00Z", profilePhoto: "data:image/png;base64,abc",
+      profileVisible: true, birthYear: null, personTags: [{ id: "tag", label: "Veteran" }], ownTags: [] },
+    { id: "a", personId: "hidden", displayName: "Amy", relationshipType: "close_friend",
+      acceptedAt: null, profilePhoto: null, profileVisible: false, birthYear: null, personTags: [], ownTags: [] },
+  ];
+  const render = () => {
+    stateIndex = 0;
+    controls = [];
+    return renderToStaticMarkup(React.createElement(component, { connections, viewerId: "viewer" }));
+  };
+  const toggle = (name) => controls.find((control) => control.elementType === "button" && control.children === name);
+  let html = render();
+  assert.equal(toggle("Grid")["aria-pressed"], true);
+  assert.equal(toggle("List")["aria-pressed"], false);
+  assert.match(html, /Edit relationship/);
+  assert.match(html, /Manage Shared Tags/);
+  assert.ok(html.indexOf("Amy") < html.indexOf("Zoe"));
+  toggle("List").onClick();
+  html = render();
+  assert.equal(toggle("Grid")["aria-pressed"], false);
+  assert.equal(toggle("List")["aria-pressed"], true);
+  assert.match(html, /src="data:image\/png;base64,abc"/);
+  assert.match(html, /Veteran/);
+  assert.match(html, /Connected January 2, 2025/);
+  assert.match(html, /Connected Date Unavailable/);
+  assert.match(html, /href="\/moment-maker\/person%2Fz"/);
+  assert.doesNotMatch(html, /href="\/moment-maker\/hidden"/);
+  assert.doesNotMatch(html, /Edit relationship|Manage Shared Tags/);
+  controls.find((control) => control.elementType === "input" && control.type === "checkbox")
+    .onChange({ target: { checked: true } });
+  html = render();
+  assert.match(html, /All Connections/);
+  assert.match(html, /Sorting applies within each relationship group/);
+  assert.match(html, /Parent/);
+  assert.match(html, /Friend/);
+  controls.find((control) => control.elementType === "input" && control.placeholder === "Name or tag")
+    .onChange({ target: { value: "Veteran" } });
+  html = render();
+  assert.match(html, /Zoe/);
+  assert.doesNotMatch(html, /Amy/);
+  toggle("Grid").onClick();
+  html = render();
+  assert.match(html, /Zoe/);
+  assert.doesNotMatch(html, /Amy/);
+  assert.match(html, /Edit relationship/);
 });
 
 function loadDashboard(data, founder = false, familyActivity = [], bulletins = [], preview = {}) {
@@ -647,6 +722,7 @@ test("migration, shared tags, privacy and future-record authorization in disposa
       "next/link": pageDeps["next/link"],
       "next/navigation": { notFound: () => { throw new Error("not found"); } },
       "@/lib/auth": deps["@/lib/auth"], "@/lib/db": deps["@/lib/db"],
+      "@/lib/moment-card-style": loadModule("lib/moment-card-style.ts", {}),
     };
     const futurePage = loadModule("app/future-moment-maker/[id]/page.tsx", futureDeps).default;
     assert.match(renderToStaticMarkup(await futurePage({ params: Promise.resolve({ id: "future" }) })), /Future Person/);

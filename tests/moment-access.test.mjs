@@ -91,15 +91,16 @@ test("moment page authorizes before rendering and hides denied or missing moment
 
 test("shared moment cards link their previews and titles without enclosing the actions menu", async () => {
   const rows = [
-    { id: "photo/id", title: "Turning 5", story: "", writtenMessage: null, hasPhoto: true, hasVideo: false, authorName: "Alex", isAuthor: true },
-    { id: "video", title: "Family video", story: "", writtenMessage: null, hasPhoto: false, hasVideo: true, authorName: "Sam", isAuthor: false },
-    { id: "text", title: "A story", story: "Today we celebrated together.", writtenMessage: null, hasPhoto: false, hasVideo: false, authorName: "Lee", isAuthor: true },
-    { id: "message", title: "A note", story: " ", writtenMessage: "Thinking of you.", hasPhoto: false, hasVideo: false, authorName: "Lee", isAuthor: true },
-    { id: "audio", title: "Family recording", story: "", writtenMessage: null, hasPhoto: false, hasVideo: false, hasAudio: true, authorName: "Sam", isAuthor: false },
+    { id: "photo/id", audience: "public", title: "Turning 5", story: "", writtenMessage: null, hasPhoto: true, hasVideo: false, authorName: "Alex", isAuthor: true },
+    { id: "video", audience: "family", title: "Family video", story: "", writtenMessage: null, hasPhoto: false, hasVideo: true, authorName: "Sam", isAuthor: false },
+    { id: "text", audience: "private", title: "A story", story: "Today we celebrated together.", writtenMessage: null, hasPhoto: false, hasVideo: false, authorName: "Lee", isAuthor: true },
+    { id: "message", audience: "connections", title: "A note", story: " ", writtenMessage: "Thinking of you.", hasPhoto: false, hasVideo: false, authorName: "Lee", isAuthor: true },
+    { id: "audio", audience: "public", title: "Family recording", story: "", writtenMessage: null, hasPhoto: false, hasVideo: false, hasAudio: true, authorName: "Sam", isAuthor: false },
   ];
   const card = loadModule("app/moments/moment-card.tsx", {
     "react/jsx-runtime": jsxRuntime,
     "next/image": { default: ({ src, alt }) => React.createElement("img", { src, alt }) },
+    "@/lib/moment-card-style": loadModule("lib/moment-card-style.ts", {}),
     "./moment-actions-menu": { default: ({ title }) => React.createElement("button", null, `Actions for ${title}`) },
     "./video-preview": { default: ({ momentId }) => React.createElement("span", { "data-video": momentId }, "▶") },
   }).default;
@@ -112,6 +113,10 @@ test("shared moment cards link their previews and titles without enclosing the a
     "./moment-card": { default: card },
   }).default;
   const html = renderToStaticMarkup(await page());
+  const cards = html.match(/<li class="relative[^"]*">/g);
+  assert.match(cards[0], /border-\[color:var\(--nsg-border\)\]\/10/);
+  for (const cardHtml of cards.slice(1, 4)) assert.match(cardHtml, /border-\[#d8a35b\]\/50/);
+  assert.match(cards[4], /border-\[color:var\(--nsg-border\)\]\/10/);
   assert.match(html, /🎵 Audio/);
   assert.match(html, /<button>Actions for Turning 5<\/button><a href="\/moments\/photo%2Fid"[\s\S]*?<img[^>]*src="\/api\/moments\/photo%2Fid\/photo"[\s\S]*?Turning 5[\s\S]*?<\/a>/);
   assert.match(html, /href="\/moments\/video"[\s\S]*?data-video="video"[\s\S]*?Family video[\s\S]*?Video Moment[\s\S]*?<\/a>/);
@@ -334,7 +339,10 @@ test("moment audiences are enforced against current relationships in PostgreSQL"
     assert.equal((await access.getAccessibleMoment(null, "public"))?.hasVideo, true);
     assert.equal((await access.getAccessibleMoment("author", "public"))?.isAuthor, true);
     assert.deepEqual(Array.from(await access.getAccessibleMoments("relative"), (moment) => moment.id), ["family"]);
-    assert.deepEqual(Array.from(await access.getAccessibleMoments("author"), (moment) => moment.id).sort(), ["connections", "family", "private", "public"]);
+    const authorMoments = await access.getAccessibleMoments("author");
+    assert.deepEqual(Array.from(authorMoments, (moment) => moment.id).sort(), ["connections", "family", "private", "public"]);
+    assert.deepEqual(Array.from(authorMoments, (moment) => `${moment.id}:${moment.audience}`).sort(),
+      ["connections:connections", "family:family", "private:private", "public:public"]);
     assert.deepEqual(Array.from(await access.getAccessibleMoments("outsider"), (moment) => moment.id), []);
     assert.deepEqual(Array.from(await access.getRecentOwnMoments("author"), (moment) => moment.id).sort(), ["connections", "family", "private", "public"]);
     assert.deepEqual(Array.from(await access.getRecentOwnMoments("relative"), (moment) => moment.id), []);

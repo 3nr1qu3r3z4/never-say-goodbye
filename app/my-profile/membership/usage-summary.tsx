@@ -2,11 +2,10 @@ import type { createUsageReport, QuotaStatus } from "@/lib/entitlements";
 
 type UsageReport = ReturnType<typeof createUsageReport>;
 
-function UsageCard({ label, quota, grandfathered, note }: {
+function UsageCard({ label, quota, grandfathered }: {
   label: string;
   quota: QuotaStatus;
   grandfathered: boolean;
-  note?: string;
 }) {
   const limit = quota.planLimit;
   const showProgress = !grandfathered && typeof limit === "number" && limit > 0;
@@ -45,7 +44,6 @@ function UsageCard({ label, quota, grandfathered, note }: {
         </div>
       )}
       {showProgress && quota.effectiveLimit !== "unreviewed" && status && <p className="mt-2 text-xs font-medium text-[color:var(--nsg-accent-light)]">{status}</p>}
-      {note && <p className="mt-2 text-xs text-slate-400">{note}</p>}
     </div>
   );
 }
@@ -105,7 +103,7 @@ export default function MembershipUsage({ report, planName, themes }: {
             </div>
           )}
           <UsageCard label="Future Moment Makers™" quota={report.futureMomentMakers} grandfathered={grandfathered} />
-          <UsageCard label="Cannot Open Until™ Messages" quota={report.cannotOpenUntil} grandfathered={grandfathered} note="Scheduled opening is coming soon." />
+          <UsageCard label="Cannot Open Until™ Moments" quota={report.cannotOpenUntil} grandfathered={grandfathered} />
         </div>
       </section>
     </>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getSql } from "@/lib/db";
+import { momentBorderClassName } from "@/lib/moment-card-style";
 import { getPublicProfileSharedMoments } from "@/lib/moment-access";
 import ConnectionRequestButton from "./connection-request-button";
 import ProfileLocations from "@/app/profile-locations";
@@ -39,6 +40,8 @@ type Moment = {
   id: string;
   title: string;
   kind: "shared" | "personal";
+  audience: "public";
+  hasAccessCode: boolean;
 };
 
 export default async function MomentMakerProfilePage({
@@ -76,7 +79,7 @@ export default async function MomentMakerProfilePage({
 
   const [momentRows, connectionRows, sharedMoments] = await Promise.all([
     sql`
-      SELECT id, title, kind
+      SELECT id, title, kind, audience, (access_code_hash IS NOT NULL) AS "hasAccessCode"
       FROM moments
       WHERE user_id = ${profile.id}
         AND audience = 'public'
@@ -223,13 +226,10 @@ export default async function MomentMakerProfilePage({
               {personalMoments.map((moment) => (
                 <li
                   key={moment.id}
-                  className="rounded-2xl border border-[color:var(--nsg-accent)]/20 bg-white/[0.03] p-5"
+                  className={`rounded-2xl border ${momentBorderClassName(moment.kind, moment.audience, moment.hasAccessCode)} bg-white/[0.03] p-5`}
                 >
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--nsg-accent)]">
-                    Private Moment
-                  </p>
-                  <p className="mt-3 font-serif text-lg text-white">
-                    🔒 {moment.title}
+                  <p className="font-serif text-lg text-white">
+                    {moment.title}
                   </p>
                 </li>
               ))}

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { cannotOpenUntilEnabled, getReceivedTimeCapsules } from "@/lib/cannot-open-until";
 import { formatTimeCapsuleInstant } from "@/lib/time-capsule-schedule";
+import { restrictedMomentBorder } from "@/lib/moment-card-style";
 
 export const instant = false;
 
@@ -16,7 +17,7 @@ export default async function TimeCapsuleInboxPage() {
       <h1 className="mt-8 font-serif text-4xl text-white">Received Cannot Open Until™ Moments</h1>
       <p className="mt-4 leading-7 text-slate-300">Moments shared with you appear here. Their contents remain private until they are released.</p>
       {moments.length ? <ul className="mt-8 space-y-3">{moments.map((moment) =>
-        <li key={moment.id} className="rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5">
+        <li key={moment.id} className={`rounded-2xl border ${restrictedMomentBorder} bg-white/[0.03] p-5`}>
           <Link href={`/cannot-open-until/inbox/${encodeURIComponent(moment.id)}`} className="break-words font-semibold text-[color:var(--nsg-accent-light)] hover:underline">{moment.title}</Link>
           <p className="mt-2 text-sm text-slate-300">From {moment.sender}</p>
           <p className="mt-1 text-sm text-slate-400">{moment.released ? "Released" : "Locked"} · Opens: {formatTimeCapsuleInstant(moment.unlockAt, moment.releaseTimezone) ?? "Open time unavailable"} ({moment.releaseTimezone})</p>

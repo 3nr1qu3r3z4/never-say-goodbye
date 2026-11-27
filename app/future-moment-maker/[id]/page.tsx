@@ -3,6 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { getSql } from "@/lib/db";
+import { momentBorderClassName } from "@/lib/moment-card-style";
+import type { Audience, MomentKind } from "@/lib/moment-types";
 
 export const metadata: Metadata = {
   title: "Future Moment Maker™ | Never Say Goodbye",
@@ -16,7 +18,7 @@ type FutureRecord = {
   createdAt: string;
   treeName: string | null;
 };
-type RelatedMoment = { id: string; title: string; kind: string };
+type RelatedMoment = { id: string; title: string; kind: MomentKind; audience: Audience; hasAccessCode: boolean };
 
 export default async function FutureMomentMakerRecord({
   params,
@@ -38,7 +40,7 @@ export default async function FutureMomentMakerRecord({
         AND f.status <> 'archived' AND f.archived_at IS NULL
     `,
     sql`
-      SELECT m.id, m.title, m.kind FROM moments m
+      SELECT m.id, m.title, m.kind, m.audience, (m.access_code_hash IS NOT NULL) AS "hasAccessCode" FROM moments m
       JOIN future_moment_makers f ON f.id = m.future_moment_maker_id
       WHERE f.id = ${id} AND f.owner_user_id = ${user.id} AND m.user_id = ${user.id}
         AND f.status <> 'archived' AND f.archived_at IS NULL AND m.archived_at IS NULL
@@ -74,7 +76,7 @@ export default async function FutureMomentMakerRecord({
         </dl>
         <section className="mt-10" aria-labelledby="related-moments-heading">
           <h2 id="related-moments-heading" className="font-serif text-2xl text-white">Related Legacy Moments</h2>
-          {related.length ? <ul className="mt-4 space-y-3">{related.map((moment) => <li key={moment.id} className="rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5">
+          {related.length ? <ul className="mt-4 space-y-3">{related.map((moment) => <li key={moment.id} className={`rounded-2xl border ${momentBorderClassName(moment.kind, moment.audience, moment.hasAccessCode)} bg-white/[0.03] p-5`}>
             <p className="break-words font-serif text-lg text-white">{moment.title}</p>
             <p className="mt-2 text-sm text-slate-400">{moment.kind.replaceAll("-", " ")}</p>
           </li>)}</ul> : <p className="mt-4 rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5 text-sm text-slate-400">No legacy moments are associated with this record yet.</p>}
