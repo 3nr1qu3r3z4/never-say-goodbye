@@ -101,6 +101,10 @@ function loadDashboard(data, founder = false, familyActivity = [], bulletins = [
       getLegacyProfile: async (id) => { assert.equal(id, "owner"); return preview.profile ?? { displayName: "Owner", bio: "", profilePhoto: null, discoverability: "private" }; },
       getLegacyConnections: async (id) => { assert.equal(id, "owner"); return preview.connections ?? []; },
     },
+    "@/lib/successor": {
+      successorPreviewEnabled: () => Boolean(preview.successorEnabled),
+      getOwnSuccessor: async () => preview.successor ?? null,
+    },
     "@/app/moments/moment-card": { default: ({ moment }) => React.createElement("li", null, moment.title) },
     "@/lib/frequent-visits": { frequentVisitsEnabled: () => false },
     "./signup-welcome": { default: () => null },
@@ -142,6 +146,31 @@ test("dashboard places one reflection immediately beneath the welcome", async ()
   const html = renderToStaticMarkup(await loadDashboard(data)());
   assert.match(html, /Welcome back, Owner\.[\s\S]*?Keep building the moments that matter most\.[\s\S]*?Legacy Reflection<\/h2>[\s\S]*?You have preserved 1 shared memory\./);
   assert.equal((html.match(/Legacy Reflection/g) ?? []).length, 1);
+});
+
+test("successor preview displays current or unavailable state only for approved owners", async () => {
+  const data = { counts: { sharedMoments: 0, personalMoments: 0, connectedLives: 0, newLivesRequests: 0,
+    unreadLivesNotifications: 0, futureMomentMakers: 0, drafts: 0 }, recentActivity: [] };
+  const disabled = renderToStaticMarkup(await loadDashboard(data)());
+  assert.match(disabled, /Legacy Successor™[\s\S]*?Coming Soon/);
+  assert.doesNotMatch(disabled, /href="\/my-profile\/successor"/);
+  const disabledActions = disabled.match(/<section aria-labelledby="legacy-quick-actions-heading"[\s\S]*?<\/section>/)?.[0];
+  assert.ok(disabledActions);
+  assert.doesNotMatch(disabledActions, /Successor Assignment/);
+  const available = renderToStaticMarkup(await loadDashboard(data, false, [], [], {
+    successorEnabled: true, successor: { name: "Alex", available: true },
+  })());
+  assert.match(available, /Legacy Successor™[\s\S]*?Alex[\s\S]*?href="\/my-profile\/successor"[^>]*>Manage Successor/);
+  const enabledActions = available.match(/<section aria-labelledby="legacy-quick-actions-heading"[\s\S]*?<\/section>/)?.[0];
+  assert.ok(enabledActions);
+  assert.doesNotMatch(enabledActions, /Successor Assignment|href="\/my-profile\/successor"/);
+  assert.match(enabledActions, /href="\/my-profile\/membership"/);
+  const unassigned = renderToStaticMarkup(await loadDashboard(data, false, [], [], { successorEnabled: true })());
+  assert.match(unassigned, /Legacy Successor™[\s\S]*?Not Assigned[\s\S]*?href="\/my-profile\/successor"[^>]*>Assign Successor/);
+  const unavailable = renderToStaticMarkup(await loadDashboard(data, false, [], [], {
+    successorEnabled: true, successor: { name: "Alex", available: false },
+  })());
+  assert.match(unavailable, /Unavailable or no longer connected/);
 });
 
 test("My Legacy brings owner details and existing destinations together with empty previews", async () => {
@@ -285,7 +314,9 @@ test("My Legacy keeps requested quick actions and retains request and update lin
     ]) {
       assert.match(actions, new RegExp(`<a href="${href}"[^>]*>${label}</a>`));
     }
-    assert.equal((actions.match(/<a /g) ?? []).length, 5);
+    assert.match(actions, /<a href="\/my-profile\/membership"[^>]*><span aria-hidden="true" class="mr-1">📊<\/span>Membership &amp; Usage<\/a>/);
+    assert.doesNotMatch(actions, /View your membership details, content usage, themes, and content management tools/);
+    assert.equal((actions.match(/<a /g) ?? []).length, 6);
     assert.match(html, /My Legacy Snapshot[\s\S]*?Moment Making Menu/);
     assert.doesNotMatch(card, /View Connected Lives|Stay Connected|Someone Is Thinking of You/);
     if (expected) {

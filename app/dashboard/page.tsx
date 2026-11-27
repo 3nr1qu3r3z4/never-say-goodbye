@@ -11,6 +11,7 @@ import { getCalendarEvents, getCalendarSettings, getFamilyBulletins } from "@/li
 import { datedCalendarMilestones, occurrences } from "@/lib/family-calendar";
 import { getTreeMilestones } from "@/lib/tree-milestones-data";
 import { getLegacyConnections, getLegacyProfile } from "@/lib/my-legacy-data";
+import { getOwnSuccessor, successorPreviewEnabled } from "@/lib/successor";
 import MomentCard from "@/app/moments/moment-card";
 import SignupWelcome from "./signup-welcome";
 import FrequentVisits from "./frequent-visits";
@@ -37,7 +38,8 @@ const actionFocusClassName =
 
 export default async function DashboardPage() {
   const user = await requireUser();
-  const [data, profile, connections, ownMoments, calendar, moments, bulletins] = await Promise.all([
+  const successorEnabled = successorPreviewEnabled(user.id);
+  const [data, profile, connections, ownMoments, calendar, moments, bulletins, successor] = await Promise.all([
     getDashboardData(user),
     getLegacyProfile(user.id),
     getLegacyConnections(user.id),
@@ -45,6 +47,7 @@ export default async function DashboardPage() {
     getCalendarSettings(user.id),
     getRecentFamilyActivity(user.id),
     getFamilyBulletins(user.id, null),
+    successorEnabled ? getOwnSuccessor() : Promise.resolve(null),
   ]);
   const selectedTree = calendar.trees[0];
   const [calendarEvents, milestones] = selectedTree
@@ -273,7 +276,14 @@ export default async function DashboardPage() {
               { label: "Legacy Controls™", href: "/legacy-controls" },
               { label: "Appearance", href: "/my-profile#appearance" },
               { label: "Email Preferences", href: "/email-preferences" },
-            ].map((item) => <Link key={item.href} href={item.href} className={`${actionCardClassName} ${actionFocusClassName} flex min-h-14 items-center justify-center p-4 text-center font-semibold text-[color:var(--nsg-accent-light)]`}>{item.label}</Link>)}
+              {
+                label: "Membership & Usage",
+                href: "/my-profile/membership",
+                icon: "📊",
+              },
+            ].map((item) => <Link key={item.href} href={item.href} className={`${actionCardClassName} ${actionFocusClassName} flex min-h-14 items-center justify-center p-4 text-center font-semibold text-[color:var(--nsg-accent-light)]`}>
+              {item.icon && <span aria-hidden="true" className="mr-1">{item.icon}</span>}{item.label}
+            </Link>)}
           </div>
         </section>
 
@@ -452,15 +462,16 @@ export default async function DashboardPage() {
                 Legacy Successor™
               </h2>
               <p className="mt-3 font-serif text-lg text-slate-300">
-                Not Assigned
+                {!successorEnabled ? "Coming Soon" : successor ? successor.name : "Not Assigned"}
               </p>
+              {successorEnabled && successor && !successor.available && <p className="mt-2 text-sm text-slate-400">Unavailable or no longer connected</p>}
             </div>
-            <button
-              type="button"
+            {successorEnabled && <Link
+              href="/my-profile/successor"
               className="inline-flex self-start rounded-full border border-[color:var(--nsg-accent)]/60 px-6 py-3 text-sm font-semibold text-[color:var(--nsg-accent-light)] transition hover:border-[color:var(--nsg-accent)] hover:bg-[color:var(--nsg-accent)]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)] sm:self-auto"
             >
-              Assign Successor
-            </button>
+              {successor ? "Manage Successor" : "Assign Successor"}
+            </Link>}
           </div>
         </section>
       </div>

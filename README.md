@@ -33,6 +33,24 @@ quota check. Paid registration, billing, and plan enforcement remain disabled.
 Reminder notifications, scheduled deliveries, and other features marked Coming
 Soon also require implementation.
 
+## Successor Assignment preview
+
+The informational-only Successor Assignment MVP is disabled by default.
+Before any preview, obtain founder approval for the audience and apply migration
+029. To enable it for approved accounts only, set
+`SUCCESSOR_ASSIGNMENT_ENABLED=true` and set
+`SUCCESSOR_ASSIGNMENT_PREVIEW_USER_IDS` to a comma-separated list of their user
+IDs, then redeploy. An empty or missing list enables it for nobody. These
+server-side settings control rollout, not membership eligibility; no billing or
+entitlement enforcement is enabled.
+
+An owner may designate one accepted Connected Lives member, change or remove
+the designation, and see when the person is unavailable. The designation
+grants no access, ownership, transfer rights, legal authority, or decision-making
+authority. No notification or acceptance workflow is sent or initiated.
+Historical successor records are preserved and are not converted into new
+designations. The public pricing feature remains Coming Soon during preview.
+
 Family Calendar currently displays shared family dates and events. Reminder
 preferences can be saved, but automated notifications are not sent. Support
 is available to every family.
@@ -202,7 +220,13 @@ create a local data directory or write account data to the app filesystem.
      then
      `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/025_tree_family_lines.sql`
      then
-     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/026_moment_audio.sql`.
+     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/026_moment_audio.sql`
+     then
+     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/027_beta_access_reviews.sql`
+     then
+     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/028_content_archives.sql`
+     then
+     `psql $env:DATABASE_URL -v ON_ERROR_STOP=1 -f db/migrations/029_account_successors.sql`.
    - In Bash, export `DATABASE_URL` and run
      `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/001_initial_schema.sql`
      then
@@ -254,7 +278,13 @@ create a local data directory or write account data to the app filesystem.
      then
      `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/025_tree_family_lines.sql`
      then
-     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/026_moment_audio.sql`.
+     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/026_moment_audio.sql`
+     then
+     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/027_beta_access_reviews.sql`
+     then
+     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/028_content_archives.sql`
+     then
+     `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/029_account_successors.sql`.
    - In the Neon Console, open the SQL Editor for the intended database. Run
      [`db/migrations/001_initial_schema.sql`](./db/migrations/001_initial_schema.sql)
      first, then run
@@ -283,6 +313,9 @@ create a local data directory or write account data to the app filesystem.
      then [`db/migrations/024_site_theme.sql`](./db/migrations/024_site_theme.sql)
      then [`db/migrations/025_tree_family_lines.sql`](./db/migrations/025_tree_family_lines.sql)
      then [`db/migrations/026_moment_audio.sql`](./db/migrations/026_moment_audio.sql)
+     then [`db/migrations/027_beta_access_reviews.sql`](./db/migrations/027_beta_access_reviews.sql)
+     then [`db/migrations/028_content_archives.sql`](./db/migrations/028_content_archives.sql)
+     then [`db/migrations/029_account_successors.sql`](./db/migrations/029_account_successors.sql)
      in order.
 3. Set `DATABASE_URL` to the same pooled connection string in local
    `.env.local` and in Vercel Project Settings → Environment Variables for each

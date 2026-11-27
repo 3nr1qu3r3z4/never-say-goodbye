@@ -306,18 +306,20 @@ CREATE TABLE IF NOT EXISTS honored_lives (
 
 CREATE TABLE IF NOT EXISTS legacy_successors (
   id TEXT PRIMARY KEY,
-  legacy_tree_id TEXT NOT NULL REFERENCES legacy_trees(id) ON DELETE CASCADE,
+  legacy_tree_id TEXT REFERENCES legacy_trees(id) ON DELETE SET NULL,
   owner_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   successor_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
   successor_name TEXT NOT NULL,
   relationship TEXT NOT NULL DEFAULT 'successor',
-  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'declined', 'revoked')),
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'declined', 'revoked', 'designated')),
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
   CHECK (owner_user_id != successor_user_id)
 );
 CREATE INDEX IF NOT EXISTS legacy_successors_tree_idx ON legacy_successors(legacy_tree_id);
 CREATE INDEX IF NOT EXISTS legacy_successors_user_idx ON legacy_successors(successor_user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS legacy_successors_owner_designated_idx
+  ON legacy_successors(owner_user_id) WHERE status = 'designated';
 
 CREATE TABLE IF NOT EXISTS connected_lives (
   id TEXT PRIMARY KEY,

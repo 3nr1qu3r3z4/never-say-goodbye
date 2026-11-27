@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { getSql } from "@/lib/db";
+import { successorPreviewEnabled } from "@/lib/successor";
 import ProfileEditor from "./profile-editor";
 import Appearance from "./appearance";
 
@@ -111,6 +112,9 @@ export default async function MyProfilePage() {
           <Link href="/my-profile/membership" className="inline-flex min-h-11 items-center text-sm font-semibold text-[color:var(--nsg-accent-light)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]">
             Membership &amp; Usage
           </Link>
+          {successorPreviewEnabled(user.id) && <Link href="/my-profile/successor" className="ml-5 inline-flex min-h-11 items-center text-sm font-semibold text-[color:var(--nsg-accent-light)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]">
+            Legacy Successor™
+          </Link>}
         </div>
 
         <section className="mt-9 rounded-3xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5 shadow-2xl shadow-black/20 sm:mt-11 sm:p-9">
