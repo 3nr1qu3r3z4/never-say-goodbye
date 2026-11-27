@@ -9,6 +9,7 @@ export type MediaContentKind = Exclude<ContentKind, "written">;
 export type Audience = "public" | "connections" | "family" | "private";
 export type ReleaseKind = "date" | "occasion";
 export type AttachmentNames = Partial<Record<MediaContentKind, string>>;
+export type TimeCapsuleRecipientKind = "current" | "future" | "placeholder";
 
 export type MomentDraft = {
   title: string;
@@ -31,6 +32,9 @@ export type MomentDraft = {
   relationship: string;
   createRecipient: boolean;
   familyPlaceholderId: string;
+  timeCapsuleRecipientKind?: TimeCapsuleRecipientKind | "";
+  timeCapsuleRecipientId?: string;
+  releaseTimezone?: string;
 };
 
 export const initialMomentDraft: MomentDraft = {
@@ -54,4 +58,7 @@ export const initialMomentDraft: MomentDraft = {
   relationship: "",
   createRecipient: false,
   familyPlaceholderId: "",
+  timeCapsuleRecipientKind: "",
+  timeCapsuleRecipientId: "",
+  releaseTimezone: "UTC",
 };

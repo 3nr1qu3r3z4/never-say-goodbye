@@ -49,7 +49,11 @@ function isMomentDraft(value: unknown): value is MomentDraft {
     typeof draft.recipientName === "string" &&
     typeof draft.relationship === "string" &&
     typeof draft.createRecipient === "boolean" &&
-    typeof draft.familyPlaceholderId === "string"
+    typeof draft.familyPlaceholderId === "string" &&
+    (draft.timeCapsuleRecipientKind === undefined || (typeof draft.timeCapsuleRecipientKind === "string" &&
+      ["", "current", "future", "placeholder"].includes(draft.timeCapsuleRecipientKind))) &&
+    (draft.timeCapsuleRecipientId === undefined || typeof draft.timeCapsuleRecipientId === "string") &&
+    (draft.releaseTimezone === undefined || typeof draft.releaseTimezone === "string")
   );
 }
 
@@ -86,6 +90,9 @@ export async function loadMomentDraft(kind: MomentKind) {
       ...(!("photoData" in parsed) ? { photoData: "" } : {}),
       ...(!("videoUploadId" in parsed) ? { videoUploadId: "" } : {}),
       ...(!("audioUploadId" in parsed) ? { audioUploadId: "" } : {}),
+      ...(!("timeCapsuleRecipientKind" in parsed) ? { timeCapsuleRecipientKind: "" } : {}),
+      ...(!("timeCapsuleRecipientId" in parsed) ? { timeCapsuleRecipientId: "" } : {}),
+      ...(!("releaseTimezone" in parsed) ? { releaseTimezone: "UTC" } : {}),
     };
   }
   if (!isMomentDraft(parsed)) {
@@ -111,6 +118,33 @@ export async function getFamilyPlaceholders() {
     WHERE ltm.user_id = ${user.id}
     ORDER BY fp.name
   `) as { id: string; name: string; relationship: string }[];
+}
+
+export async function getTimeCapsuleRecipients() {
+  const user = await getCurrentUser();
+  if (!user || !cannotOpenUntilEnabled()) return { error: "Cannot Open Until™ is not available." };
+  const sql = getSql();
+  const [current, future, placeholders] = await sql.transaction([
+    sql`SELECT DISTINCT u.id, u.display_name AS name FROM connected_lives c
+      JOIN users u ON u.id = CASE WHEN c.owner_user_id = ${user.id} THEN c.connected_user_id ELSE c.owner_user_id END
+      WHERE c.status = 'accepted' AND (c.owner_user_id = ${user.id} OR c.connected_user_id = ${user.id})
+      ORDER BY name, u.id`,
+    sql`SELECT DISTINCT f.id, f.name, f.relationship FROM future_moment_makers f
+      WHERE f.archived_at IS NULL AND f.status <> 'archived' AND
+        (f.owner_user_id = ${user.id} OR EXISTS (
+          SELECT 1 FROM legacy_tree_members t WHERE t.tree_id = f.legacy_tree_id AND t.user_id = ${user.id}))
+      ORDER BY f.name, f.id`,
+    sql`SELECT DISTINCT f.id, f.name, f.relationship FROM family_placeholders f
+      JOIN legacy_tree_members t ON t.tree_id = f.legacy_tree_id
+      WHERE t.user_id = ${user.id} AND f.death_year IS NULL AND NOT EXISTS (
+        SELECT 1 FROM honored_lives h WHERE h.family_placeholder_id = f.id)
+      ORDER BY f.name, f.id`,
+  ]);
+  return {
+    current: current as { id: string; name: string }[],
+    future: future as { id: string; name: string; relationship: string }[],
+    placeholders: placeholders as { id: string; name: string; relationship: string }[],
+  };
 }
 
 export async function saveMomentDraft(
@@ -259,6 +293,14 @@ export async function publishMoment(
   ) {
     return { error: "Choose an open date for this moment." };
   }
+  const sendTimeCapsule = kind === "cannot-open-until" && cannotOpenUntilEnabled();
+  const parsedDate = new Date(`${draft.releaseDate}T00:00:00Z`);
+  if (sendTimeCapsule && (!draft.timeCapsuleRecipientKind || !draft.timeCapsuleRecipientId ||
+      draft.releaseKind !== "date" || !/^\d{4}-\d{2}-\d{2}$/.test(draft.releaseDate) ||
+      !Number.isFinite(parsedDate.valueOf()) || parsedDate.toISOString().slice(0, 10) !== draft.releaseDate ||
+      !draft.releaseTimezone || draft.releaseTimezone.length > 100)) {
+    return { error: "Choose a recipient, a concrete open date and a time zone." };
+  }
   if (
     kind === "future-moment-maker" &&
     (!draft.recipientName.trim() || !draft.relationship.trim())
@@ -267,7 +309,7 @@ export async function publishMoment(
   }
 
   const sql = getSql();
-  if (draft.familyPlaceholderId) {
+  if (draft.familyPlaceholderId && kind !== "cannot-open-until") {
     const [placeholder] = (await sql`
       SELECT fp.id
       FROM family_placeholders AS fp
@@ -374,19 +416,36 @@ export async function publishMoment(
         ${kind === "cannot-open-until" && draft.releaseKind === "occasion"
           ? draft.occasion
           : null},
-        ${draft.familyPlaceholderId || null},
+        ${kind === "cannot-open-until" ? null : draft.familyPlaceholderId || null},
         ${now}, ${now}
       WHERE (${videoUploadId}::text IS NULL OR EXISTS (SELECT 1 FROM claimed_video))
         AND (${audioUploadId}::text IS NULL OR EXISTS (SELECT 1 FROM claimed_audio))
       RETURNING id
     `);
+  if (sendTimeCapsule) {
+    statements.push(sql`SELECT activate_recipient_time_capsule(
+      ${user.id}, ${momentId}, ${draft.timeCapsuleRecipientKind}, ${draft.timeCapsuleRecipientId},
+      ${draft.releaseDate}::date, ${draft.releaseTimezone})`);
+  }
   if (draftId) {
     statements.push(sql`
       DELETE FROM drafts WHERE id = ${draftId} AND user_id = ${user.id}
         AND EXISTS (SELECT 1 FROM moments WHERE id = ${momentId})
     `);
   }
-  const results = await sql.transaction(statements);
+  let results;
+  try {
+    results = await sql.transaction(statements);
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("Moment is unavailable") && (videoUploadId || audioUploadId)) {
+      return { error: "An attached audio or video file is no longer available. Please upload it again." };
+    }
+    if (error instanceof Error && (error.message.includes("Recipient is unavailable") ||
+      error.message.includes("Choose a valid future date and time zone"))) {
+      return { error: "Choose an available recipient and a valid future date and time zone." };
+    }
+    throw error;
+  }
   if ((videoUploadId || audioUploadId) && !results[momentStatementIndex]?.length) {
     return { error: "An attached audio or video file is no longer available. Please upload it again." };
   }

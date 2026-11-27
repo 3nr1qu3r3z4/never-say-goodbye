@@ -35,9 +35,14 @@ Soon also require implementation.
 
 Cannot Open Until™ is incomplete and must not be enabled. Leave
 `CANNOT_OPEN_UNTIL_ENABLED` unset or false. Owner editing, legacy review, and
-the recipient inbox are available for development. Apply migrations 030–032
-before testing; recipient access still requires an accepted connection and
-ends on disconnection or archive. No notifications or delivery are provided.
+the recipient inbox are available for development. Apply migrations 030–033
+before testing. Intended recipients may be current Moment Makers,
+Future Moment Makers, or eligible Family Placeholders. Future recipients use
+private, single-use claim links that expire after seven days and require the
+Moment owner's approval. Recipients sign in before requesting a claim; if they
+need to sign in or register first, they must reopen the link. Links are created
+and shared manually per Moment. Access ends on disconnection or archive.
+No email notifications are provided.
 Live deployment and storage verification remain outstanding.
 
 The optional `tests/cannot-open-until-concurrency.test.mjs` test uses a disposable
@@ -138,7 +143,8 @@ filename-only video selections must be uploaded again. Shared Moments can also
 include one MP3, M4A, or WAV audio file up to 100 MiB, alone or with other
 content. Playback depends on browser codec support. Older filename-only audio
 selections must be uploaded again; published moments cannot currently be edited.
-Protected and scheduled unlocks and Future Moment Maker recipients are not implemented.
+Cannot Open Until supports date-based access and Future Moment Maker recipients
+behind its disabled-by-default rollout flag; it does not schedule delivery.
 
 ### Video and audio deployment
 

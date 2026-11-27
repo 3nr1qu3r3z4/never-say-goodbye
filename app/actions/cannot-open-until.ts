@@ -1,12 +1,13 @@
 "use server";
 
+import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/auth";
 import { cannotOpenUntilEnabled } from "@/lib/cannot-open-until";
 import { getSql } from "@/lib/db";
 import { validatePhoto } from "@/lib/profile-photo";
 
-export type TimeCapsuleActionState = { error?: string; success?: string };
+export type TimeCapsuleActionState = { error?: string; success?: string; claimToken?: string };
 
 function value(form: FormData, name: string) {
   const field = form.get(name);
@@ -31,46 +32,27 @@ export async function activateTimeCapsule(_state: TimeCapsuleActionState, form: 
   const user = await getCurrentUser();
   if (!user || !cannotOpenUntilEnabled()) return { error: "Cannot Open Until™ is not available." };
   const id = value(form, "id");
-  const recipient = value(form, "recipient");
+  const selected = value(form, "recipient");
+  const separator = selected.indexOf(":");
+  const kind = separator < 0 ? "current" : selected.slice(0, separator);
+  const recipient = separator < 0 ? selected : selected.slice(separator + 1);
   const date = value(form, "date");
   const timezone = value(form, "timezone");
-  if (!id || !recipient || recipient === user.id || !validDate(date) || !timezone || timezone.length > 100) {
-    return { error: "Choose an accepted connection, a valid date and a time zone." };
+  if (!id || !recipient || !["current", "future", "placeholder"].includes(kind) ||
+      (kind === "current" && recipient === user.id) || !validDate(date) || !timezone || timezone.length > 100) {
+    return { error: "Choose a recipient, a valid date and a time zone." };
   }
   const sql = getSql();
-  const rows = await sql`
-    WITH eligible AS MATERIALIZED (
-      SELECT c.id FROM connected_lives c
-      WHERE c.status = 'accepted'
-        AND ((c.owner_user_id = ${user.id} AND c.connected_user_id = ${recipient})
-          OR (c.connected_user_id = ${user.id} AND c.owner_user_id = ${recipient}))
-      ORDER BY c.id LIMIT 1 FOR UPDATE
-    ), instant AS MATERIALIZED (
-      SELECT MIN(t.instant) AS unlock_at
-      FROM pg_timezone_names z
-      CROSS JOIN LATERAL generate_series(
-        ${date}::date::timestamp AT TIME ZONE 'UTC' - INTERVAL '15 hours',
-        ${date}::date::timestamp AT TIME ZONE 'UTC' + INTERVAL '36 hours',
-        INTERVAL '1 minute'
-      ) AS t(instant)
-      WHERE z.name = ${timezone} AND (t.instant AT TIME ZONE z.name)::date = ${date}::date
-    )
-    INSERT INTO cannot_open_until_settings
-      (moment_id, status, recipient_user_id, connection_id, release_date, release_timezone, unlock_at, reviewed_at)
-    SELECT m.id, 'active', ${recipient}, eligible.id, ${date}::date, ${timezone}, instant.unlock_at, clock_timestamp()
-    FROM moments m CROSS JOIN eligible CROSS JOIN instant
-    WHERE m.id = ${id} AND m.user_id = ${user.id} AND m.kind = 'cannot-open-until'
-      AND instant.unlock_at > clock_timestamp()
-    ON CONFLICT (moment_id) DO UPDATE SET status = 'active',
-      recipient_user_id = EXCLUDED.recipient_user_id, connection_id = EXCLUDED.connection_id,
-      release_date = EXCLUDED.release_date, release_timezone = EXCLUDED.release_timezone,
-      unlock_at = EXCLUDED.unlock_at, reviewed_at = EXCLUDED.reviewed_at, updated_at = clock_timestamp()
-    WHERE cannot_open_until_settings.status = 'review_required'
-       OR (cannot_open_until_settings.manual_released_at IS NULL
-           AND cannot_open_until_settings.unlock_at > clock_timestamp())
-    RETURNING moment_id
-  `;
-  if (!rows.length) return { error: "Choose an accepted connection and a valid future date. Released Moments cannot be rescheduled." };
+  try {
+    await sql`SELECT activate_recipient_time_capsule(${user.id}, ${id}, ${kind}, ${recipient}, ${date}::date, ${timezone})`;
+  } catch (error) {
+    if (error instanceof Error && (error.message.includes("Recipient is unavailable") ||
+      error.message.includes("Moment is unavailable") || error.message.includes("Choose a valid future date") ||
+      error.message.includes("read-only") || error.message.includes("recipients cannot be changed"))) {
+      return { error: "Choose an available recipient and a valid future date. Released Moments cannot be rescheduled." };
+    }
+    throw error;
+  }
   refresh();
   return { success: "The schedule is active." };
 }
@@ -79,26 +61,82 @@ export async function reassignTimeCapsule(_state: TimeCapsuleActionState, form: 
   const user = await getCurrentUser();
   if (!user || !cannotOpenUntilEnabled()) return { error: "Cannot Open Until™ is not available." };
   const id = value(form, "id");
-  const recipient = value(form, "recipient");
-  if (!id || !recipient || recipient === user.id) return { error: "Choose an accepted connection." };
+  if (!id) return { error: "Choose an available Moment." };
   const sql = getSql();
   const rows = await sql`
     WITH eligible AS MATERIALIZED (
-      SELECT c.id FROM connected_lives c WHERE c.status = 'accepted'
-        AND ((c.owner_user_id = ${user.id} AND c.connected_user_id = ${recipient})
-          OR (c.connected_user_id = ${user.id} AND c.owner_user_id = ${recipient}))
-      ORDER BY c.id LIMIT 1 FOR UPDATE
+      SELECT s.moment_id, CASE WHEN s.recipient_kind = 'current' THEN s.intended_user_id ELSE (
+        SELECT c.claimant_user_id FROM cannot_open_until_claims c
+        WHERE c.moment_id = s.moment_id AND c.recipient_kind = s.recipient_kind AND c.status = 'approved'
+          AND c.recipient_id = COALESCE(s.future_recipient_id, s.placeholder_recipient_id)
+        LIMIT 1) END AS recipient
+      FROM cannot_open_until_settings s JOIN moments m ON m.id = s.moment_id
+      WHERE s.moment_id = ${id} AND m.user_id = ${user.id} AND s.status = 'active'
+      FOR UPDATE OF s
     )
     UPDATE cannot_open_until_settings s
-    SET recipient_user_id = ${recipient}, connection_id = eligible.id, updated_at = clock_timestamp()
-    FROM moments m, eligible
-    WHERE s.moment_id = m.id AND m.id = ${id} AND m.user_id = ${user.id}
-      AND m.kind = 'cannot-open-until' AND s.status = 'active'
+    SET recipient_user_id = eligible.recipient, connection_id = NULL, updated_at = clock_timestamp()
+    FROM eligible WHERE s.moment_id = eligible.moment_id AND eligible.recipient IS NOT NULL
     RETURNING s.moment_id
   `;
-  if (!rows.length) return { error: "The Moment or accepted connection is no longer available." };
+  if (!rows.length) return { error: "The original recipient is unavailable or has not been approved." };
   refresh();
-  return { success: "Recipient updated." };
+  return { success: "The intended recipient has been re-authorized." };
+}
+
+export async function createClaimLink(_state: TimeCapsuleActionState, form: FormData): Promise<TimeCapsuleActionState> {
+  const user = await getCurrentUser();
+  if (!user || !cannotOpenUntilEnabled()) return { error: "Cannot Open Until™ is not available." };
+  const id = value(form, "id");
+  if (!id) return { error: "Choose an available Moment." };
+  const token = randomBytes(32).toString("base64url");
+  const hash = createHash("sha256").update(token).digest("hex");
+  try {
+    await getSql()`SELECT create_time_capsule_claim(${user.id}, ${id}, ${randomUUID()}, ${hash})`;
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("Claim is unavailable")) {
+      return { error: "A claim is pending, already approved, or no longer available." };
+    }
+    throw error;
+  }
+  return { success: "Share this private link with the intended recipient. It expires in seven days.", claimToken: token };
+}
+
+export async function requestTimeCapsuleClaim(_state: TimeCapsuleActionState, form: FormData): Promise<TimeCapsuleActionState> {
+  const user = await getCurrentUser();
+  if (!user || !cannotOpenUntilEnabled()) return { error: "Sign in to request this claim." };
+  const token = value(form, "token");
+  if (!/^[A-Za-z0-9_-]{43}$/.test(token)) return { error: "This claim link is invalid or expired." };
+  const hash = createHash("sha256").update(token).digest("hex");
+  const rows = await getSql()`
+    UPDATE cannot_open_until_claims c SET status = 'pending', claimant_user_id = ${user.id}, requested_at = clock_timestamp()
+    FROM cannot_open_until_settings s, moments m
+    WHERE c.token_hash = ${hash} AND c.status = 'open' AND c.expires_at > clock_timestamp()
+      AND s.moment_id = c.moment_id AND s.status = 'active' AND m.id = s.moment_id
+      AND m.user_id <> ${user.id} AND s.recipient_user_id IS NULL
+      AND c.recipient_kind = s.recipient_kind
+      AND c.recipient_id = COALESCE(s.future_recipient_id, s.placeholder_recipient_id)
+    RETURNING c.id`;
+  if (!rows.length) return { error: "This claim link is invalid or expired." };
+  refresh();
+  return { success: "Your request was sent. The Moment owner must confirm your identity before access is granted." };
+}
+
+export async function decideTimeCapsuleClaim(_state: TimeCapsuleActionState, form: FormData): Promise<TimeCapsuleActionState> {
+  const user = await getCurrentUser();
+  if (!user || !cannotOpenUntilEnabled()) return { error: "Cannot Open Until™ is not available." };
+  const claim = value(form, "claim");
+  const decision = value(form, "decision");
+  if (!claim || !["approve", "decline"].includes(decision)) return { error: "Choose a valid claim decision." };
+  try {
+    await getSql()`SELECT decide_time_capsule_claim(${user.id}, ${claim}, ${decision === "approve"})`;
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("Claim is unavailable")) return { error: "This claim is no longer available." };
+    if (error instanceof Error && error.message.includes("Claim does not match")) return { error: "This claim does not match the confirmed recipient. Review it before granting access." };
+    throw error;
+  }
+  refresh();
+  return { success: decision === "approve" ? "The intended recipient was approved." : "The claim was declined." };
 }
 
 export async function releaseTimeCapsule(_state: TimeCapsuleActionState, form: FormData): Promise<TimeCapsuleActionState> {

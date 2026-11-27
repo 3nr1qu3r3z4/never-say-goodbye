@@ -133,8 +133,10 @@ test("editor uploads audio privately before saving and publishing", async () => 
     "next/navigation": { useRouter: () => ({ push() {} }) },
     "@/lib/moment-actions": {
       loadMomentDraft: async () => ({}), getFamilyPlaceholders: async () => [], publishMoment: async () => ({}),
+      getTimeCapsuleRecipients: async () => ({ current: [], future: [], placeholders: [] }),
       saveMomentDraft: async (_kind, _id, draft) => { savedDraft = draft; return { draftId: "draft", accessCodeSaved: false }; },
     },
+    "@/app/actions/family-tree": { searchFamilyMomentMakers: async () => ({ results: [] }) },
     "@/lib/moment-types": { initialMomentDraft: initialDraft },
     "@/lib/prepare-moment-photo": { prepareMomentPhoto: async () => ({}) },
     "@/lib/moment-video-actions": {},

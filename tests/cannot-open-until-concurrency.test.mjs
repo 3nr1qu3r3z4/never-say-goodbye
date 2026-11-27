@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
-import { randomUUID } from "node:crypto";
+import * as crypto from "node:crypto";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
@@ -16,7 +16,7 @@ function moduleFor(file, deps) {
     compilerOptions: { module: ts.ModuleKind.CommonJS },
   }).outputText;
   const exports = {};
-  vm.runInNewContext(code, { exports, process: { env: { CANNOT_OPEN_UNTIL_ENABLED: "true" } }, Date, Buffer, Request, Response, Headers, Uint8Array, console, require: (name) => {
+  vm.runInNewContext(code, { exports, process: { env: { CANNOT_OPEN_UNTIL_ENABLED: "true" } }, Date, Error, Buffer, Request, Response, Headers, Uint8Array, console, require: (name) => {
     if (!(name in deps)) throw new Error(`Unexpected import: ${name}`);
     return deps[name];
   } });
@@ -60,7 +60,7 @@ test("owner lifecycle and concurrent changes serialize in PostgreSQL", {
 }, async () => {
   const { Client } = createRequire(import.meta.url)(process.env.CANNOT_OPEN_TEST_PG);
   const clients = Array.from({ length: 3 }, () => new Client({ connectionString: process.env.CANNOT_OPEN_TEST_POSTGRES }));
-  const schema = `capsule_test_${randomUUID().replaceAll("-", "")}`;
+  const schema = `capsule_test_${crypto.randomUUID().replaceAll("-", "")}`;
   await Promise.all(clients.map((client) => client.connect()));
   const [a, b, read] = clients;
   try {
@@ -76,13 +76,16 @@ test("owner lifecycle and concurrent changes serialize in PostgreSQL", {
       INSERT INTO connected_lives (id, owner_user_id, connected_user_id, display_name, relationship, status, created_at, updated_at)
       VALUES ('c1', 'recipient', 'owner', 'Owner', 'Family', 'accepted', '2026-01-01', '2026-01-01'),
              ('c2', 'owner', 'other', 'Other', 'Family', 'accepted', '2026-01-01', '2026-01-01');
+      INSERT INTO future_moment_makers (id, owner_user_id, name, relationship, created_at, updated_at)
+      VALUES ('future', 'owner', 'Future', 'Child', '2026-01-01', '2026-01-01'),
+        ('future2', 'owner', 'Future 2', 'Child', '2026-01-01', '2026-01-01');
     `);
     const build = (client, userId = "owner") => {
       const sql = dbAdapter(client);
       const access = moduleFor("lib\\cannot-open-until.ts", { "server-only": {}, "@/lib/db": { getSql: () => sql } });
       const common = { "@/lib/auth": { getCurrentUser: async () => ({ id: userId }) }, "@/lib/db": { getSql: () => sql } };
       const actions = moduleFor("app\\actions\\cannot-open-until.ts", {
-        ...common, "next/cache": { revalidatePath: () => {} }, "@/lib/cannot-open-until": access,
+        ...common, "node:crypto": crypto, "next/cache": { revalidatePath: () => {} }, "@/lib/cannot-open-until": access,
         "@/lib/profile-photo": { validatePhoto: (value) => value },
       });
       const archive = moduleFor("app\\actions\\content-archive.ts", { ...common, "next/cache": { revalidatePath: () => {} } });
@@ -92,7 +95,7 @@ test("owner lifecycle and concurrent changes serialize in PostgreSQL", {
       });
       return { actions, archive, creator, access };
     };
-    const one = build(a), two = build(b), viewer = build(read, "recipient");
+    const one = build(a), two = build(b), viewer = build(read, "recipient"), otherViewer = build(read, "other");
     const photoData = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=";
     await a.query(`INSERT INTO moment_videos (id, user_id, pathname, filename, content_type, size_bytes, state)
       VALUES ('video', 'owner', 'video-path', 'video.mp4', 'video/mp4', 4, 'ready');
@@ -103,6 +106,9 @@ test("owner lifecycle and concurrent changes serialize in PostgreSQL", {
       videoUploadId: "video", audioUploadId: "audio", writtenMessage: "A message", audience: "private", accessCodeRequired: false,
       accessCode: "", releaseKind: "date", releaseDate: "2099-01-01", occasion: "", customOccasionDate: "",
       recipientName: "", relationship: "", createRecipient: false, familyPlaceholderId: "" };
+    draft.timeCapsuleRecipientKind = "current";
+    draft.timeCapsuleRecipientId = "recipient";
+    draft.releaseTimezone = "UTC";
     const photos = moduleFor("lib\\profile-photo.ts", { "server-only": {} });
     const mediaStream = moduleFor("lib\\moment-media-stream.ts", { "@vercel/blob": {
       get: async (_pathname, options) => {
@@ -132,7 +138,7 @@ test("owner lifecycle and concurrent changes serialize in PostgreSQL", {
       headers: range ? { Range: range } : {},
     }), { params: Promise.resolve({ id: "created" }) });
     assert.ok((await one.creator.publishMoment("cannot-open-until", "", draft)).success);
-    assert.equal((await a.query("SELECT COUNT(*)::int AS count FROM cannot_open_until_settings WHERE moment_id = 'created'")).rows[0].count, 0);
+    assert.equal((await a.query("SELECT COUNT(*)::int AS count FROM cannot_open_until_settings WHERE moment_id = 'created' AND status = 'active'")).rows[0].count, 1);
     const activation = form({ id: "created", recipient: "recipient", date: "2099-01-01", timezone: "UTC" });
     assert.ok((await one.actions.activateTimeCapsule({}, activation)).success);
     const locked = await viewer.access.getReceivedTimeCapsule("recipient", "created");
@@ -177,13 +183,13 @@ test("owner lifecycle and concurrent changes serialize in PostgreSQL", {
       await a.query(`INSERT INTO moments (id, user_id, kind, title, story, audience, created_at, updated_at)
         VALUES ($1, 'owner', 'cannot-open-until', 'Title', 'Original', 'private', '2026-01-01', 'v1')`, [id]);
       await a.query(`INSERT INTO cannot_open_until_settings
-        (moment_id, status, recipient_user_id, connection_id, release_date, release_timezone, unlock_at, reviewed_at)
-        VALUES ($1, 'active', 'recipient', 'c1', '2099-01-01', 'UTC', '2099-01-01T00:00:00Z', clock_timestamp())`, [id]);
+        (moment_id, status, recipient_kind, intended_user_id, recipient_user_id, connection_id, release_date, release_timezone, unlock_at, reviewed_at)
+        VALUES ($1, 'active', 'current', 'recipient', 'recipient', 'c1', '2099-01-01', 'UTC', '2099-01-01T00:00:00Z', clock_timestamp())`, [id]);
     }
     const edit = (id) => form({ id, version: "v1", title: "Title", story: "Edited", tags: "", message: "",
       photoAction: "keep", videoAction: "keep", audioAction: "keep" });
     const release = (id) => form({ id });
-    const reassign = (id) => form({ id, recipient: "other" });
+    const reassign = (id) => form({ id, recipient: "current:other", date: "2099-01-01", timezone: "UTC" });
 
     await fixture("edit-first");
     await a.query("BEGIN");
@@ -206,16 +212,16 @@ test("owner lifecycle and concurrent changes serialize in PostgreSQL", {
     await fixture("release-reassign");
     await a.query("BEGIN");
     assert.ok((await one.actions.releaseTimeCapsule({}, release("release-reassign"))).success);
-    const reassignAfterRelease = two.actions.reassignTimeCapsule({}, reassign("release-reassign"));
+    const reassignAfterRelease = two.actions.activateTimeCapsule({}, reassign("release-reassign"));
     await assertWaiting(reassignAfterRelease);
     await a.query("COMMIT");
-    assert.ok((await reassignAfterRelease).success);
-    assert.equal(await viewer.access.getAccessibleTimeCapsule("recipient", "release-reassign"), null);
-    assert.equal((await viewer.access.getAccessibleTimeCapsule("other", "release-reassign")).story, "Original");
+    assert.ok((await reassignAfterRelease).error);
+    assert.equal((await viewer.access.getAccessibleTimeCapsule("recipient", "release-reassign")).story, "Original");
+    assert.equal(await viewer.access.getAccessibleTimeCapsule("other", "release-reassign"), null);
 
     await fixture("reassign-release");
     await a.query("BEGIN");
-    assert.ok((await one.actions.reassignTimeCapsule({}, reassign("reassign-release"))).success);
+    assert.ok((await one.actions.activateTimeCapsule({}, reassign("reassign-release"))).success);
     const releaseAfterReassign = two.actions.releaseTimeCapsule({}, release("reassign-release"));
     await assertWaiting(releaseAfterReassign);
     await a.query("COMMIT");
@@ -262,6 +268,81 @@ test("owner lifecycle and concurrent changes serialize in PostgreSQL", {
     await a.query("COMMIT");
     assert.ok((await archiveAfterRelease).success);
     assert.equal(await viewer.access.getAccessibleTimeCapsule("recipient", "release-archive"), null);
+
+    async function pendingClaim(id, target = "future", claimant = viewer) {
+      await a.query(`INSERT INTO moments (id, user_id, kind, title, story, audience, created_at, updated_at)
+        VALUES ($1, 'owner', 'cannot-open-until', 'Title', 'Original', 'private', '2026-01-01', 'v1')`, [id]);
+      await a.query("SELECT activate_recipient_time_capsule('owner', $1, 'future', $2, '2099-01-01', 'UTC')", [id, target]);
+      const link = await one.actions.createClaimLink({}, form({ id }));
+      assert.ok(link.claimToken);
+      assert.ok((await claimant.actions.requestTimeCapsuleClaim({}, form({ token: link.claimToken }))).success);
+      return (await a.query("SELECT id FROM cannot_open_until_claims WHERE moment_id = $1 AND status = 'pending'", [id])).rows[0].id;
+    }
+    const approve = (claim) => form({ claim, decision: "approve" });
+    const releaseClaim = await pendingClaim("release-claim");
+    await a.query("BEGIN");
+    assert.ok((await one.actions.releaseTimeCapsule({}, release("release-claim"))).success);
+    const claimAfterRelease = two.actions.decideTimeCapsuleClaim({}, approve(releaseClaim));
+    await assertWaiting(claimAfterRelease);
+    await a.query("COMMIT");
+    assert.ok((await claimAfterRelease).success);
+    assert.equal((await viewer.access.getAccessibleTimeCapsule("recipient", "release-claim")).story, "Original");
+
+    const claimRelease = await pendingClaim("claim-release");
+    await a.query("BEGIN");
+    assert.ok((await one.actions.decideTimeCapsuleClaim({}, approve(claimRelease))).success);
+    const releaseAfterClaim = two.actions.releaseTimeCapsule({}, release("claim-release"));
+    await assertWaiting(releaseAfterClaim);
+    await a.query("COMMIT");
+    assert.ok((await releaseAfterClaim).success);
+    assert.equal((await viewer.access.getAccessibleTimeCapsule("recipient", "claim-release")).story, "Original");
+
+    const reassignClaim = await pendingClaim("reassign-claim");
+    await a.query("BEGIN");
+    assert.ok((await one.actions.activateTimeCapsule({}, reassign("reassign-claim"))).success);
+    const claimAfterReassign = two.actions.decideTimeCapsuleClaim({}, approve(reassignClaim));
+    await assertWaiting(claimAfterReassign);
+    await a.query("COMMIT");
+    assert.ok((await claimAfterReassign).error);
+    assert.equal(await viewer.access.getReceivedTimeCapsule("recipient", "reassign-claim"), null);
+
+    const disconnectClaim = await pendingClaim("claim-disconnect");
+    await a.query("UPDATE connected_lives SET status = 'accepted' WHERE id = 'c1'");
+    await a.query("BEGIN");
+    assert.ok((await one.actions.decideTimeCapsuleClaim({}, approve(disconnectClaim))).success);
+    const disconnectAfterClaim = b.query("UPDATE connected_lives SET status = 'declined' WHERE id = 'c1'");
+    await assertWaiting(disconnectAfterClaim);
+    await a.query("COMMIT");
+    await disconnectAfterClaim;
+    assert.equal(await viewer.access.getReceivedTimeCapsule("recipient", "claim-disconnect"), null);
+    assert.ok((await one.actions.reassignTimeCapsule({}, form({ id: "claim-disconnect" }))).success);
+    assert.equal((await viewer.access.getReceivedTimeCapsule("recipient", "claim-disconnect")).released, false);
+
+    const firstIdentity = await pendingClaim("identity-one", "future2");
+    const conflictingIdentity = await pendingClaim("identity-two", "future2", otherViewer);
+    await a.query("BEGIN");
+    assert.ok((await one.actions.decideTimeCapsuleClaim({}, approve(firstIdentity))).success);
+    const conflictingApproval = two.actions.decideTimeCapsuleClaim({}, approve(conflictingIdentity));
+    await assertWaiting(conflictingApproval);
+    await a.query("COMMIT");
+    assert.match((await conflictingApproval).error, /does not match/);
+    assert.equal(await viewer.access.getReceivedTimeCapsule("other", "identity-two"), null);
+
+    await fixture("recipient-boundary");
+    await a.query("UPDATE cannot_open_until_settings SET unlock_at = clock_timestamp() + INTERVAL '1 second' WHERE moment_id = 'recipient-boundary'");
+    await a.query("BEGIN");
+    await a.query("UPDATE cannot_open_until_settings SET intended_user_id = 'other', recipient_user_id = 'other', connection_id = NULL WHERE moment_id = 'recipient-boundary'");
+    await read.query("SELECT pg_sleep(1.2)");
+    await assert.rejects(a.query("COMMIT"), /recipients cannot be changed/);
+    assert.equal((await read.query("SELECT intended_user_id FROM cannot_open_until_settings WHERE moment_id = 'recipient-boundary'")).rows[0].intended_user_id, "recipient");
+
+    await fixture("schedule-boundary");
+    await a.query("UPDATE cannot_open_until_settings SET unlock_at = clock_timestamp() + INTERVAL '1 second' WHERE moment_id = 'schedule-boundary'");
+    await a.query("BEGIN");
+    await a.query("UPDATE cannot_open_until_settings SET release_date = '2098-01-01' WHERE moment_id = 'schedule-boundary'");
+    await read.query("SELECT pg_sleep(1.2)");
+    await assert.rejects(a.query("COMMIT"), /schedules are read-only/);
+    assert.equal((await read.query("SELECT release_date::text AS date FROM cannot_open_until_settings WHERE moment_id = 'schedule-boundary'")).rows[0].date, "2099-01-01");
 
     await fixture("clock-boundary");
     await a.query("UPDATE cannot_open_until_settings SET unlock_at = clock_timestamp() + INTERVAL '1 second' WHERE moment_id = 'clock-boundary'");

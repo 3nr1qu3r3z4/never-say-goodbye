@@ -41,13 +41,16 @@ test("legacy Moments remain inactive and disconnected recipients require reassig
     const commitMigration = fs.readFileSync(path.join(root, "db", "migrations", "032_cannot_open_until_commit_guard.sql"), "utf8");
     await db.exec(commitMigration);
     await db.exec(commitMigration);
+    const recipientMigration = fs.readFileSync(path.join(root, "db", "migrations", "033_time_capsule_recipients.sql"), "utf8");
+    await db.exec(recipientMigration);
+    await db.exec(recipientMigration);
     assert.equal((await db.query("SELECT COUNT(*)::int AS count FROM cannot_open_until_settings")).rows[0].count, 0);
     assert.equal((await db.query("SELECT story FROM moments WHERE id = 'legacy'")).rows[0].story, "Preserve me");
     await assert.rejects(db.exec(`INSERT INTO cannot_open_until_settings (moment_id, recipient_user_id, connection_id)
       VALUES ('legacy', 'outsider', 'connection')`));
     await db.exec(`INSERT INTO cannot_open_until_settings
-      (moment_id, status, recipient_user_id, connection_id, release_date, release_timezone, unlock_at, reviewed_at)
-      VALUES ('legacy', 'active', 'recipient', 'connection', '2030-01-01', 'UTC', '2030-01-01T00:00:00Z', CURRENT_TIMESTAMP)`);
+      (moment_id, status, recipient_kind, intended_user_id, recipient_user_id, connection_id, release_date, release_timezone, unlock_at, reviewed_at)
+      VALUES ('legacy', 'active', 'current', 'recipient', 'recipient', 'connection', '2030-01-01', 'UTC', '2030-01-01T00:00:00Z', CURRENT_TIMESTAMP)`);
     const sql = async (strings, ...values) => {
       const query = strings.reduce((result, part, index) => result + (index ? `$${index}` : "") + part, "");
       return (await db.query(query, values)).rows;
@@ -82,8 +85,9 @@ test("legacy Moments remain inactive and disconnected recipients require reassig
     const actionCode = ts.transpileModule(actionSource, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
     let viewer = "owner";
     vm.runInNewContext(actionCode, {
-      exports: actions, Date,
+      exports: actions, Date, Error,
       require: (name) => {
+        if (name === "node:crypto") return createRequire(import.meta.url)("node:crypto");
         if (name === "next/cache") return { revalidatePath: () => {} };
         if (name === "@/lib/auth") return { getCurrentUser: async () => ({ id: viewer }) };
         if (name === "@/lib/db") return { getSql: () => sql };
@@ -105,8 +109,7 @@ test("legacy Moments remain inactive and disconnected recipients require reassig
     assert.ok((await actions.activateTimeCapsule({}, review)).error);
     review.set("recipient", "recipient");
     await db.exec("UPDATE connected_lives SET status = 'pending' WHERE id = 'connection'");
-    assert.ok((await actions.activateTimeCapsule({}, review)).error);
-    assert.equal((await db.query("SELECT COUNT(*)::int AS count FROM cannot_open_until_settings WHERE moment_id = 'review'")).rows[0].count, 0);
+    assert.ok((await actions.activateTimeCapsule({}, review)).success);
     await db.exec("UPDATE connected_lives SET status = 'accepted' WHERE id = 'connection'");
     assert.ok((await actions.activateTimeCapsule({}, review)).success);
     assert.equal((await db.query("SELECT story FROM moments WHERE id = 'review'")).rows[0].story, "Review me");
@@ -119,6 +122,8 @@ test("legacy Moments remain inactive and disconnected recipients require reassig
     assert.ok((await actions.activateTimeCapsule({}, form)).error);
     viewer = "owner";
     assert.ok((await actions.activateTimeCapsule({}, form)).success);
+    assert.equal((await exports.getReceivedTimeCapsules("recipient")).length, 0);
+    assert.ok((await actions.reassignTimeCapsule({}, form)).success);
     const listing = await exports.getReceivedTimeCapsules("recipient");
     assert.equal(listing.length, 1);
     assert.equal(listing[0].title, "Legacy");
@@ -219,7 +224,7 @@ test("legacy Moments remain inactive and disconnected recipients require reassig
     const creator = {};
     const creatorCode = ts.transpileModule(fs.readFileSync(path.join(root, "lib", "moment-actions.ts"), "utf8"),
       { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
-    vm.runInNewContext(creatorCode, { exports: creator, Date, require: (name) => {
+    vm.runInNewContext(creatorCode, { exports: creator, Date, Error, require: (name) => {
       if (name === "node:crypto") return { randomUUID: () => "created" };
       if (name === "@/lib/auth") return { getCurrentUser: async () => ({ id: "owner" }) };
       if (name === "@/lib/db") return { getSql: () => sql };
@@ -235,11 +240,12 @@ test("legacy Moments remain inactive and disconnected recipients require reassig
       audience: "private", accessCodeRequired: false, accessCode: "", releaseKind: "date",
       releaseDate: "2099-01-01", occasion: "", customOccasionDate: "", recipientName: "",
       relationship: "", createRecipient: false, familyPlaceholderId: "",
+      timeCapsuleRecipientKind: "current", timeCapsuleRecipientId: "outsider", releaseTimezone: "UTC",
     };
     assert.ok((await creator.publishMoment("cannot-open-until", "", draft)).success);
     assert.equal((await db.query("SELECT moment_id FROM moment_videos WHERE id = 'create-video'")).rows[0].moment_id, "created");
     assert.equal((await db.query("SELECT moment_id FROM moment_audio WHERE id = 'create-audio'")).rows[0].moment_id, "created");
-    assert.equal((await db.query("SELECT COUNT(*)::int AS count FROM cannot_open_until_settings WHERE moment_id = 'created'")).rows[0].count, 0);
+    assert.equal((await db.query("SELECT COUNT(*)::int AS count FROM cannot_open_until_settings WHERE moment_id = 'created' AND status = 'active'")).rows[0].count, 1);
     const remove = new FormData();
     remove.set("id", "created");
     viewer = "outsider";
@@ -324,9 +330,10 @@ test("owner review and released views expose the appropriate controls", () => {
     "@/lib/moment-audio-actions": { beginMomentAudioUpload: noop, completeMomentAudioUpload: noop },
     "@/lib/moment-video-actions": { beginMomentVideoUpload: noop, completeMomentVideoUpload: noop },
     "@/app/actions/content-archive": { changeArchiveState: noop },
+    "@/app/actions/family-tree": { searchFamilyMomentMakers: noop },
     "@/app/actions/cannot-open-until": {
       activateTimeCapsule: noop, deleteTimeCapsule: noop, reassignTimeCapsule: noop,
-      releaseTimeCapsule: noop, saveTimeCapsuleContent: noop,
+      releaseTimeCapsule: noop, saveTimeCapsuleContent: noop, createClaimLink: noop, decideTimeCapsuleClaim: noop,
     },
   };
   vm.runInNewContext(code, { exports, require: (name) => {
@@ -341,7 +348,7 @@ test("owner review and released views expose the appropriate controls", () => {
     oldOccasion: "Birthday",
   };
   const render = (data) => renderToStaticMarkup(React.createElement(exports.default, {
-    moment: data, candidates: [{ id: "relative", name: "Relative" }],
+    moment: data, candidates: { current: [{ id: "relative", name: "Relative" }], future: [], placeholders: [] }, claims: [],
   }));
   const review = render(moment);
   assert.match(review, /Review Required/);
@@ -351,8 +358,8 @@ test("owner review and released views expose the appropriate controls", () => {
   assert.doesNotMatch(review, /Release now/);
   const released = render({ ...moment, review: false, released: true, archived: true });
   assert.match(released, /Released · Read-only/);
-  assert.match(released, /reassignment is required/i);
-  assert.match(released, /immediately/);
+  assert.match(released, /Recipient unavailable/);
+  assert.match(released, /cannot be changed after release/);
   assert.match(released, /Restore/);
   assert.match(released, /Delete permanently/);
   assert.doesNotMatch(released, /Edit content|Release now|name="date"/);

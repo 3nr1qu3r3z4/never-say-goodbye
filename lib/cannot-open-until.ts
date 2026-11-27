@@ -38,11 +38,6 @@ export async function getAccessibleTimeCapsule(viewerId: string | null, momentId
         OR (
           m.archived_at IS NULL AND s.status = 'active' AND s.recipient_user_id = ${viewerId}
           AND (s.manual_released_at IS NOT NULL OR s.unlock_at <= clock_timestamp())
-          AND EXISTS (
-            SELECT 1 FROM connected_lives c WHERE c.id = s.connection_id AND c.status = 'accepted'
-              AND ((c.owner_user_id = m.user_id AND c.connected_user_id = ${viewerId})
-                OR (c.connected_user_id = m.user_id AND c.owner_user_id = ${viewerId}))
-          )
         )
       )
   `,
@@ -75,9 +70,6 @@ async function findReceivedTimeCapsules(viewerId: string, momentId: string | nul
     FROM cannot_open_until_settings s
     JOIN moments m ON m.id = s.moment_id
     JOIN users u ON u.id = m.user_id
-    JOIN connected_lives c ON c.id = s.connection_id AND c.status = 'accepted'
-      AND ((c.owner_user_id = m.user_id AND c.connected_user_id = ${viewerId})
-        OR (c.connected_user_id = m.user_id AND c.owner_user_id = ${viewerId}))
     WHERE m.kind = 'cannot-open-until' AND m.archived_at IS NULL
       AND s.status = 'active' AND s.recipient_user_id = ${viewerId}
       AND (${momentId}::text IS NULL OR m.id = ${momentId})

@@ -8,9 +8,11 @@ import { useRouter } from "next/navigation";
 import {
   loadMomentDraft,
   getFamilyPlaceholders,
+  getTimeCapsuleRecipients,
   publishMoment as publishMomentAction,
   saveMomentDraft,
 } from "@/lib/moment-actions";
+import { searchFamilyMomentMakers } from "@/app/actions/family-tree";
 import {
   initialMomentDraft,
   type Audience,
@@ -114,6 +116,13 @@ export default function MomentEditor({ kind, timeCapsuleEnabled = false }: { kin
   const [isAudioUploading, setIsAudioUploading] = useState(false);
   const [audioProgress, setAudioProgress] = useState(0);
   const [audioError, setAudioError] = useState("");
+  const [recipients, setRecipients] = useState<{
+    current: { id: string; name: string }[];
+    future: { id: string; name: string; relationship: string }[];
+    placeholders: { id: string; name: string; relationship: string }[];
+  }>({ current: [], future: [], placeholders: [] });
+  const [recipientSearch, setRecipientSearch] = useState("");
+  const [recipientSearchError, setRecipientSearchError] = useState("");
   const momentConfig = config[kind];
   const uploadedMediaEnabled = kind === "shared" || (kind === "cannot-open-until" && timeCapsuleEnabled);
 
@@ -125,7 +134,8 @@ export default function MomentEditor({ kind, timeCapsuleEnabled = false }: { kin
         if ("error" in result) {
           setStatusMessage(result.error ?? "Your saved draft could not be loaded.");
         } else if (result.draft) {
-          setDraft(result.draft);
+          setDraft(kind === "cannot-open-until" && timeCapsuleEnabled
+            ? { ...result.draft, releaseKind: "date" } : result.draft);
           setDraftId(result.draftId);
           setAccessCodeSaved(result.accessCodeSaved);
           setStatusMessage("Your saved draft has been restored.");
@@ -140,7 +150,7 @@ export default function MomentEditor({ kind, timeCapsuleEnabled = false }: { kin
     return () => {
       active = false;
     };
-  }, [kind]);
+  }, [kind, timeCapsuleEnabled]);
 
   useEffect(() => {
     let active = true;
@@ -159,6 +169,40 @@ export default function MomentEditor({ kind, timeCapsuleEnabled = false }: { kin
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (kind !== "cannot-open-until" || !timeCapsuleEnabled) return;
+    let active = true;
+    getTimeCapsuleRecipients().then((result) => {
+      if (!active) return;
+      if ("error" in result) setStatusMessage(result.error ?? "Recipients could not be loaded.");
+      else setRecipients(result);
+    }).catch(() => {
+      if (active) setStatusMessage("Recipients could not be loaded. Please try again.");
+    });
+    return () => { active = false; };
+  }, [kind, timeCapsuleEnabled]);
+
+  async function searchRecipients() {
+    setRecipientSearchError("");
+    try {
+      const result = await searchFamilyMomentMakers(recipientSearch);
+      if (result.error) {
+        setRecipientSearchError(result.error);
+        return;
+      }
+      setRecipients((current) => ({
+        ...current,
+        current: Array.from(new Map([
+          ...current.current.map((person) => [person.id, person] as const),
+          ...result.results.map((person) => [person.id, { id: person.id, name: person.displayName }] as const),
+        ]).values()),
+      }));
+      if (!result.results.length) setRecipientSearchError("No searchable Moment Makers found.");
+    } catch {
+      setRecipientSearchError("The search could not be completed. Please try again.");
+    }
+  }
 
   function updateDraft<Key extends keyof MomentDraft>(
     key: Key,
@@ -353,7 +397,7 @@ export default function MomentEditor({ kind, timeCapsuleEnabled = false }: { kin
           </h1>
           <p className="mx-auto mt-4 max-w-xl font-serif text-lg leading-7 text-slate-300 sm:text-xl">
             {kind === "cannot-open-until" && timeCapsuleEnabled
-              ? "Save a Moment, then review it and activate its release date."
+              ? "Choose who this is for, create your Moment, and send it for a future date."
               : momentConfig.subtitle}
           </p>
         </header>
@@ -362,8 +406,42 @@ export default function MomentEditor({ kind, timeCapsuleEnabled = false }: { kin
           onSubmit={publishMoment}
           className="mx-auto mt-9 max-w-3xl space-y-5 sm:mt-12"
         >
+          {kind === "cannot-open-until" && timeCapsuleEnabled && (
+            <section aria-labelledby="recipient-heading" className={sectionClassName}>
+              <StepHeading number="01" id="recipient-heading" title="Who is this for?" />
+              <label className="mt-5 block text-sm text-slate-300">Recipient type
+                <select required value={draft.timeCapsuleRecipientKind ?? ""} className={fieldClassName}
+                  onChange={(event) => {
+                    const selected = event.target.value as "" | "current" | "future" | "placeholder";
+                    setDraft((current) => ({ ...current, timeCapsuleRecipientKind: selected, timeCapsuleRecipientId: "" }));
+                  }}>
+                  <option value="">Select a recipient type</option>
+                  <option value="current">Current Moment Maker</option>
+                  <option value="future">Future Moment Maker™</option>
+                  <option value="placeholder">Family Placeholder™</option>
+                </select>
+              </label>
+              {draft.timeCapsuleRecipientKind === "current" && <div className="mt-4">
+                <label className="block text-sm text-slate-300">Find a searchable Moment Maker
+                  <input value={recipientSearch} onChange={(event) => setRecipientSearch(event.target.value)} className={fieldClassName} />
+                </label>
+                <button type="button" className={`${secondaryButtonClassName} mt-3`} onClick={() => void searchRecipients()}>Search</button>
+                {recipientSearchError && <p role="status" className="mt-2 text-sm text-amber-300">{recipientSearchError}</p>}
+              </div>}
+              {draft.timeCapsuleRecipientKind && <label className="mt-4 block text-sm text-slate-300">Recipient
+                <select required value={draft.timeCapsuleRecipientId ?? ""} className={fieldClassName}
+                  onChange={(event) => updateDraft("timeCapsuleRecipientId", event.target.value)}>
+                  <option value="">Select a person</option>
+                  {(draft.timeCapsuleRecipientKind === "current" ? recipients.current
+                    : draft.timeCapsuleRecipientKind === "future" ? recipients.future : recipients.placeholders).map((person) =>
+                    <option key={person.id} value={person.id}>{person.name}{"relationship" in person ? ` · ${person.relationship}` : ""}</option>)}
+                </select>
+              </label>}
+              <p className="mt-3 text-sm text-slate-400">Choose an existing NSG person. Future recipients receive their Moment after an owner-approved claim.</p>
+            </section>
+          )}
           <section aria-labelledby="story-heading" className={sectionClassName}>
-            <StepHeading number="01" id="story-heading" title="Your Story" />
+            <StepHeading number={kind === "cannot-open-until" && timeCapsuleEnabled ? "02" : "01"} id="story-heading" title="Your Story" />
             <div className="mt-5 space-y-4">
               <div>
                 <label htmlFor="moment-title" className="block text-sm text-slate-300">
@@ -407,11 +485,11 @@ export default function MomentEditor({ kind, timeCapsuleEnabled = false }: { kin
           </section>
 
           <section aria-labelledby="content-heading" className={sectionClassName}>
-            <StepHeading
+            {kind === "cannot-open-until" && timeCapsuleEnabled ? <h2 id="content-heading" className="font-serif text-2xl text-white">Bring This Moment To Life</h2> : <StepHeading
               number="02"
               id="content-heading"
               title="Bring This Moment To Life"
-            />
+            />}
             <p className="mt-2 text-sm leading-6 text-slate-400">
               Choose one or more ways to tell this story.
             </p>
@@ -629,7 +707,7 @@ export default function MomentEditor({ kind, timeCapsuleEnabled = false }: { kin
                 <p className="mt-2 text-sm leading-6 text-slate-400">
                   Choose when this message will be ready to open.
                 </p>
-                <fieldset className="mt-5 grid gap-3 sm:grid-cols-2">
+                {!timeCapsuleEnabled && <fieldset className="mt-5 grid gap-3 sm:grid-cols-2">
                   <legend className="sr-only">Choose a release type</legend>
                   {[
                     { value: "date" as const, label: "A specific date" },
@@ -649,8 +727,8 @@ export default function MomentEditor({ kind, timeCapsuleEnabled = false }: { kin
                       {choice.label}
                     </label>
                   ))}
-                </fieldset>
-                {draft.releaseKind === "date" ? (
+                </fieldset>}
+                {timeCapsuleEnabled || draft.releaseKind === "date" ? (
                   <div className="mt-4">
                     <label htmlFor="release-date" className="block text-sm text-slate-300">
                       Open Date
@@ -664,6 +742,10 @@ export default function MomentEditor({ kind, timeCapsuleEnabled = false }: { kin
                       }
                       className={fieldClassName}
                     />
+                    {timeCapsuleEnabled && <label className="mt-4 block text-sm text-slate-300">Time zone
+                      <input required value={draft.releaseTimezone ?? "UTC"} onChange={(event) => updateDraft("releaseTimezone", event.target.value)} className={fieldClassName} placeholder="UTC" />
+                      <span className="mt-2 block text-xs text-slate-400">Use an IANA time zone, such as America/New_York or UTC.</span>
+                    </label>}
                   </div>
                 ) : (
                   <div className="mt-4">
@@ -760,7 +842,7 @@ export default function MomentEditor({ kind, timeCapsuleEnabled = false }: { kin
           </section>
 
           <section aria-labelledby="save-heading" className={sectionClassName}>
-            {familyPlaceholders.length > 0 && (
+            {kind !== "cannot-open-until" && familyPlaceholders.length > 0 && (
               <div className="mb-6">
                 <label
                   htmlFor="family-placeholder"
@@ -826,7 +908,7 @@ export default function MomentEditor({ kind, timeCapsuleEnabled = false }: { kin
             disabled={!isReady || isSaving || isPhotoPreparing || isVideoUploading || isAudioUploading}
             className="min-h-14 w-full rounded-full bg-[color:var(--nsg-accent)] px-8 py-4 text-sm font-semibold tracking-wide text-[color:var(--nsg-background)] shadow-lg shadow-[color:var(--nsg-accent)]/10 transition hover:bg-[color:var(--nsg-accent-hover)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)] sm:text-base"
           >
-            {isSaving ? "Saving..." : "Publish Moment"}
+            {isSaving ? "Saving..." : kind === "cannot-open-until" && timeCapsuleEnabled ? "Send Moment" : "Publish Moment"}
           </button>
         </form>
 

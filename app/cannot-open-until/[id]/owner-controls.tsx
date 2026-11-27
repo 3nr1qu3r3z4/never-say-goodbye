@@ -3,8 +3,9 @@
 import Image from "next/image";
 import { useActionState, useState } from "react";
 import { upload } from "@vercel/blob/client";
-import { activateTimeCapsule, deleteTimeCapsule, reassignTimeCapsule, releaseTimeCapsule, saveTimeCapsuleContent } from "@/app/actions/cannot-open-until";
+import { activateTimeCapsule, createClaimLink, decideTimeCapsuleClaim, deleteTimeCapsule, reassignTimeCapsule, releaseTimeCapsule, saveTimeCapsuleContent } from "@/app/actions/cannot-open-until";
 import { changeArchiveState } from "@/app/actions/content-archive";
+import { searchFamilyMomentMakers } from "@/app/actions/family-tree";
 import { beginMomentAudioUpload, completeMomentAudioUpload } from "@/lib/moment-audio-actions";
 import { beginMomentVideoUpload, completeMomentVideoUpload } from "@/lib/moment-video-actions";
 import { prepareMomentPhoto } from "@/lib/prepare-moment-photo";
@@ -15,6 +16,7 @@ export type OwnerMoment = {
   photoName: string | null; videoName: string | null; audioName: string | null;
   archived: boolean; review: boolean; released: boolean;
   recipientId: string | null; recipientName: string | null;
+  recipientKind: "current" | "future" | "placeholder" | null; intendedId: string | null;
   releaseDate: string | null; releaseTimezone: string | null;
   oldReleaseDate: string | null; oldOccasion: string | null;
 };
@@ -97,39 +99,96 @@ function ContentEditor({ moment }: { moment: OwnerMoment }) {
   </form>;
 }
 
-export default function OwnerControls({ moment, candidates }: { moment: OwnerMoment; candidates: { id: string; name: string }[] }) {
+type RecipientCandidates = {
+  current: { id: string; name: string }[];
+  future: { id: string; name: string; relationship: string }[];
+  placeholders: { id: string; name: string; relationship: string }[];
+};
+
+export default function OwnerControls({ moment, candidates, claims }: {
+  moment: OwnerMoment; candidates: RecipientCandidates; claims: { id: string; name: string }[];
+}) {
   const [scheduleState, scheduleAction, scheduling] = useActionState(activateTimeCapsule, {});
   const [recipientState, recipientAction, reassigning] = useActionState(reassignTimeCapsule, {});
+  const [claimState, claimAction, creatingClaim] = useActionState(createClaimLink, {});
+  const [decisionState, decisionAction, decidingClaim] = useActionState(decideTimeCapsuleClaim, {});
   const [releaseState, releaseAction, releasing] = useActionState(releaseTimeCapsule, {});
   const [archiveState, archiveAction, archiving] = useActionState(changeArchiveState, {});
   const [deleteState, deleteAction, deleting] = useActionState(deleteTimeCapsule, {});
-  const selectRecipient = <label className="mt-4 block text-sm font-semibold">Accepted Connected Lives™ recipient
-    <select name="recipient" defaultValue={moment.recipientId ?? ""} required className={field}>
-      <option value="" disabled>Select a connected person</option>
-      {candidates.map((person) => <option key={person.id} value={person.id}>{person.name}</option>)}
-    </select>
-  </label>;
+  const [current, setCurrent] = useState(candidates.current);
+  const [search, setSearch] = useState("");
+  const [searchError, setSearchError] = useState("");
+  async function searchRecipients() {
+    try {
+      const result = await searchFamilyMomentMakers(search);
+      if (result.error) { setSearchError(result.error); return; }
+      setCurrent((existing) => Array.from(new Map([
+        ...existing.map((person) => [person.id, person] as const),
+        ...result.results.map((person) => [person.id, { id: person.id, name: person.displayName }] as const),
+      ]).values()));
+      setSearchError(result.results.length ? "" : "No searchable Moment Makers found.");
+    } catch { setSearchError("The search could not be completed. Please try again."); }
+  }
+  const intended = moment.recipientKind && moment.intendedId ? `${moment.recipientKind}:${moment.intendedId}` : "";
+  const options = [
+    ...current.map((person) => ({ value: `current:${person.id}`, name: person.name, group: "Current Moment Makers" })),
+    ...candidates.future.map((person) => ({ value: `future:${person.id}`, name: `${person.name} · ${person.relationship}`, group: "Future Moment Makers™" })),
+    ...candidates.placeholders.map((person) => ({ value: `placeholder:${person.id}`, name: `${person.name} · ${person.relationship}`, group: "Family Placeholders™" })),
+  ];
+  if (intended && !options.some((person) => person.value === intended)) {
+    options.push({ value: intended, name: moment.recipientName ?? "Existing recipient", group: "Existing recipient" });
+  }
   return <>
     <section className={card}>
       <h2 className="font-serif text-2xl text-white">{moment.review ? "Review Required" : moment.released ? "Released · Read-only" : "Scheduled"}</h2>
       <p className="mt-3 text-sm leading-6 text-slate-300">{moment.review
-        ? "This Moment is inactive. Review the content, choose an accepted connection and a concrete date, then activate it."
-        : moment.recipientId ? `Recipient: ${moment.recipientName || "Connected member"}` : "Recipient unavailable or disconnected. Reassignment is required before they can access this Moment."}</p>
+        ? "This Moment is inactive. Review the content, choose an intended recipient and a concrete date, then activate it."
+        : moment.intendedId ? `Recipient: ${moment.recipientName || "Intended recipient"}${moment.recipientId ? "" : " · Awaiting claim or re-authorization"}` : "Recipient unavailable. Owner review is required."}</p>
       {!moment.review && <p className="mt-2 text-sm text-slate-400">Release date: {moment.releaseDate} ({moment.releaseTimezone}){moment.archived ? " · Archived" : ""}</p>}
       {moment.review && (moment.oldReleaseDate || moment.oldOccasion) && <p className="mt-3 text-sm text-slate-400">Previously saved reference: {[moment.oldReleaseDate, moment.oldOccasion].filter(Boolean).join(" · ")}. This is not an active schedule.</p>}
       {!moment.released ? <form action={scheduleAction} className="mt-4">
-        <input type="hidden" name="id" value={moment.id} />{selectRecipient}
+        <input type="hidden" name="id" value={moment.id} />
+        <label className="mt-4 block text-sm font-semibold">Find a searchable Moment Maker
+          <input value={search} onChange={(event) => setSearch(event.target.value)} className={field} />
+        </label>
+        <button type="button" className={button} onClick={() => void searchRecipients()}>Search</button>
+        {searchError && <p role="status" className="mt-2 text-sm text-slate-400">{searchError}</p>}
+        <label className="mt-4 block text-sm font-semibold">Who is this for?
+          <select name="recipient" defaultValue={intended} required className={field}>
+            <option value="" disabled>Select a recipient</option>
+            {["Current Moment Makers", "Future Moment Makers™", "Family Placeholders™", "Existing recipient"].map((group) =>
+              options.some((person) => person.group === group) && <optgroup key={group} label={group}>
+                {options.filter((person) => person.group === group).map((person) => <option key={person.value} value={person.value}>{person.name}</option>)}
+              </optgroup>)}
+          </select>
+        </label>
         <label className="mt-4 block text-sm font-semibold">Release date<input type="date" name="date" required defaultValue={moment.releaseDate ?? ""} className={field} /></label>
         <label className="mt-4 block text-sm font-semibold">Time zone<input name="timezone" required defaultValue={moment.releaseTimezone ?? "UTC"} className={field} /></label>
         <p className="mt-2 text-sm text-slate-400">Use an IANA time zone, such as America/New_York, or UTC. Release occurs at the start of that date.</p>
-        <button className={button} disabled={scheduling || !candidates.length}>{scheduling ? "Saving…" : moment.review ? "Activate schedule" : "Update schedule"}</button>
+        <button className={button} disabled={scheduling || !options.length}>{scheduling ? "Saving…" : moment.review ? "Activate schedule" : "Update schedule"}</button>
         <Feedback state={scheduleState} />
-      </form> : <form action={recipientAction} className="mt-4">
-        <input type="hidden" name="id" value={moment.id} />{selectRecipient}
-        <p className="mt-2 text-sm text-slate-400">A reassigned recipient can open this released Moment immediately when it is not archived.</p>
-        <button className={button} disabled={reassigning || !candidates.length}>Reassign recipient</button><Feedback state={recipientState} />
+      </form> : <p className="mt-4 text-sm text-slate-400">The intended recipient cannot be changed after release.</p>}
+      {!moment.review && !moment.recipientId && moment.intendedId && <form action={recipientAction}>
+        <input type="hidden" name="id" value={moment.id} />
+        <button className={button} disabled={reassigning}>Re-authorize intended recipient</button><Feedback state={recipientState} />
       </form>}
-      {!candidates.length && <p className="mt-3 text-sm text-slate-400">No accepted connections are available. Visit Connected Lives™ to connect.</p>}
+      {!moment.review && (moment.recipientKind === "future" || moment.recipientKind === "placeholder") && !moment.recipientId && <>
+        <form action={claimAction}>
+          <input type="hidden" name="id" value={moment.id} />
+          <button className={button} disabled={creatingClaim || claims.length > 0}>Create private claim link</button>
+          <Feedback state={claimState} />
+          {claimState.claimToken && <label className="mt-3 block text-sm text-slate-300">Private claim link
+            <input readOnly className={field} value={`${window.location.origin}/cannot-open-until/claim#${claimState.claimToken}`} onFocus={(event) => event.currentTarget.select()} />
+          </label>}
+        </form>
+        {claims.map((claim) => <form key={claim.id} action={decisionAction} className="mt-5">
+          <input type="hidden" name="claim" value={claim.id} />
+          <p className="text-sm text-slate-300">Claim request from {claim.name}. Confirm their identity independently; a name alone is not proof.</p>
+          <button name="decision" value="approve" className={button} disabled={decidingClaim}>Approve claim</button>{" "}
+          <button name="decision" value="decline" className={button} disabled={decidingClaim}>Decline</button>
+          <Feedback state={decisionState} />
+        </form>)}
+      </>}
       {!moment.review && !moment.released && <form action={releaseAction} onSubmit={(event) => { if (!window.confirm("Release now? This is irreversible and the content will become read-only.")) event.preventDefault(); }}>
         <input type="hidden" name="id" value={moment.id} /><button className={button} disabled={releasing}>Release now</button><Feedback state={releaseState} />
       </form>}
