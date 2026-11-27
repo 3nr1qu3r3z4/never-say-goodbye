@@ -76,6 +76,10 @@ export async function saveTreeMilestone(_state: MilestoneState, form: FormData):
           AND m.user_id IS NOT DISTINCT FROM ${subjectUser}
           AND m.placeholder_id IS NOT DISTINCT FROM ${placeholder}
           AND m.future_id IS NOT DISTINCT FROM ${future}
+          AND (m.future_id IS NULL OR EXISTS (
+            SELECT 1 FROM future_moment_makers f WHERE f.id = m.future_id
+              AND f.status <> 'archived' AND f.archived_at IS NULL
+          ))
           AND EXISTS (
             SELECT 1 FROM legacy_tree_members viewer
             LEFT JOIN legacy_tree_members subject ON subject.tree_id = viewer.tree_id AND subject.user_id = m.user_id
@@ -108,7 +112,7 @@ export async function saveTreeMilestone(_state: MilestoneState, form: FormData):
               ))
               OR (${future}::text IS NOT NULL AND EXISTS (
                 SELECT 1 FROM future_moment_makers f WHERE f.id = ${future}
-                  AND f.legacy_tree_id = viewer.tree_id AND f.status <> 'archived'
+                  AND f.legacy_tree_id = viewer.tree_id AND f.status <> 'archived' AND f.archived_at IS NULL
               ))
             ))
           )
@@ -125,6 +129,10 @@ export async function deleteTreeMilestone(_state: MilestoneState, form: FormData
   const rows = await sql`
     DELETE FROM family_tree_milestones AS m
     WHERE m.id = ${field(form, "milestoneId")} AND m.tree_id = ${field(form, "treeId")}
+      AND (m.future_id IS NULL OR EXISTS (
+        SELECT 1 FROM future_moment_makers f WHERE f.id = m.future_id
+          AND f.status <> 'archived' AND f.archived_at IS NULL
+      ))
       AND EXISTS (
         SELECT 1 FROM legacy_tree_members viewer
         LEFT JOIN legacy_tree_members subject ON subject.tree_id = viewer.tree_id AND subject.user_id = m.user_id

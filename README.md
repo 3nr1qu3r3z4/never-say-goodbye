@@ -12,18 +12,45 @@ with signup and Help Center. Paid registration and billing are not available,
 and plan quotas and entitlements are not enforced during beta. Existing beta
 access remains unchanged; existing per-file upload limits still apply.
 
-The plan definitions are not an entitlement system. Limits list explicit
-plan changes; `null` means unlimited, omitted limits are inherited or
-unspecified, and a plan's video limit replaces its parent's video limit. Before
-enabling billing, resolve how scheduled delivery relates to Cannot Open Until
-quotas, and define legacy membership mappings, payment lifecycle and cancellation,
-grandfathering, quota accounting, and enforcement. Reminder notifications,
-scheduled deliveries, and other features marked Coming Soon
-also require implementation.
+The preview catalog is not the entitlement policy and still contains outdated
+unlimited claims; its customer-facing copy has not yet been changed.
+`lib/entitlements.ts` defines the approved plan entitlements and provides
+server-only, non-enforcing usage reports. Counts cover active published owned Moments,
+attached audio and video, and non-archived owned Future Moment Makers. Drafts do
+not count. Free video usage is reported separately for public and non-public
+audiences. These reports are advisory snapshots, not atomic quota checks. They
+are internal server functions; callers must authorize access before exposing
+another account's information.
+
+Migration 027 adds a beta access review table but does not populate it or
+change anyone's access. An absent review means unreviewed, not ineligible.
+Grandfathered accounts retain beta quota and theme access without receiving
+future paid-only features automatically. The founder-approved account list must
+be reviewed before any restrictions are considered. Legacy `tier-2` and
+`tier-3` memberships require explicit review rather than an assumed mapping.
+No current creation path calls or enforces the advisory Future Moment Maker
+quota check. Paid registration, billing, and plan enforcement remain disabled.
+Reminder notifications, scheduled deliveries, and other features marked Coming
+Soon also require implementation.
 
 Family Calendar currently displays shared family dates and events. Reminder
 preferences can be saved, but automated notifications are not sent. Support
 is available to every family.
+
+Signed-in members can open Membership & Usage from My Profile to see their
+current plan, available themes, and published-content usage. Plan allowances
+are informational and are not enforced. Approved grandfathered accounts see
+their beta access rather than quota warnings. Migration 027 must be applied
+before this page can load membership information.
+
+Apply migration 028 before deploying content management. Members can open
+Membership & Usage → Manage Content to archive or restore whole Moments and
+Future Moment Makers. Archived Moments retain all attached media and do not
+count toward usage; restoration immediately restores usage, without enforcement.
+Archiving a Future Moment Maker hides it from tree and calendar views while
+retaining relationships, dates, and separately managed Moments. Earlier records
+whose status was `archived` restore as `awaiting-claim` because their previous
+status was not recorded. Existing Shared Moment deletion remains permanent.
 
 ## My Legacy
 

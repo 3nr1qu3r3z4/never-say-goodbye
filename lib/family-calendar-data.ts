@@ -94,7 +94,7 @@ export async function getCalendarEvents(userId: string, treeId: string): Promise
     UNION ALL
     SELECT 'future:' || f.id, f.name || ' Expected Birth', f.expected_birth_date::text, FALSE, 'Future Moment Maker™'
     FROM future_moment_makers f JOIN imports ON imports.tree_id = f.legacy_tree_id
-    WHERE f.status = 'awaiting-claim' AND f.expected_birth_date IS NOT NULL
+    WHERE f.status = 'awaiting-claim' AND f.archived_at IS NULL AND f.expected_birth_date IS NOT NULL
     UNION ALL
     SELECT 'anniversary:' || c.id, c.first_name || ' & ' || c.second_name || ' Anniversary',
            c.anniversary_date::text, TRUE, 'Connected Lives™'
@@ -121,7 +121,7 @@ export async function getEditableCalendarSources(userId: string, treeId: string)
     UNION ALL
     SELECT f.id, f.name, 'future', COALESCE(f.expected_birth_date::text, ''), '', FALSE, FALSE
     FROM future_moment_makers f JOIN access ON access.tree_id = f.legacy_tree_id
-    WHERE f.status = 'awaiting-claim'
+    WHERE f.status = 'awaiting-claim' AND f.archived_at IS NULL
     UNION ALL
     SELECT u.id, u.display_name, 'user', COALESCE(u.birth_date::text, ''), '', FALSE, FALSE
     FROM access JOIN legacy_tree_members member ON member.tree_id = access.tree_id

@@ -121,7 +121,7 @@ export async function addFamilyMember(
         UNION ALL
         SELECT 'placeholder' AS kind, id FROM family_placeholders WHERE legacy_tree_id = ${tree.id}
         UNION ALL
-        SELECT 'future' AS kind, id FROM future_moment_makers WHERE legacy_tree_id = ${tree.id} AND status <> 'archived'
+        SELECT 'future' AS kind, id FROM future_moment_makers WHERE legacy_tree_id = ${tree.id} AND status <> 'archived' AND archived_at IS NULL
       ) AS candidates
       WHERE kind = ${referenceType} AND id = ${referenceId}
     ` as { id: string }[];

@@ -53,6 +53,12 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE UNIQUE INDEX IF NOT EXISTS users_email_unique_idx ON users (LOWER(email));
 CREATE UNIQUE INDEX IF NOT EXISTS users_username_unique_idx ON users (LOWER(username));
 
+CREATE TABLE IF NOT EXISTS beta_access_reviews (
+  user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  status TEXT NOT NULL CHECK (status IN ('grandfathered', 'not-grandfathered')),
+  reviewed_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS site_analytics_visitors (
   visitor_id TEXT PRIMARY KEY,
   last_seen_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -379,6 +385,7 @@ CREATE TABLE IF NOT EXISTS future_moment_makers (
   line_partner_type TEXT,
   line_partner_id TEXT,
   status TEXT NOT NULL DEFAULT 'awaiting-claim' CHECK (status IN ('awaiting-claim', 'claimed', 'archived')),
+  archived_at TIMESTAMPTZ,
   expected_birth_date DATE,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
@@ -475,6 +482,7 @@ CREATE TABLE IF NOT EXISTS moments (
   release_date TEXT,
   occasion TEXT,
   family_placeholder_id TEXT REFERENCES family_placeholders(id) ON DELETE SET NULL,
+  archived_at TIMESTAMPTZ,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
@@ -601,4 +609,8 @@ ON CONFLICT (version) DO NOTHING;
 
 INSERT INTO schema_migrations (version)
 VALUES ('026_moment_audio')
+ON CONFLICT (version) DO NOTHING;
+
+INSERT INTO schema_migrations (version)
+VALUES ('027_beta_access_reviews')
 ON CONFLICT (version) DO NOTHING;

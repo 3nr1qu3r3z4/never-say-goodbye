@@ -98,7 +98,7 @@ export default async function ConnectedLivesPage() {
     sql`
       SELECT id, name, relationship, status
       FROM future_moment_makers
-      WHERE owner_user_id = ${user.id} AND status <> 'archived'
+      WHERE owner_user_id = ${user.id} AND status <> 'archived' AND archived_at IS NULL
       ORDER BY name, id
     `,
   ]);

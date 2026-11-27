@@ -13,7 +13,8 @@ export async function searchOwnedLegacy(userId: string, term: string) {
     `,
     sql`
       SELECT id, name FROM future_moment_makers
-      WHERE owner_user_id = ${userId} AND strpos(lower(name), lower(${term})) > 0
+      WHERE owner_user_id = ${userId} AND status <> 'archived' AND archived_at IS NULL
+        AND strpos(lower(name), lower(${term})) > 0
       ORDER BY name, id LIMIT 30
     `,
     sql`

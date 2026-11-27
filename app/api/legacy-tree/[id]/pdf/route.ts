@@ -50,7 +50,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
              f.line_partner_type AS "linePartnerType", f.line_partner_id AS "linePartnerId"
       FROM future_moment_makers f
       JOIN legacy_tree_members viewer ON viewer.tree_id = f.legacy_tree_id AND viewer.user_id = ${user.id}
-      WHERE f.legacy_tree_id = ${id} AND f.status <> 'archived'
+      WHERE f.legacy_tree_id = ${id} AND f.status <> 'archived' AND f.archived_at IS NULL
     `,
   ]);
   const tree = trees[0] as { ownerId: string; ownerName: string; ownerSurname: string | null } | undefined;

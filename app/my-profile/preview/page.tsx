@@ -98,6 +98,7 @@ export default async function MyProfilePreviewPage() {
       FROM moments
       WHERE user_id = ${user.id}
         AND kind = 'personal'
+        AND archived_at IS NULL
       ORDER BY created_at DESC
     `,
     sql`
@@ -126,6 +127,7 @@ export default async function MyProfilePreviewPage() {
       FROM future_moment_makers
       WHERE owner_user_id = ${user.id}
         AND status != 'archived'
+        AND archived_at IS NULL
       ORDER BY created_at DESC
     `,
     getPublicProfileSharedMoments(user.id, user.id),

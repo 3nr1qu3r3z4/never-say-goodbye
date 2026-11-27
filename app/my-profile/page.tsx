@@ -107,6 +107,12 @@ export default async function MyProfilePage() {
           </span>
         </p>
 
+        <div className="mt-4 text-center">
+          <Link href="/my-profile/membership" className="inline-flex min-h-11 items-center text-sm font-semibold text-[color:var(--nsg-accent-light)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]">
+            Membership &amp; Usage
+          </Link>
+        </div>
+
         <section className="mt-9 rounded-3xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5 shadow-2xl shadow-black/20 sm:mt-11 sm:p-9">
           <ProfileEditor
             displayName={profile.displayName || user.displayName || "Moment Maker"}

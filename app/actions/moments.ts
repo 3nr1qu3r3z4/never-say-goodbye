@@ -14,7 +14,7 @@ export async function deleteSharedMoment(momentId: string) {
   const sql = getSql();
   const deleted = await sql`
     DELETE FROM moments
-    WHERE id = ${momentId} AND user_id = ${user.id} AND kind = 'shared'
+    WHERE id = ${momentId} AND user_id = ${user.id} AND kind = 'shared' AND archived_at IS NULL
     RETURNING id
   `;
   if (!deleted.length) return { error: "This moment is no longer available to delete." };

@@ -45,6 +45,7 @@ async function findAccessibleMoments(viewerId: string | null, momentId: string |
     FROM moments AS m
     JOIN users AS u ON u.id = m.user_id
     WHERE m.kind = 'shared'
+      AND m.archived_at IS NULL
       AND m.access_code_hash IS NULL
       AND (${momentId}::text IS NULL OR m.id = ${momentId})
       AND (NOT ${ownerOnly}::boolean OR m.user_id = ${viewerId})

@@ -133,6 +133,7 @@ const guides = [
         steps: [
           "Open Shared Moments from My Legacy or a visible Moment Maker profile and select a Moment's title or preview, or choose View Moment from its three-dot menu.",
           "To delete your own Shared Moment, open its three-dot menu, choose Delete Moment, and confirm. Deletion is permanent. Editing published Moments is not available yet.",
+          "To archive or restore a whole Moment, open My Profile → Membership & Usage → Manage Content. Archiving hides its story and media and removes them from usage; restoring brings them back.",
         ],
       },
       {

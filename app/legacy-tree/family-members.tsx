@@ -176,6 +176,7 @@ async function FamilyMembersForUser({ userId }: { userId: string }) {
           SELECT tree_id FROM legacy_tree_members WHERE user_id = ${userId}
         )
           AND fmm.status <> 'archived'
+          AND fmm.archived_at IS NULL
         ORDER BY fmm.created_at DESC
       `,
       sql`
@@ -202,6 +203,7 @@ async function FamilyMembersForUser({ userId }: { userId: string }) {
                  THEN details_json::jsonb ->> 'writtenMessage' END AS "writtenMessage"
         FROM moments
         WHERE user_id = ${userId}
+          AND archived_at IS NULL
           AND family_placeholder_id IS NOT NULL
         ORDER BY created_at DESC
       `,

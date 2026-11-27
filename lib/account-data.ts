@@ -60,8 +60,8 @@ export async function getDashboardData(
     connectionActivity,
     treePeople,
   ] = await sql.transaction([
-    sql`SELECT COUNT(*)::int AS count FROM moments WHERE user_id = ${user.id} AND kind = 'shared'`,
-    sql`SELECT COUNT(*)::int AS count FROM moments WHERE user_id = ${user.id} AND kind = 'personal'`,
+    sql`SELECT COUNT(*)::int AS count FROM moments WHERE user_id = ${user.id} AND kind = 'shared' AND archived_at IS NULL`,
+    sql`SELECT COUNT(*)::int AS count FROM moments WHERE user_id = ${user.id} AND kind = 'personal' AND archived_at IS NULL`,
     sql`SELECT COUNT(*)::int AS count FROM connected_lives
         WHERE (owner_user_id = ${user.id} OR connected_user_id = ${user.id})
           AND status = 'accepted'`,
@@ -78,23 +78,24 @@ export async function getDashboardData(
         FROM notifications
         WHERE recipient_user_id = ${user.id}
           AND read_at IS NULL`,
-    sql`SELECT COUNT(*)::int AS count FROM future_moment_makers WHERE owner_user_id = ${user.id} AND status != 'archived'`,
+    sql`SELECT COUNT(*)::int AS count FROM future_moment_makers WHERE owner_user_id = ${user.id} AND status != 'archived' AND archived_at IS NULL`,
     sql`SELECT COUNT(*)::int AS count FROM drafts WHERE user_id = ${user.id}`,
     sql`
       SELECT future_moment_makers.id, future_moment_makers.name,
              future_moment_makers.relationship,
              COUNT(moments.id)::int AS "momentCount"
       FROM future_moment_makers
-      LEFT JOIN moments ON moments.future_moment_maker_id = future_moment_makers.id
+      LEFT JOIN moments ON moments.future_moment_maker_id = future_moment_makers.id AND moments.archived_at IS NULL
       WHERE future_moment_makers.owner_user_id = ${user.id}
         AND future_moment_makers.status != 'archived'
+        AND future_moment_makers.archived_at IS NULL
       GROUP BY future_moment_makers.id
       ORDER BY future_moment_makers.created_at DESC
       LIMIT 5
     `,
     sql`
       SELECT id, kind, title, created_at AS "createdAt"
-      FROM moments WHERE user_id = ${user.id}
+      FROM moments WHERE user_id = ${user.id} AND archived_at IS NULL
       ORDER BY created_at DESC LIMIT 5
     `,
     sql`
@@ -133,7 +134,7 @@ export async function getDashboardData(
       UNION ALL
       SELECT 'future', f.id, f.relationship, f.line_partner_type, f.line_partner_id, FALSE
       FROM future_moment_makers f JOIN selected_tree t ON t.id = f.legacy_tree_id
-      WHERE f.status <> 'archived'
+      WHERE f.status <> 'archived' AND f.archived_at IS NULL
     `,
   ]);
   const count = (rows: unknown) =>

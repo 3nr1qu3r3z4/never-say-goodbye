@@ -81,6 +81,7 @@ export default async function MomentMakerProfilePage({
       WHERE user_id = ${profile.id}
         AND audience = 'public'
         AND kind = 'personal'
+        AND archived_at IS NULL
       ORDER BY created_at DESC
     `,
     currentUser && currentUser.id !== profile.id

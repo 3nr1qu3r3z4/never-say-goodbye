@@ -19,7 +19,7 @@ export async function getTreeMilestones(userId: string, treeId: string): Promise
     LEFT JOIN legacy_tree_members subject ON subject.tree_id = m.tree_id AND subject.user_id = m.user_id
     LEFT JOIN users u ON u.id = subject.user_id
     LEFT JOIN family_placeholders p ON p.id = m.placeholder_id AND p.legacy_tree_id = m.tree_id
-    LEFT JOIN future_moment_makers f ON f.id = m.future_id AND f.legacy_tree_id = m.tree_id AND f.status <> 'archived'
+    LEFT JOIN future_moment_makers f ON f.id = m.future_id AND f.legacy_tree_id = m.tree_id AND f.status <> 'archived' AND f.archived_at IS NULL
     WHERE m.tree_id = ${treeId}
       AND (subject.user_id IS NOT NULL OR p.id IS NOT NULL OR f.id IS NOT NULL)
     ORDER BY "personName", m.created_at, m.id

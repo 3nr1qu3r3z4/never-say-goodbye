@@ -35,11 +35,13 @@ export default async function FutureMomentMakerRecord({
         AND EXISTS (SELECT 1 FROM legacy_tree_members member
           WHERE member.tree_id = t.id AND member.user_id = ${user.id})
       WHERE f.id = ${id} AND f.owner_user_id = ${user.id}
+        AND f.status <> 'archived' AND f.archived_at IS NULL
     `,
     sql`
       SELECT m.id, m.title, m.kind FROM moments m
       JOIN future_moment_makers f ON f.id = m.future_moment_maker_id
       WHERE f.id = ${id} AND f.owner_user_id = ${user.id} AND m.user_id = ${user.id}
+        AND f.status <> 'archived' AND f.archived_at IS NULL AND m.archived_at IS NULL
       ORDER BY m.created_at DESC
     `,
   ]);

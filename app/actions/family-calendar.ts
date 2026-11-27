@@ -199,7 +199,7 @@ export async function saveTreeSourceDate(
     rows = await sql`
       UPDATE future_moment_makers AS f SET expected_birth_date = ${first}::date,
         updated_at = ${new Date().toISOString()}
-      WHERE f.id = ${sourceId} AND f.legacy_tree_id = ${treeId} AND f.status = 'awaiting-claim'
+      WHERE f.id = ${sourceId} AND f.legacy_tree_id = ${treeId} AND f.status = 'awaiting-claim' AND f.archived_at IS NULL
         AND EXISTS (SELECT 1 FROM legacy_tree_members AS admin WHERE admin.tree_id = f.legacy_tree_id
           AND admin.user_id = ${user.id} AND admin.role IN ('owner', 'admin'))
       RETURNING f.id
