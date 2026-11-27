@@ -24,7 +24,7 @@ export default async function MomentsPage() {
         <p className="mt-4 leading-7 text-slate-400">
           Your Shared Moments and moments shared with your Connected Lives™ or Family audience appear here.
         </p>
-        {cannotOpenUntilEnabled() && <Link href="/cannot-open-until/inbox" className="mt-5 inline-block text-sm font-semibold text-[color:var(--nsg-accent-light)] underline">Received Cannot Open Until™ Moments</Link>}
+        {cannotOpenUntilEnabled(user.id) && <Link href="/cannot-open-until/inbox" className="mt-5 inline-block text-sm font-semibold text-[color:var(--nsg-accent-light)] underline">Received Cannot Open Until™ Moments</Link>}
         {moments.length ? (
           <ul className="mt-8 space-y-3">
             {moments.map((moment) => <MomentCard key={moment.id} moment={moment} />)}

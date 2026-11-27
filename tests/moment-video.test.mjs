@@ -149,6 +149,7 @@ test("the Shared Moment editor uploads before saving and disables publishing whi
     },
     "@/app/actions/family-tree": { searchFamilyMomentMakers: async () => ({ results: [] }) },
     "@/lib/moment-types": { initialMomentDraft: initialDraft },
+    "@/lib/time-capsule-schedule": loadModule("lib/time-capsule-schedule.ts", {}),
     "@/lib/prepare-moment-photo": { prepareMomentPhoto: async () => ({}) },
     "@/lib/moment-video-actions": {
       beginMomentVideoUpload: async () => ({ id: "video-id", pathname: "moment-videos/test.mp4", contentType: "video/mp4" }),

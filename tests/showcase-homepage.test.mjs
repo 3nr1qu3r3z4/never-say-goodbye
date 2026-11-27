@@ -347,14 +347,17 @@ test("Cannot Open Until creation route requires authentication and opens the cor
   const route = ["app", "create-moment", "cannot-open-until", "page.tsx"];
   const authenticatedPage = loadPage(route, null, {
     "@/lib/auth": { requireUser: async () => ({ id: "viewer" }) },
+    "@/lib/cannot-open-until": { cannotOpenUntilEnabled: (id) => id === "viewer" },
     "../moment-editor": { default: editor },
   });
   const element = await authenticatedPage();
   assert.equal(element.type, editor);
   assert.equal(element.props.kind, "cannot-open-until");
+  assert.equal(element.props.timeCapsuleEnabled, true);
 
   const guestPage = loadPage(route, null, {
     "@/lib/auth": { requireUser: async () => { throw new Error("redirect to login"); } },
+    "@/lib/cannot-open-until": { cannotOpenUntilEnabled: () => false },
     "../moment-editor": { default: editor },
   });
   await assert.rejects(guestPage(), /redirect to login/);

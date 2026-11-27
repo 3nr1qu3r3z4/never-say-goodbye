@@ -1,3 +1,5 @@
+import type { DelayUnit } from "./time-capsule-schedule";
+
 export type MomentKind =
   | "shared"
   | "personal"
@@ -35,6 +37,11 @@ export type MomentDraft = {
   timeCapsuleRecipientKind?: TimeCapsuleRecipientKind | "";
   timeCapsuleRecipientId?: string;
   releaseTimezone?: string;
+  timeCapsuleReleaseMode?: "date" | "delay";
+  releaseTime?: string;
+  delayChoice?: string;
+  delayAmount?: string;
+  delayUnit?: DelayUnit;
 };
 
 export const initialMomentDraft: MomentDraft = {
@@ -61,4 +68,9 @@ export const initialMomentDraft: MomentDraft = {
   timeCapsuleRecipientKind: "",
   timeCapsuleRecipientId: "",
   releaseTimezone: "UTC",
+  timeCapsuleReleaseMode: "date",
+  releaseTime: "00:00",
+  delayChoice: "60",
+  delayAmount: "1",
+  delayUnit: "hours",
 };

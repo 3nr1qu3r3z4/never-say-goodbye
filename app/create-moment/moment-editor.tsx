@@ -26,6 +26,18 @@ import { beginMomentVideoUpload, completeMomentVideoUpload } from "@/lib/moment-
 import { getMomentVideoFormat, MAX_MOMENT_VIDEO_BYTES } from "@/lib/moment-video";
 import { beginMomentAudioUpload, completeMomentAudioUpload } from "@/lib/moment-audio-actions";
 import { getMomentAudioFormat, MAX_MOMENT_AUDIO_BYTES } from "@/lib/moment-audio";
+import { formatTimeCapsuleInstant, timeCapsuleDelayMinutes, type DelayUnit } from "@/lib/time-capsule-schedule";
+
+const popularDelays: { label: string; amount: string; unit: DelayUnit; minutes: string }[] = [
+  { label: "15 Min", amount: "15", unit: "minutes", minutes: "15" },
+  { label: "1 Hour", amount: "1", unit: "hours", minutes: "60" },
+  { label: "6 Hours", amount: "6", unit: "hours", minutes: "360" },
+  { label: "12 Hours", amount: "12", unit: "hours", minutes: "720" },
+  { label: "1 Day", amount: "1", unit: "days", minutes: "1440" },
+  { label: "2 Days", amount: "2", unit: "days", minutes: "2880" },
+  { label: "7 Days", amount: "7", unit: "days", minutes: "10080" },
+  { label: "30 Days", amount: "30", unit: "days", minutes: "43200" },
+];
 
 const contentOptions: {
   value: ContentKind;
@@ -123,8 +135,22 @@ export default function MomentEditor({ kind, timeCapsuleEnabled = false }: { kin
   }>({ current: [], future: [], placeholders: [] });
   const [recipientSearch, setRecipientSearch] = useState("");
   const [recipientSearchError, setRecipientSearchError] = useState("");
+  const [previewNow, setPreviewNow] = useState<number | null>(null);
   const momentConfig = config[kind];
   const uploadedMediaEnabled = kind === "shared" || (kind === "cannot-open-until" && timeCapsuleEnabled);
+  const delayMinutes = timeCapsuleDelayMinutes(draft.delayAmount ?? "1", draft.delayUnit ?? "hours");
+  const delayPreview = previewNow !== null && delayMinutes !== null
+    ? formatTimeCapsuleInstant(previewNow + delayMinutes * 60000, draft.releaseTimezone ?? "UTC") : null;
+  const datePreview = draft.releaseDate && draft.releaseTime
+    ? formatTimeCapsuleInstant(`${draft.releaseDate}T${draft.releaseTime}:00Z`, "UTC") : null;
+
+  useEffect(() => {
+    if (kind !== "cannot-open-until" || !timeCapsuleEnabled) return;
+    const update = () => setPreviewNow(Date.now());
+    const initial = window.setTimeout(update, 0);
+    const timer = window.setInterval(update, 30000);
+    return () => { window.clearTimeout(initial); window.clearInterval(timer); };
+  }, [kind, timeCapsuleEnabled]);
 
   useEffect(() => {
     let active = true;
@@ -707,6 +733,17 @@ export default function MomentEditor({ kind, timeCapsuleEnabled = false }: { kin
                 <p className="mt-2 text-sm leading-6 text-slate-400">
                   Choose when this message will be ready to open.
                 </p>
+                {timeCapsuleEnabled && <fieldset className="mt-5 grid gap-3 sm:grid-cols-2">
+                  <legend className="text-sm font-semibold text-slate-300">Release Type</legend>
+                  {([{ value: "date", label: "Open on specific date and time" }, { value: "delay", label: "Open after delay" }] as const).map((choice) =>
+                    <label key={choice.value} className="flex cursor-pointer items-center gap-3 rounded-xl border border-[color:var(--nsg-border)]/10 bg-white/[0.02] p-4 text-sm text-white">
+                      <input type="radio" name="time-capsule-release-mode" value={choice.value}
+                        checked={(draft.timeCapsuleReleaseMode ?? "date") === choice.value}
+                        onChange={() => updateDraft("timeCapsuleReleaseMode", choice.value)}
+                        className="h-4 w-4 accent-[color:var(--nsg-accent)]" />
+                      {choice.label}
+                    </label>)}
+                </fieldset>}
                 {!timeCapsuleEnabled && <fieldset className="mt-5 grid gap-3 sm:grid-cols-2">
                   <legend className="sr-only">Choose a release type</legend>
                   {[
@@ -728,7 +765,38 @@ export default function MomentEditor({ kind, timeCapsuleEnabled = false }: { kin
                     </label>
                   ))}
                 </fieldset>}
-                {timeCapsuleEnabled || draft.releaseKind === "date" ? (
+                {timeCapsuleEnabled && draft.timeCapsuleReleaseMode === "delay" ? (
+                  <div className="mt-5">
+                    <p className="text-sm font-semibold text-slate-300">Popular Delays</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {popularDelays.map((delay) => <button key={delay.minutes} type="button"
+                        aria-pressed={(draft.delayChoice ?? "60") === delay.minutes}
+                        className={`${secondaryButtonClassName} aria-pressed:bg-[color:var(--nsg-accent)]/20`}
+                        onClick={() => setDraft((current) => ({ ...current, delayChoice: delay.minutes, delayAmount: delay.amount, delayUnit: delay.unit }))}>
+                        {delay.label}
+                      </button>)}
+                      <button type="button" aria-pressed={draft.delayChoice === "custom"}
+                        className={`${secondaryButtonClassName} aria-pressed:bg-[color:var(--nsg-accent)]/20`}
+                        onClick={() => updateDraft("delayChoice", "custom")}>Custom</button>
+                    </div>
+                    {draft.delayChoice === "custom" && <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      <label className="block text-sm text-slate-300">Amount
+                        <input type="number" min="1" step="1" required value={draft.delayAmount ?? ""}
+                          onChange={(event) => updateDraft("delayAmount", event.target.value)} className={fieldClassName} />
+                      </label>
+                      <label className="block text-sm text-slate-300">Unit
+                        <select value={draft.delayUnit ?? "hours"} onChange={(event) => {
+                          const unit = event.target.value;
+                          if (unit === "minutes" || unit === "hours" || unit === "days") updateDraft("delayUnit", unit);
+                        }} className={fieldClassName}>
+                          <option value="minutes">Minutes</option><option value="hours">Hours</option><option value="days">Days</option>
+                        </select>
+                      </label>
+                    </div>}
+                    <p className="mt-3 text-xs text-slate-400">Choose a whole number from 1 minute to 365 days. The delay starts when you send.</p>
+                    {delayMinutes === null && <p role="status" className="mt-2 text-sm text-amber-300">Enter a valid delay of at most 365 days.</p>}
+                  </div>
+                ) : timeCapsuleEnabled || draft.releaseKind === "date" ? (
                   <div className="mt-4">
                     <label htmlFor="release-date" className="block text-sm text-slate-300">
                       Open Date
@@ -736,15 +804,15 @@ export default function MomentEditor({ kind, timeCapsuleEnabled = false }: { kin
                     <input
                       id="release-date"
                       type="date"
+                      required={timeCapsuleEnabled}
                       value={draft.releaseDate}
                       onChange={(event) =>
                         updateDraft("releaseDate", event.target.value)
                       }
                       className={fieldClassName}
                     />
-                    {timeCapsuleEnabled && <label className="mt-4 block text-sm text-slate-300">Time zone
-                      <input required value={draft.releaseTimezone ?? "UTC"} onChange={(event) => updateDraft("releaseTimezone", event.target.value)} className={fieldClassName} placeholder="UTC" />
-                      <span className="mt-2 block text-xs text-slate-400">Use an IANA time zone, such as America/New_York or UTC.</span>
+                    {timeCapsuleEnabled && <label className="mt-4 block text-sm text-slate-300">Open Time
+                      <input type="time" required value={draft.releaseTime ?? "00:00"} onChange={(event) => updateDraft("releaseTime", event.target.value)} className={fieldClassName} />
                     </label>}
                   </div>
                 ) : (
@@ -779,6 +847,18 @@ export default function MomentEditor({ kind, timeCapsuleEnabled = false }: { kin
                     )}
                   </div>
                 )}
+                {timeCapsuleEnabled && <>
+                  <label className="mt-4 block text-sm text-slate-300">Time zone
+                    <input required value={draft.releaseTimezone ?? "UTC"} onChange={(event) => updateDraft("releaseTimezone", event.target.value)} className={fieldClassName} placeholder="UTC" />
+                    <span className="mt-2 block text-xs text-slate-400">Use an IANA time zone, such as America/New_York or UTC. Times skipped or repeated by daylight saving are not allowed.</span>
+                  </label>
+                  {draft.timeCapsuleReleaseMode === "delay" && delayPreview && <p className="mt-4 text-sm text-slate-300">
+                    Estimated if sent now: This Moment will unlock on {delayPreview} ({draft.releaseTimezone ?? "UTC"}).
+                  </p>}
+                  {draft.timeCapsuleReleaseMode !== "delay" && datePreview && <p className="mt-4 text-sm text-slate-300">
+                    This Moment will unlock on {datePreview} ({draft.releaseTimezone ?? "UTC"}).
+                  </p>}
+                </>}
               </>
             )}
 
@@ -994,8 +1074,10 @@ export default function MomentEditor({ kind, timeCapsuleEnabled = false }: { kin
                   `Personal Moment${draft.accessCodeRequired ? " · Access code protected" : " · Private"}`}
                 {kind === "cannot-open-until" &&
                   `Cannot Open Until™ · ${
-                    draft.releaseKind === "date"
-                      ? draft.releaseDate || "Choose an open date"
+                    timeCapsuleEnabled && draft.timeCapsuleReleaseMode === "delay"
+                      ? delayPreview ? `Estimated opening: ${delayPreview} (${draft.releaseTimezone ?? "UTC"})` : "Choose a valid delay and time zone"
+                    : draft.releaseKind === "date"
+                      ? `${draft.releaseDate || "Choose an open date"}${timeCapsuleEnabled && draft.releaseDate ? ` at ${draft.releaseTime ?? "00:00"} (${draft.releaseTimezone ?? "UTC"})` : ""}`
                       : draft.occasion === "Custom Date"
                         ? draft.customOccasionDate || "Choose a custom date"
                         : draft.occasion

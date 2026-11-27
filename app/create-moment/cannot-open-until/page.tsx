@@ -10,6 +10,6 @@ export const metadata: Metadata = {
 export const instant = false;
 
 export default async function CannotOpenUntilPage() {
-  await requireUser();
-  return <MomentEditor kind="cannot-open-until" timeCapsuleEnabled={cannotOpenUntilEnabled()} />;
+  const user = await requireUser();
+  return <MomentEditor kind="cannot-open-until" timeCapsuleEnabled={cannotOpenUntilEnabled(user.id)} />;
 }

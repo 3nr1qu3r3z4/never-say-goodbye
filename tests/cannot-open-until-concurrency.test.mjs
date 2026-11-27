@@ -92,6 +92,7 @@ test("owner lifecycle and concurrent changes serialize in PostgreSQL", {
       const creator = moduleFor("lib\\moment-actions.ts", {
         ...common, "node:crypto": { randomUUID: () => "created" }, "@/lib/password": { hashSecret: async () => "hash" },
         "@/lib/profile-photo": { validatePhoto: (value) => value }, "@/lib/cannot-open-until": access,
+        "@/lib/time-capsule-schedule": moduleFor("lib\\time-capsule-schedule.ts", {}),
       });
       return { actions, archive, creator, access };
     };
@@ -139,7 +140,7 @@ test("owner lifecycle and concurrent changes serialize in PostgreSQL", {
     }), { params: Promise.resolve({ id: "created" }) });
     assert.ok((await one.creator.publishMoment("cannot-open-until", "", draft)).success);
     assert.equal((await a.query("SELECT COUNT(*)::int AS count FROM cannot_open_until_settings WHERE moment_id = 'created' AND status = 'active'")).rows[0].count, 1);
-    const activation = form({ id: "created", recipient: "recipient", date: "2099-01-01", timezone: "UTC" });
+    const activation = form({ id: "created", recipient: "recipient", date: "2099-01-01", time: "00:00", timezone: "UTC" });
     assert.ok((await one.actions.activateTimeCapsule({}, activation)).success);
     const locked = await viewer.access.getReceivedTimeCapsule("recipient", "created");
     assert.equal(locked.released, false);
@@ -189,7 +190,7 @@ test("owner lifecycle and concurrent changes serialize in PostgreSQL", {
     const edit = (id) => form({ id, version: "v1", title: "Title", story: "Edited", tags: "", message: "",
       photoAction: "keep", videoAction: "keep", audioAction: "keep" });
     const release = (id) => form({ id });
-    const reassign = (id) => form({ id, recipient: "current:other", date: "2099-01-01", timezone: "UTC" });
+    const reassign = (id) => form({ id, recipient: "current:other", date: "2099-01-01", time: "00:00", timezone: "UTC" });
 
     await fixture("edit-first");
     await a.query("BEGIN");

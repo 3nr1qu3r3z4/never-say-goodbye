@@ -138,6 +138,7 @@ test("editor uploads audio privately before saving and publishing", async () => 
     },
     "@/app/actions/family-tree": { searchFamilyMomentMakers: async () => ({ results: [] }) },
     "@/lib/moment-types": { initialMomentDraft: initialDraft },
+    "@/lib/time-capsule-schedule": loadModule("lib/time-capsule-schedule.ts", {}),
     "@/lib/prepare-moment-photo": { prepareMomentPhoto: async () => ({}) },
     "@/lib/moment-video-actions": {},
     "@/lib/moment-video": {},

@@ -33,10 +33,42 @@ quota check. Paid registration, billing, and plan enforcement remain disabled.
 Reminder notifications, scheduled deliveries, and other features marked Coming
 Soon also require implementation.
 
-Cannot Open Until™ is incomplete and must not be enabled. Leave
-`CANNOT_OPEN_UNTIL_ENABLED` unset or false. Owner editing, legacy review, and
-the recipient inbox are available for development. Apply migrations 030–033
-before testing. Intended recipients may be current Moment Makers,
+Cannot Open Until™ public rollout remains disabled. Leave
+`CANNOT_OPEN_UNTIL_ENABLED` unset or false. To grant a private founder preview,
+set the server-only `CANNOT_OPEN_UNTIL_PREVIEW_USER_IDS` to a comma-separated
+list of exact user IDs for the founder and each test recipient or claimant.
+Only signed-in accounts in this list can use the preview while public rollout
+is disabled; a recipient selected in the editor cannot see the inbox unless
+their account is also listed. Use test accounts and data: preview Moments are
+real database records, not a sandbox.
+
+For a local Windows PowerShell preview, first configure the test `DATABASE_URL`
+and private Blob storage as described below, then start a separate dev server:
+
+```powershell
+$env:CANNOT_OPEN_UNTIL_ENABLED = "false"
+$env:CANNOT_OPEN_UNTIL_PREVIEW_USER_IDS = "FOUNDER_USER_ID,RECIPIENT_USER_ID"
+npm run dev -- --port 3001
+```
+
+Replace the example IDs with the actual `users.id` values from the same
+database, and do not commit environment files. Sign in as the founder and visit
+`http://localhost:3001/cannot-open-until/preview`. The page shows whether
+migration records 030–034 are installed in the connected database; install any
+missing migrations in order before testing. To check migration 033 directly:
+
+```sql
+SELECT version FROM schema_migrations WHERE version = '033_time_capsule_recipients';
+```
+
+One row means the migration is recorded as installed; no row means it is not
+recorded. This check does not verify each database object. Restart the server
+after changing its environment. In another browser session, sign in as an
+approved recipient to inspect `/cannot-open-until/inbox`; for claims, sign in
+before opening the private link and request access, then approve it as owner.
+
+Owner editing, legacy review, and the recipient inbox are available in the
+preview. Intended recipients may be current Moment Makers,
 Future Moment Makers, or eligible Family Placeholders. Future recipients use
 private, single-use claim links that expire after seven days and require the
 Moment owner's approval. Recipients sign in before requesting a claim; if they
@@ -44,6 +76,11 @@ need to sign in or register first, they must reopen the link. Links are created
 and shared manually per Moment. Access ends on disconnection or archive.
 No email notifications are provided.
 Live deployment and storage verification remain outstanding.
+Creators can choose a local date and time or a delay of 1 minute to 365 days.
+The server starts a delay when the Moment is sent; its pre-send preview is an
+estimate. Times skipped or repeated during daylight-saving transitions are
+rejected. Before release, owners can reschedule to a specific date and time.
+Existing scheduled Moments retain their original opening instants.
 
 The optional `tests/cannot-open-until-concurrency.test.mjs` test uses a disposable
 PostgreSQL database, configured with `CANNOT_OPEN_TEST_POSTGRES` and an installed

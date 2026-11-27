@@ -23,33 +23,36 @@ function refresh() {
 }
 
 function validDate(value: string) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || value.startsWith("0000-")) return false;
   const parsed = new Date(`${value}T00:00:00Z`);
   return Number.isFinite(parsed.valueOf()) && parsed.toISOString().slice(0, 10) === value;
 }
 
 export async function activateTimeCapsule(_state: TimeCapsuleActionState, form: FormData): Promise<TimeCapsuleActionState> {
   const user = await getCurrentUser();
-  if (!user || !cannotOpenUntilEnabled()) return { error: "Cannot Open Until™ is not available." };
+  if (!user || !cannotOpenUntilEnabled(user.id)) return { error: "Cannot Open Until™ is not available." };
   const id = value(form, "id");
   const selected = value(form, "recipient");
   const separator = selected.indexOf(":");
   const kind = separator < 0 ? "current" : selected.slice(0, separator);
   const recipient = separator < 0 ? selected : selected.slice(separator + 1);
   const date = value(form, "date");
+  const time = value(form, "time");
   const timezone = value(form, "timezone");
   if (!id || !recipient || !["current", "future", "placeholder"].includes(kind) ||
-      (kind === "current" && recipient === user.id) || !validDate(date) || !timezone || timezone.length > 100) {
-    return { error: "Choose a recipient, a valid date and a time zone." };
+      (kind === "current" && recipient === user.id) || !validDate(date) ||
+      !/^([01]\d|2[0-3]):[0-5]\d$/.test(time) || !timezone || timezone.length > 100) {
+    return { error: "Choose a recipient, a valid date and time, and a time zone." };
   }
   const sql = getSql();
   try {
-    await sql`SELECT activate_recipient_time_capsule(${user.id}, ${id}, ${kind}, ${recipient}, ${date}::date, ${timezone})`;
+    await sql`SELECT activate_recipient_time_capsule(${user.id}, ${id}, ${kind}, ${recipient}, ${date}::date, ${timezone}, ${time}::time, ${null}::integer)`;
   } catch (error) {
     if (error instanceof Error && (error.message.includes("Recipient is unavailable") ||
       error.message.includes("Moment is unavailable") || error.message.includes("Choose a valid future date") ||
+      error.message.includes("Choose a valid time zone") || error.message.includes("exists exactly once") ||
       error.message.includes("read-only") || error.message.includes("recipients cannot be changed"))) {
-      return { error: "Choose an available recipient and a valid future date. Released Moments cannot be rescheduled." };
+      return { error: "Choose an available recipient and a valid future date, time and time zone. Times skipped or repeated by daylight saving are not allowed. Released Moments cannot be rescheduled." };
     }
     throw error;
   }
@@ -59,7 +62,7 @@ export async function activateTimeCapsule(_state: TimeCapsuleActionState, form: 
 
 export async function reassignTimeCapsule(_state: TimeCapsuleActionState, form: FormData): Promise<TimeCapsuleActionState> {
   const user = await getCurrentUser();
-  if (!user || !cannotOpenUntilEnabled()) return { error: "Cannot Open Until™ is not available." };
+  if (!user || !cannotOpenUntilEnabled(user.id)) return { error: "Cannot Open Until™ is not available." };
   const id = value(form, "id");
   if (!id) return { error: "Choose an available Moment." };
   const sql = getSql();
@@ -86,7 +89,7 @@ export async function reassignTimeCapsule(_state: TimeCapsuleActionState, form: 
 
 export async function createClaimLink(_state: TimeCapsuleActionState, form: FormData): Promise<TimeCapsuleActionState> {
   const user = await getCurrentUser();
-  if (!user || !cannotOpenUntilEnabled()) return { error: "Cannot Open Until™ is not available." };
+  if (!user || !cannotOpenUntilEnabled(user.id)) return { error: "Cannot Open Until™ is not available." };
   const id = value(form, "id");
   if (!id) return { error: "Choose an available Moment." };
   const token = randomBytes(32).toString("base64url");
@@ -104,7 +107,7 @@ export async function createClaimLink(_state: TimeCapsuleActionState, form: Form
 
 export async function requestTimeCapsuleClaim(_state: TimeCapsuleActionState, form: FormData): Promise<TimeCapsuleActionState> {
   const user = await getCurrentUser();
-  if (!user || !cannotOpenUntilEnabled()) return { error: "Sign in to request this claim." };
+  if (!user || !cannotOpenUntilEnabled(user.id)) return { error: "Sign in to request this claim." };
   const token = value(form, "token");
   if (!/^[A-Za-z0-9_-]{43}$/.test(token)) return { error: "This claim link is invalid or expired." };
   const hash = createHash("sha256").update(token).digest("hex");
@@ -124,7 +127,7 @@ export async function requestTimeCapsuleClaim(_state: TimeCapsuleActionState, fo
 
 export async function decideTimeCapsuleClaim(_state: TimeCapsuleActionState, form: FormData): Promise<TimeCapsuleActionState> {
   const user = await getCurrentUser();
-  if (!user || !cannotOpenUntilEnabled()) return { error: "Cannot Open Until™ is not available." };
+  if (!user || !cannotOpenUntilEnabled(user.id)) return { error: "Cannot Open Until™ is not available." };
   const claim = value(form, "claim");
   const decision = value(form, "decision");
   if (!claim || !["approve", "decline"].includes(decision)) return { error: "Choose a valid claim decision." };
@@ -141,7 +144,7 @@ export async function decideTimeCapsuleClaim(_state: TimeCapsuleActionState, for
 
 export async function releaseTimeCapsule(_state: TimeCapsuleActionState, form: FormData): Promise<TimeCapsuleActionState> {
   const user = await getCurrentUser();
-  if (!user || !cannotOpenUntilEnabled()) return { error: "Cannot Open Until™ is not available." };
+  if (!user || !cannotOpenUntilEnabled(user.id)) return { error: "Cannot Open Until™ is not available." };
   const id = value(form, "id");
   if (!id) return { error: "Choose an available Moment." };
   const sql = getSql();
@@ -168,7 +171,7 @@ export async function releaseTimeCapsule(_state: TimeCapsuleActionState, form: F
 
 export async function deleteTimeCapsule(_state: TimeCapsuleActionState, form: FormData): Promise<TimeCapsuleActionState> {
   const user = await getCurrentUser();
-  if (!user || !cannotOpenUntilEnabled()) return { error: "Cannot Open Until™ is not available." };
+  if (!user || !cannotOpenUntilEnabled(user.id)) return { error: "Cannot Open Until™ is not available." };
   const id = value(form, "id");
   if (!id) return { error: "Choose an available Moment." };
   const sql = getSql();
@@ -183,7 +186,7 @@ export async function deleteTimeCapsule(_state: TimeCapsuleActionState, form: Fo
 
 export async function saveTimeCapsuleContent(_state: TimeCapsuleActionState, form: FormData): Promise<TimeCapsuleActionState> {
   const user = await getCurrentUser();
-  if (!user || !cannotOpenUntilEnabled()) return { error: "Cannot Open Until™ is not available." };
+  if (!user || !cannotOpenUntilEnabled(user.id)) return { error: "Cannot Open Until™ is not available." };
   const id = value(form, "id");
   const version = value(form, "version");
   const title = value(form, "title");

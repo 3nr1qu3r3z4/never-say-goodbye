@@ -46,7 +46,7 @@ export default async function ManageContentPage() {
         <section className="mt-9" aria-labelledby="moments-heading">
           <h2 id="moments-heading" className="font-serif text-2xl text-white">Your Moments</h2>
           <p className="mt-2 text-sm text-slate-400">Shared, Personal, Cannot Open Until™ and Future Moment Maker™ Moments are listed here.</p>
-          {cannotOpenUntilEnabled() && <Link href="/cannot-open-until" className="mt-3 inline-block text-sm font-semibold text-[color:var(--nsg-accent-light)] underline">Manage Cannot Open Until™ Moments</Link>}
+          {cannotOpenUntilEnabled(user.id) && <Link href="/cannot-open-until" className="mt-3 inline-block text-sm font-semibold text-[color:var(--nsg-accent-light)] underline">Manage Cannot Open Until™ Moments</Link>}
           {(moments as Moment[]).length ? <ul className="mt-4 space-y-3">
             {(moments as Moment[]).map((moment) => <li key={moment.id} className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5">
               <div><p className="break-words font-semibold text-white">{moment.title}</p>
@@ -55,10 +55,10 @@ export default async function ManageContentPage() {
                   moment.hasStory && "Story", moment.hasPhoto && "Photo",
                   moment.hasVideo && "Video", moment.hasAudio && "Audio",
                 ].filter(Boolean).join(" · ") || "No counted media or story"}</p>
-                {cannotOpenUntilEnabled() && moment.kind === "cannot-open-until" && <Link href={`/cannot-open-until/${encodeURIComponent(moment.id)}`} className="mt-2 inline-block text-sm text-[color:var(--nsg-accent-light)] underline">Manage this Moment</Link>}
+                {cannotOpenUntilEnabled(user.id) && moment.kind === "cannot-open-until" && <Link href={`/cannot-open-until/${encodeURIComponent(moment.id)}`} className="mt-2 inline-block text-sm text-[color:var(--nsg-accent-light)] underline">Manage this Moment</Link>}
               </div>
               <ArchiveButton id={moment.id} name={moment.title} kind="moment" archived={moment.archived}
-                warnOnRestore={cannotOpenUntilEnabled() && moment.kind === "cannot-open-until"} />
+                warnOnRestore={cannotOpenUntilEnabled(user.id) && moment.kind === "cannot-open-until"} />
             </li>)}
           </ul> : <p className="mt-4 text-sm text-slate-400">You have no published Moments yet.</p>}
         </section>

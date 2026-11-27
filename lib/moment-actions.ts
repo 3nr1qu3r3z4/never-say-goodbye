@@ -6,6 +6,7 @@ import { getSql } from "@/lib/db";
 import { hashSecret } from "@/lib/password";
 import { validatePhoto } from "@/lib/profile-photo";
 import { cannotOpenUntilEnabled } from "@/lib/cannot-open-until";
+import { timeCapsuleDelayMinutes } from "@/lib/time-capsule-schedule";
 import type {
   Audience,
   ContentKind,
@@ -53,7 +54,12 @@ function isMomentDraft(value: unknown): value is MomentDraft {
     (draft.timeCapsuleRecipientKind === undefined || (typeof draft.timeCapsuleRecipientKind === "string" &&
       ["", "current", "future", "placeholder"].includes(draft.timeCapsuleRecipientKind))) &&
     (draft.timeCapsuleRecipientId === undefined || typeof draft.timeCapsuleRecipientId === "string") &&
-    (draft.releaseTimezone === undefined || typeof draft.releaseTimezone === "string")
+    (draft.releaseTimezone === undefined || typeof draft.releaseTimezone === "string") &&
+    (draft.timeCapsuleReleaseMode === undefined || draft.timeCapsuleReleaseMode === "date" || draft.timeCapsuleReleaseMode === "delay") &&
+    (draft.releaseTime === undefined || typeof draft.releaseTime === "string") &&
+    (draft.delayChoice === undefined || typeof draft.delayChoice === "string") &&
+    (draft.delayAmount === undefined || typeof draft.delayAmount === "string") &&
+    (draft.delayUnit === undefined || draft.delayUnit === "minutes" || draft.delayUnit === "hours" || draft.delayUnit === "days")
   );
 }
 
@@ -93,6 +99,11 @@ export async function loadMomentDraft(kind: MomentKind) {
       ...(!("timeCapsuleRecipientKind" in parsed) ? { timeCapsuleRecipientKind: "" } : {}),
       ...(!("timeCapsuleRecipientId" in parsed) ? { timeCapsuleRecipientId: "" } : {}),
       ...(!("releaseTimezone" in parsed) ? { releaseTimezone: "UTC" } : {}),
+      ...(!("timeCapsuleReleaseMode" in parsed) ? { timeCapsuleReleaseMode: "date" } : {}),
+      ...(!("releaseTime" in parsed) ? { releaseTime: "00:00" } : {}),
+      ...(!("delayChoice" in parsed) ? { delayChoice: "60" } : {}),
+      ...(!("delayAmount" in parsed) ? { delayAmount: "1" } : {}),
+      ...(!("delayUnit" in parsed) ? { delayUnit: "hours" } : {}),
     };
   }
   if (!isMomentDraft(parsed)) {
@@ -122,7 +133,7 @@ export async function getFamilyPlaceholders() {
 
 export async function getTimeCapsuleRecipients() {
   const user = await getCurrentUser();
-  if (!user || !cannotOpenUntilEnabled()) return { error: "Cannot Open Until™ is not available." };
+  if (!user || !cannotOpenUntilEnabled(user.id)) return { error: "Cannot Open Until™ is not available." };
   const sql = getSql();
   const [current, future, placeholders] = await sql.transaction([
     sql`SELECT DISTINCT u.id, u.display_name AS name FROM connected_lives c
@@ -174,7 +185,7 @@ export async function saveMomentDraft(
   }
 
   const sql = getSql();
-  const uploadedMediaEnabled = kind === "shared" || (kind === "cannot-open-until" && cannotOpenUntilEnabled());
+  const uploadedMediaEnabled = kind === "shared" || (kind === "cannot-open-until" && cannotOpenUntilEnabled(user.id));
   if (uploadedMediaEnabled && draft.content.includes("video") && draft.videoUploadId) {
     const [video] = await sql`
       UPDATE moment_videos SET last_used_at = CURRENT_TIMESTAMP
@@ -250,7 +261,7 @@ export async function publishMoment(
   if (!isMomentKind(kind) || !isMomentDraft(draft)) {
     return { error: "This moment has invalid data and could not be published." };
   }
-  const uploadedMediaEnabled = kind === "shared" || (kind === "cannot-open-until" && cannotOpenUntilEnabled());
+  const uploadedMediaEnabled = kind === "shared" || (kind === "cannot-open-until" && cannotOpenUntilEnabled(user.id));
   if (!draft.title.trim() || draft.title.length > 200) {
     return { error: "Add a title of 200 characters or fewer." };
   }
@@ -286,20 +297,26 @@ export async function publishMoment(
   ) {
     return { error: "Add an access code before publishing this protected moment." };
   }
+  const sendTimeCapsule = kind === "cannot-open-until" && cannotOpenUntilEnabled(user.id);
+  const delayMode = sendTimeCapsule && draft.timeCapsuleReleaseMode === "delay";
   if (
     kind === "cannot-open-until" &&
     draft.releaseKind === "date" &&
-    !draft.releaseDate
+    !delayMode && !draft.releaseDate
   ) {
     return { error: "Choose an open date for this moment." };
   }
-  const sendTimeCapsule = kind === "cannot-open-until" && cannotOpenUntilEnabled();
+  const delayMinutes = delayMode ? timeCapsuleDelayMinutes(draft.delayAmount ?? "", draft.delayUnit ?? "hours") : null;
   const parsedDate = new Date(`${draft.releaseDate}T00:00:00Z`);
+  const releaseTime = draft.releaseTime ?? "00:00";
   if (sendTimeCapsule && (!draft.timeCapsuleRecipientKind || !draft.timeCapsuleRecipientId ||
-      draft.releaseKind !== "date" || !/^\d{4}-\d{2}-\d{2}$/.test(draft.releaseDate) ||
-      !Number.isFinite(parsedDate.valueOf()) || parsedDate.toISOString().slice(0, 10) !== draft.releaseDate ||
+      draft.releaseKind !== "date" ||
+      (delayMode ? delayMinutes === null : (
+        !/^\d{4}-\d{2}-\d{2}$/.test(draft.releaseDate) || draft.releaseDate.startsWith("0000-") ||
+        !Number.isFinite(parsedDate.valueOf()) || parsedDate.toISOString().slice(0, 10) !== draft.releaseDate ||
+        !/^([01]\d|2[0-3]):[0-5]\d$/.test(releaseTime))) ||
       !draft.releaseTimezone || draft.releaseTimezone.length > 100)) {
-    return { error: "Choose a recipient, a concrete open date and a time zone." };
+    return { error: "Choose a recipient, a valid open date and time or delay, and a time zone. Delays must be between 1 minute and 365 days." };
   }
   if (
     kind === "future-moment-maker" &&
@@ -410,8 +427,8 @@ export async function publishMoment(
         ${draft.story.trim()}, ${draft.tags.trim()}, ${JSON.stringify(draft.content)},
         ${JSON.stringify(details)}, ${kind === "shared" ? draft.audience : "private"},
         ${accessCodeHash},
-        ${kind === "cannot-open-until" && draft.releaseKind === "date"
-          ? draft.releaseDate
+        ${kind === "cannot-open-until"
+          ? delayMode ? null : draft.releaseKind === "date" ? draft.releaseDate : draft.customOccasionDate || null
           : draft.customOccasionDate || null},
         ${kind === "cannot-open-until" && draft.releaseKind === "occasion"
           ? draft.occasion
@@ -425,7 +442,8 @@ export async function publishMoment(
   if (sendTimeCapsule) {
     statements.push(sql`SELECT activate_recipient_time_capsule(
       ${user.id}, ${momentId}, ${draft.timeCapsuleRecipientKind}, ${draft.timeCapsuleRecipientId},
-      ${draft.releaseDate}::date, ${draft.releaseTimezone})`);
+      ${delayMode ? null : draft.releaseDate}::date, ${draft.releaseTimezone},
+      ${delayMode ? null : releaseTime}::time, ${delayMinutes}::integer)`);
   }
   if (draftId) {
     statements.push(sql`
@@ -441,8 +459,9 @@ export async function publishMoment(
       return { error: "An attached audio or video file is no longer available. Please upload it again." };
     }
     if (error instanceof Error && (error.message.includes("Recipient is unavailable") ||
-      error.message.includes("Choose a valid future date and time zone"))) {
-      return { error: "Choose an available recipient and a valid future date and time zone." };
+      error.message.includes("Choose a valid future date") || error.message.includes("Choose a valid time zone") ||
+      error.message.includes("Choose a valid delay") || error.message.includes("exists exactly once"))) {
+      return { error: "Choose an available recipient and a valid future time and time zone. Times skipped or repeated by daylight saving are not allowed." };
     }
     throw error;
   }

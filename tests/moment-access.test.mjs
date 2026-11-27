@@ -439,6 +439,7 @@ test("moment audiences are enforced against current relationships in PostgreSQL"
       "@/lib/password": { hashSecret: async () => "hash" },
       "@/lib/profile-photo": { validatePhoto },
       "@/lib/cannot-open-until": { cannotOpenUntilEnabled: () => false },
+      "@/lib/time-capsule-schedule": loadModule("lib/time-capsule-schedule.ts", {}),
     });
     const photoData = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=";
     const photoDraft = {

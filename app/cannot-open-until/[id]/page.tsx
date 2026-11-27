@@ -10,7 +10,7 @@ export const instant = false;
 
 export default async function TimeCapsulePage({ params }: { params: Promise<{ id: string }> }) {
   const user = await requireUser();
-  if (!cannotOpenUntilEnabled()) notFound();
+  if (!cannotOpenUntilEnabled(user.id)) notFound();
   const { id } = await params;
   const sql = getSql();
   const [moments, candidates, claims] = await Promise.all([
@@ -29,6 +29,8 @@ export default async function TimeCapsulePage({ params }: { params: Promise<{ id
       COALESCE(s.intended_user_id, s.future_recipient_id, s.placeholder_recipient_id) AS "intendedId",
       COALESCE(person.display_name, future.name, placeholder.name) AS "recipientName",
       s.release_date::text AS "releaseDate", s.release_timezone AS "releaseTimezone",
+      to_char(s.unlock_at AT TIME ZONE s.release_timezone, 'HH24:MI') AS "releaseTime",
+      to_char(s.unlock_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS "unlockAt",
       m.release_date AS "oldReleaseDate", m.occasion AS "oldOccasion"
       FROM moments m LEFT JOIN cannot_open_until_settings s ON s.moment_id = m.id
       LEFT JOIN users person ON person.id = s.intended_user_id

@@ -10,7 +10,7 @@ type Item = { id: string; title: string; review: boolean; released: boolean; arc
 
 export default async function TimeCapsulesPage() {
   const user = await requireUser();
-  if (!cannotOpenUntilEnabled()) notFound();
+  if (!cannotOpenUntilEnabled(user.id)) notFound();
   const sql = getSql();
   const items = await sql`
     SELECT m.id, m.title, (COALESCE(s.status, 'review_required') = 'review_required') AS review,

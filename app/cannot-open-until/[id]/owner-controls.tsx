@@ -9,6 +9,7 @@ import { searchFamilyMomentMakers } from "@/app/actions/family-tree";
 import { beginMomentAudioUpload, completeMomentAudioUpload } from "@/lib/moment-audio-actions";
 import { beginMomentVideoUpload, completeMomentVideoUpload } from "@/lib/moment-video-actions";
 import { prepareMomentPhoto } from "@/lib/prepare-moment-photo";
+import { formatTimeCapsuleInstant } from "@/lib/time-capsule-schedule";
 
 export type OwnerMoment = {
   id: string; title: string; story: string; tags: string; message: string; version: string;
@@ -18,6 +19,7 @@ export type OwnerMoment = {
   recipientId: string | null; recipientName: string | null;
   recipientKind: "current" | "future" | "placeholder" | null; intendedId: string | null;
   releaseDate: string | null; releaseTimezone: string | null;
+  releaseTime: string | null; unlockAt: string | null;
   oldReleaseDate: string | null; oldOccasion: string | null;
 };
 
@@ -144,7 +146,7 @@ export default function OwnerControls({ moment, candidates, claims }: {
       <p className="mt-3 text-sm leading-6 text-slate-300">{moment.review
         ? "This Moment is inactive. Review the content, choose an intended recipient and a concrete date, then activate it."
         : moment.intendedId ? `Recipient: ${moment.recipientName || "Intended recipient"}${moment.recipientId ? "" : " · Awaiting claim or re-authorization"}` : "Recipient unavailable. Owner review is required."}</p>
-      {!moment.review && <p className="mt-2 text-sm text-slate-400">Release date: {moment.releaseDate} ({moment.releaseTimezone}){moment.archived ? " · Archived" : ""}</p>}
+      {!moment.review && <p className="mt-2 text-sm text-slate-400">Opens: {moment.unlockAt && moment.releaseTimezone ? formatTimeCapsuleInstant(moment.unlockAt, moment.releaseTimezone) ?? "Open time unavailable" : "Open time unavailable"} ({moment.releaseTimezone}){moment.archived ? " · Archived" : ""}</p>}
       {moment.review && (moment.oldReleaseDate || moment.oldOccasion) && <p className="mt-3 text-sm text-slate-400">Previously saved reference: {[moment.oldReleaseDate, moment.oldOccasion].filter(Boolean).join(" · ")}. This is not an active schedule.</p>}
       {!moment.released ? <form action={scheduleAction} className="mt-4">
         <input type="hidden" name="id" value={moment.id} />
@@ -163,8 +165,9 @@ export default function OwnerControls({ moment, candidates, claims }: {
           </select>
         </label>
         <label className="mt-4 block text-sm font-semibold">Release date<input type="date" name="date" required defaultValue={moment.releaseDate ?? ""} className={field} /></label>
+        <label className="mt-4 block text-sm font-semibold">Open time<input type="time" name="time" required defaultValue={moment.releaseTime ?? "00:00"} className={field} /></label>
         <label className="mt-4 block text-sm font-semibold">Time zone<input name="timezone" required defaultValue={moment.releaseTimezone ?? "UTC"} className={field} /></label>
-        <p className="mt-2 text-sm text-slate-400">Use an IANA time zone, such as America/New_York, or UTC. Release occurs at the start of that date.</p>
+        <p className="mt-2 text-sm text-slate-400">Use an IANA time zone, such as America/New_York, or UTC. Times skipped or repeated by daylight saving are not allowed.</p>
         <button className={button} disabled={scheduling || !options.length}>{scheduling ? "Saving…" : moment.review ? "Activate schedule" : "Update schedule"}</button>
         <Feedback state={scheduleState} />
       </form> : <p className="mt-4 text-sm text-slate-400">The intended recipient cannot be changed after release.</p>}

@@ -3,12 +3,17 @@ import "server-only";
 import { getSql } from "@/lib/db";
 import type { AccessibleMoment } from "@/lib/moment-access";
 
-export function cannotOpenUntilEnabled() {
-  return process.env.CANNOT_OPEN_UNTIL_ENABLED === "true";
+export function cannotOpenUntilPreviewEnabled(userId: string | null | undefined) {
+  return Boolean(userId) && (process.env.CANNOT_OPEN_UNTIL_PREVIEW_USER_IDS ?? "")
+    .split(",").some((id) => id.trim() !== "" && id.trim() === userId);
+}
+
+export function cannotOpenUntilEnabled(userId?: string | null) {
+  return process.env.CANNOT_OPEN_UNTIL_ENABLED === "true" || cannotOpenUntilPreviewEnabled(userId);
 }
 
 export async function getAccessibleTimeCapsule(viewerId: string | null, momentId: string): Promise<AccessibleMoment | null> {
-  if (!cannotOpenUntilEnabled() || !viewerId) return null;
+  if (!viewerId || !cannotOpenUntilEnabled(viewerId)) return null;
   const sql = getSql();
   // Wait for in-flight edits, then read from a fresh statement snapshot.
   const [, moments] = await sql.transaction([
@@ -52,11 +57,12 @@ export type TimeCapsuleListing = {
   sender: string;
   releaseDate: string;
   releaseTimezone: string;
+  unlockAt: string;
   released: boolean;
 };
 
 async function findReceivedTimeCapsules(viewerId: string, momentId: string | null): Promise<TimeCapsuleListing[]> {
-  if (!cannotOpenUntilEnabled()) return [];
+  if (!cannotOpenUntilEnabled(viewerId)) return [];
   const sql = getSql();
   const [, moments] = await sql.transaction([
     sql`SELECT s.moment_id FROM cannot_open_until_settings s
@@ -66,6 +72,7 @@ async function findReceivedTimeCapsules(viewerId: string, momentId: string | nul
     sql`
     SELECT m.id, m.title, COALESCE(NULLIF(BTRIM(u.display_name), ''), 'Moment Maker') AS sender,
            s.release_date::text AS "releaseDate", s.release_timezone AS "releaseTimezone",
+           to_char(s.unlock_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS "unlockAt",
            (s.manual_released_at IS NOT NULL OR s.unlock_at <= clock_timestamp()) AS released
     FROM cannot_open_until_settings s
     JOIN moments m ON m.id = s.moment_id

@@ -44,6 +44,9 @@ test("legacy Moments remain inactive and disconnected recipients require reassig
     const recipientMigration = fs.readFileSync(path.join(root, "db", "migrations", "033_time_capsule_recipients.sql"), "utf8");
     await db.exec(recipientMigration);
     await db.exec(recipientMigration);
+    const timeMigration = fs.readFileSync(path.join(root, "db", "migrations", "034_time_capsule_opening_time.sql"), "utf8");
+    await db.exec(timeMigration);
+    await db.exec(timeMigration);
     assert.equal((await db.query("SELECT COUNT(*)::int AS count FROM cannot_open_until_settings")).rows[0].count, 0);
     assert.equal((await db.query("SELECT story FROM moments WHERE id = 'legacy'")).rows[0].story, "Preserve me");
     await assert.rejects(db.exec(`INSERT INTO cannot_open_until_settings (moment_id, recipient_user_id, connection_id)
@@ -101,6 +104,7 @@ test("legacy Moments remain inactive and disconnected recipients require reassig
     review.set("id", "review");
     review.set("recipient", "recipient");
     review.set("date", "2099-01-01");
+    review.set("time", "00:00");
     review.set("timezone", "UTC");
     viewer = "outsider";
     assert.ok((await actions.activateTimeCapsule({}, review)).error);
@@ -117,6 +121,7 @@ test("legacy Moments remain inactive and disconnected recipients require reassig
     form.set("id", "legacy");
     form.set("recipient", "recipient");
     form.set("date", "2099-01-01");
+    form.set("time", "00:00");
     form.set("timezone", "UTC");
     viewer = "outsider";
     assert.ok((await actions.activateTimeCapsule({}, form)).error);
@@ -231,6 +236,7 @@ test("legacy Moments remain inactive and disconnected recipients require reassig
       if (name === "@/lib/password") return { hashSecret: async () => "hash" };
       if (name === "@/lib/profile-photo") return { validatePhoto: (photo) => photo };
       if (name === "@/lib/cannot-open-until") return exports;
+      if (name === "@/lib/time-capsule-schedule") return { timeCapsuleDelayMinutes: () => null };
       throw new Error(`Unexpected import: ${name}`);
     } });
     const draft = {
@@ -273,13 +279,15 @@ test("recipient pages show only metadata while locked and reauthorize released c
   };
   const link = { default: ({ children, href }) => React.createElement("a", { href }, children) };
   let enabled = true;
-  let listing = { id: "one", title: "Future memory", sender: "Sender", releaseDate: "2099-01-01", releaseTimezone: "UTC", released: false };
+  let listing = { id: "one", title: "Future memory", sender: "Sender", releaseDate: "2099-01-01", releaseTimezone: "UTC", unlockAt: "2099-01-01T00:00:00.000Z", released: false };
   let content = { id: "one", title: "Future memory", story: "PRIVATE STORY", writtenMessage: "PRIVATE MESSAGE", tags: "PRIVATE TAGS", hasPhoto: true, hasVideo: true, hasAudio: true };
   let contentQueries = 0;
   const deps = {
     "react/jsx-runtime": jsxRuntime, "next/link": link,
     "next/image": { default: ({ src, alt }) => React.createElement("img", { src, alt }) },
     "next/navigation": { notFound: () => { throw new Error("not found"); } },
+    "./locked-countdown": { default: ({ unlockAt }) => React.createElement("p", null, `Countdown to ${unlockAt}`) },
+    "@/lib/time-capsule-schedule": { formatTimeCapsuleInstant: (instant) => instant.slice(0, 10) },
     "@/lib/auth": { requireUser: async () => ({ id: "recipient" }) },
     "@/lib/cannot-open-until": {
       cannotOpenUntilEnabled: () => enabled,
@@ -299,6 +307,7 @@ test("recipient pages show only metadata while locked and reauthorize released c
   assert.doesNotMatch(lockedList, /PRIVATE|\/api\/moments/);
   const locked = renderToStaticMarkup(await detail(params));
   assert.match(locked, /Locked until release/);
+  assert.match(locked, /Countdown to 2099-01-01T00:00:00.000Z/);
   assert.doesNotMatch(locked, /PRIVATE|\/api\/moments|<audio|<video/);
   assert.equal(contentQueries, 0);
   listing = { ...listing, released: true };
@@ -318,6 +327,44 @@ test("recipient pages show only metadata while locked and reauthorize released c
   await assert.rejects(detail(params), /not found/);
 });
 
+test("locked countdown updates against the open instant without granting access", () => {
+  const source = fs.readFileSync(path.join(root, "app", "cannot-open-until", "inbox", "[id]", "locked-countdown.tsx"), "utf8");
+  const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+  const exports = {};
+  let now = Date.parse("2030-01-01T00:00:00.000Z");
+  let remaining = null;
+  let tick;
+  let effectStarted = false;
+  let refreshes = 0;
+  const deps = {
+    "react/jsx-runtime": jsxRuntime,
+    react: {
+      useState: () => [remaining, (value) => { remaining = value; }],
+      useEffect: (effect) => { if (!effectStarted) { effectStarted = true; effect(); } },
+    },
+    "next/navigation": { useRouter: () => ({ refresh: () => { refreshes++; } }) },
+  };
+  vm.runInNewContext(code, {
+    exports, Date: { parse: Date.parse, now: () => now },
+    window: { setInterval: (callback) => { tick = callback; return 1; }, clearInterval: () => {} },
+    require: (name) => {
+      if (!(name in deps)) throw new Error(`Unexpected import: ${name}`);
+      return deps[name];
+    },
+  });
+  const props = { unlockAt: "2030-01-02T01:02:03.000Z" };
+  assert.equal(exports.default(props), null);
+  let element = exports.default(props);
+  assert.match(renderToStaticMarkup(element), /Opens in 1d 1h 2m 3s/);
+  assert.match(renderToStaticMarkup(element), /Check for early release/);
+  now = Date.parse(props.unlockAt);
+  tick();
+  element = exports.default(props);
+  assert.match(renderToStaticMarkup(element), /Check availability/);
+  element.props.children[2].props.onClick();
+  assert.equal(refreshes, 1);
+});
+
 test("owner review and released views expose the appropriate controls", () => {
   const source = fs.readFileSync(path.join(root, "app", "cannot-open-until", "[id]", "owner-controls.tsx"), "utf8");
   const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText;
@@ -327,6 +374,7 @@ test("owner review and released views expose the appropriate controls", () => {
     "react/jsx-runtime": jsxRuntime, react: React,
     "next/image": { default: () => null }, "@vercel/blob/client": { upload: noop },
     "@/lib/prepare-moment-photo": { prepareMomentPhoto: noop },
+    "@/lib/time-capsule-schedule": { formatTimeCapsuleInstant: () => "Opening" },
     "@/lib/moment-audio-actions": { beginMomentAudioUpload: noop, completeMomentAudioUpload: noop },
     "@/lib/moment-video-actions": { beginMomentVideoUpload: noop, completeMomentVideoUpload: noop },
     "@/app/actions/content-archive": { changeArchiveState: noop },
