@@ -37,8 +37,8 @@ export default function PricingPage() {
               <ul className="mt-6 flex-1 space-y-3 text-sm leading-5 text-slate-200">
                 {plan.features.map((feature) => (
                   <li key={feature.text} className="flex gap-2">
-                    <span aria-hidden="true" className="text-[color:var(--nsg-accent)]">{feature.planned || feature.preview ? "◷" : "✓"}</span>
-                    <span>{feature.text}{feature.planned && <span className="text-slate-400"> (Coming Soon)</span>}{feature.preview && <span className="text-slate-400"> (Limited Preview — available to approved preview accounts)</span>}</span>
+                    <span aria-hidden="true" className="text-[color:var(--nsg-accent)]">{feature.planned ? "◷" : "✓"}</span>
+                    <span>{feature.text}{feature.planned && <span className="text-slate-400"> (Coming Soon)</span>}</span>
                   </li>
                 ))}
               </ul>

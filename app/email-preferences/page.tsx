@@ -25,8 +25,7 @@ export default async function EmailPreferencesPage({
            new_photo_shared AS "newPhotoShared",
            new_video_shared AS "newVideoShared",
            new_audio_message_shared AS "newAudioMessageShared",
-           shared_moments AS "sharedMoments",
-           legacy_successor_updates AS "legacySuccessorUpdates"
+           shared_moments AS "sharedMoments"
     FROM email_preferences
     WHERE user_id = ${user.id}
   `) as EmailPreferences[];

@@ -120,8 +120,9 @@ export function getFeatureAccess(entitlements: Entitlements, feature: Feature) {
   switch (feature) {
     case "familyReminders":
     case "scheduledDelivery":
-    case "successorAssignment":
       return { eligible: entitlements.limits?.[feature] ?? null, available: false };
+    case "successorAssignment":
+      return { eligible: entitlements.limits?.successorAssignment ?? null, available: true };
     case "cannotOpenUntil":
       return { eligible: true, available: false };
     case "profile":
@@ -165,6 +166,9 @@ export async function getEntitlements(userId: string): Promise<Entitlements> {
   if (!row) throw new Error("Cannot resolve entitlements for an unknown account.");
   const betaAccess = row.betaAccess ?? "unreviewed";
   if (row.membership === "free") return resolveEntitlements("free", betaAccess);
+  if (row.membership === "legacy-plus" || row.membership === "family-legacy" || row.membership === "legacy-forever") {
+    return resolveEntitlements(row.membership, betaAccess);
+  }
   if (row.membership === "tier-2" || row.membership === "tier-3") {
     return resolveLegacyEntitlements(row.membership, betaAccess);
   }

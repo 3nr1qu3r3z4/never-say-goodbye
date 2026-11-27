@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import SiteNavigation from "./site-navigation";
 import SiteVisitTracker from "./site-visit-tracker";
+import AccountActivityTracker from "./account-activity-tracker";
 import CurrentTheme from "./current-theme";
 import "./globals.css";
 
@@ -32,6 +33,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="flex min-h-full flex-col">
         <Suspense fallback={null}><CurrentTheme /></Suspense>
         <Suspense fallback={null}><SiteVisitTracker /></Suspense>
+        <Suspense fallback={null}><AccountActivityTracker /></Suspense>
         <SiteNavigation />
         {children}
         <footer className="mt-auto bg-[color:var(--nsg-background)] px-6 py-4 text-center">

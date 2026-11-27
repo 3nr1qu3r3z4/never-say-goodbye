@@ -11,7 +11,7 @@ import { getCalendarEvents, getCalendarSettings, getFamilyBulletins } from "@/li
 import { datedCalendarMilestones, occurrences } from "@/lib/family-calendar";
 import { getTreeMilestones } from "@/lib/tree-milestones-data";
 import { getLegacyConnections, getLegacyProfile } from "@/lib/my-legacy-data";
-import { getOwnSuccessor, successorPreviewEnabled } from "@/lib/successor";
+import { canManageSuccessor, getOwnSuccessor, hasTransferredSuccessor } from "@/lib/successor";
 import MomentCard from "@/app/moments/moment-card";
 import SignupWelcome from "./signup-welcome";
 import FrequentVisits from "./frequent-visits";
@@ -36,9 +36,10 @@ const actionCardClassName =
 const actionFocusClassName =
   "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ successor?: string }> }) {
   const user = await requireUser();
-  const successorEnabled = successorPreviewEnabled(user.id);
+  const successorEnabled = await canManageSuccessor(user.id);
+  const transferred = (await searchParams).successor === "transferred" && await hasTransferredSuccessor(user.id);
   const [data, profile, connections, ownMoments, calendar, moments, bulletins, successor] = await Promise.all([
     getDashboardData(user),
     getLegacyProfile(user.id),
@@ -47,7 +48,7 @@ export default async function DashboardPage() {
     getCalendarSettings(user.id),
     getRecentFamilyActivity(user.id),
     getFamilyBulletins(user.id, null),
-    successorEnabled ? getOwnSuccessor() : Promise.resolve(null),
+    successorEnabled ? getOwnSuccessor(user.id) : Promise.resolve(null),
   ]);
   const selectedTree = calendar.trees[0];
   const [calendarEvents, milestones] = selectedTree
@@ -445,7 +446,8 @@ export default async function DashboardPage() {
           </ol>
         </section>
 
-        <section aria-labelledby="successor-heading">
+        {transferred && <p role="status" className="rounded-xl border border-emerald-300/20 p-4 text-emerald-200">Your Lifetime Membership was permanently transferred.</p>}
+        {successorEnabled && <section aria-labelledby="successor-heading">
           <div className="flex flex-col gap-5 rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[color:var(--nsg-accent)]">
@@ -457,11 +459,11 @@ export default async function DashboardPage() {
               >
                 Legacy Successor™
               </h2>
-              <p className="mt-3 text-sm text-slate-300">Limited Preview — available to approved preview accounts</p>
-              {successorEnabled && <p className="mt-3 font-serif text-lg text-slate-300">
+              <p className="mt-3 text-sm text-slate-300">Choose one trusted person to inherit your Lifetime Membership.</p>
+              <p className="mt-3 font-serif text-lg text-slate-300">
                 {successor ? successor.name : "Not Assigned"}
-              </p>}
-              {successorEnabled && successor && !successor.available && <p className="mt-2 text-sm text-slate-400">Unavailable or no longer connected</p>}
+              </p>
+              {successor && !successor.valid && <p className="mt-2 text-sm text-amber-200">Choose another successor.</p>}
             </div>
             {successorEnabled && <Link
               href="/my-profile/successor"
@@ -470,7 +472,7 @@ export default async function DashboardPage() {
               {successor ? "Manage Successor" : "Assign Successor"}
             </Link>}
           </div>
-        </section>
+        </section>}
       </div>
 
       <footer className="border-t border-[color:var(--nsg-border)]/10 px-6 py-8 text-center sm:px-8">

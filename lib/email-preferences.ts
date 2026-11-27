@@ -5,7 +5,6 @@ export const emailPreferenceOptions = [
   { name: "newVideoShared", label: "New Video Shared" },
   { name: "newAudioMessageShared", label: "New Audio Moment Shared" },
   { name: "sharedMoments", label: "Shared Moments" },
-  { name: "legacySuccessorUpdates", label: "Legacy Successor Updates" },
 ] as const;
 
 export type EmailPreferences = Record<(typeof emailPreferenceOptions)[number]["name"], boolean>;

@@ -122,6 +122,7 @@ test("the shared layout provides Help Center in footer navigation", () => {
     "next/font/google": { Geist: () => ({ variable: "sans" }), Geist_Mono: () => ({ variable: "mono" }) },
     "./site-navigation": { default: () => null },
     "./site-visit-tracker": { default: () => null },
+    "./account-activity-tracker": { default: () => null },
     "./current-theme": { default: () => null },
     "./globals.css": {},
   });
@@ -173,7 +174,7 @@ test("pricing displays the requested roadmap without implying paid access or del
   ]) {
     assert.ok(html.includes(`${text}<span class="text-slate-400"> (Coming Soon)</span>`), text);
   }
-  assert.ok(html.includes('Successor Assignment<span class="text-slate-400"> (Limited Preview — available to approved preview accounts)</span>'));
+  assert.doesNotMatch(html, /Limited Preview|approved preview accounts/);
   assert.ok(!html.includes('Successor Assignment<span class="text-slate-400"> (Coming Soon)</span>'));
   for (const text of ["Automatic Family Reminders", "Scheduled Message Delivery"]) {
     assert.equal(html.split(`${text}<span class="text-slate-400"> (Coming Soon)</span>`).length - 1, 2);
@@ -222,7 +223,7 @@ test("pricing displays the requested roadmap without implying paid access or del
     [
       { text: "Everything in Family Legacy plus:" },
       { text: "1,000 Videos" },
-      { text: "Successor Assignment", preview: true },
+      { text: "Successor Assignment" },
     ],
   ]);
   assert.deepEqual(JSON.parse(JSON.stringify([free.limits, plus.limits, family.limits, forever.limits])), [

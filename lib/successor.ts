@@ -1,54 +1,47 @@
 import "server-only";
 
-import { requireUser } from "@/lib/auth";
 import { getSql } from "@/lib/db";
 
-export function successorPreviewEnabled(userId: string) {
-  if (process.env.SUCCESSOR_ASSIGNMENT_ENABLED !== "true") return false;
-  return (process.env.SUCCESSOR_ASSIGNMENT_PREVIEW_USER_IDS ?? "")
-    .split(",").some((id) => id.trim() === userId && id.trim() !== "");
-}
-
-export type SuccessorDesignation = {
-  name: string;
-  available: boolean;
+export type SuccessorAssignment = {
+  successorId: string | null;
+  name: string | null;
+  inactivityDays: 30 | 60 | 90;
+  valid: boolean;
 };
 
-async function previewOwner() {
-  const user = await requireUser();
-  if (!successorPreviewEnabled(user.id)) throw new Error("Successor Assignment is not available.");
-  return user;
-}
-
-export async function getOwnSuccessor(): Promise<SuccessorDesignation | null> {
-  const user = await previewOwner();
+export async function canManageSuccessor(userId: string) {
   const sql = getSql();
-  const [designation] = await sql`
-    SELECT COALESCE(NULLIF(BTRIM(person.display_name), ''), s.successor_name) AS name,
-           (person.id IS NOT NULL AND EXISTS (
-             SELECT 1 FROM connected_lives cl
-             WHERE cl.status = 'accepted'
-               AND ((cl.owner_user_id = ${user.id} AND cl.connected_user_id = person.id)
-                 OR (cl.connected_user_id = ${user.id} AND cl.owner_user_id = person.id))
-           )) AS available
-    FROM legacy_successors s
-    LEFT JOIN users person ON person.id = s.successor_user_id
-    WHERE s.owner_user_id = ${user.id} AND s.status = 'designated'
-  ` as SuccessorDesignation[];
-  return designation ?? null;
+  const [row] = await sql`SELECT successor_can_manage(${userId}) AS eligible` as { eligible: boolean }[];
+  return row.eligible;
 }
 
-export async function getOwnSuccessorCandidates(): Promise<{ id: string; name: string }[]> {
-  const user = await previewOwner();
+export async function getOwnSuccessor(userId: string): Promise<SuccessorAssignment | null> {
+  const sql = getSql();
+  const [row] = await sql`
+    SELECT a.successor_user_id AS "successorId", u.display_name AS name,
+           a.inactivity_days AS "inactivityDays",
+           (u.id IS NOT NULL AND u.membership <> 'legacy-forever') AS valid
+    FROM successor_assignments a LEFT JOIN users u ON u.id = a.successor_user_id
+    WHERE a.owner_user_id = ${userId}
+  ` as SuccessorAssignment[];
+  return row ?? null;
+}
+
+export async function hasTransferredSuccessor(userId: string) {
+  const sql = getSql();
+  const [row] = await sql`
+    SELECT EXISTS (SELECT 1 FROM successor_transfers WHERE original_owner_user_id = ${userId}) AS transferred
+  ` as { transferred: boolean }[];
+  return row.transferred;
+}
+
+export async function getSuccessorCandidates(userId: string, search: string) {
   const sql = getSql();
   return await sql`
-    SELECT DISTINCT person.id,
-           COALESCE(NULLIF(BTRIM(person.display_name), ''), 'Moment Maker') AS name
-    FROM connected_lives cl
-    JOIN users person ON person.id = CASE WHEN cl.owner_user_id = ${user.id}
-      THEN cl.connected_user_id ELSE cl.owner_user_id END
-    WHERE cl.status = 'accepted' AND person.id <> ${user.id}
-      AND (cl.owner_user_id = ${user.id} OR cl.connected_user_id = ${user.id})
-    ORDER BY name, person.id
-  ` as { id: string; name: string }[];
+    SELECT id, display_name AS name, username
+    FROM users
+    WHERE successor_can_select(${userId}, id)
+      AND (${search} = '' OR display_name ILIKE ${`%${search}%`} OR username ILIKE ${`%${search}%`})
+    ORDER BY display_name, id LIMIT 50
+  ` as { id: string; name: string; username: string }[];
 }

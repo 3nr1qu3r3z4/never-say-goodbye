@@ -243,7 +243,7 @@ test("owners receive their actual location values independently of visitor setti
     ...basicDependencies,
     "@/lib/auth": { requireUser: async () => ({ id: "person", displayName: "Jane" }) },
     "@/lib/db": { getSql: () => async () => [profile] },
-    "@/lib/successor": { successorPreviewEnabled: () => false },
+    "@/lib/successor": { canManageSuccessor: async () => false },
     "./profile-editor": { default: ({ birthplace, location }) =>
       React.createElement(ProfileLocations, { birthplace, location }) },
     "./appearance": { default: () => null },

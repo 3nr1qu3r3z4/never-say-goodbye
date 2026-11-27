@@ -26,6 +26,7 @@ function loadModule(relativePath, dependencies = {}) {
       return dependencies[name];
     },
     Date,
+    process: { env: { NODE_ENV: "test" } },
     console,
   });
   return exports;
@@ -186,14 +187,15 @@ test("saved theme follows the account across sessions without leaking to another
       CREATE TABLE schema_migrations (version TEXT PRIMARY KEY);
       CREATE TABLE users (
         id TEXT PRIMARY KEY, email TEXT, first_name TEXT, middle_name TEXT,
-        last_name TEXT, display_name TEXT, membership TEXT, updated_at TEXT
+        last_name TEXT, display_name TEXT, membership TEXT, updated_at TEXT,
+        last_activity_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp()
       );
-      CREATE TABLE sessions (token_hash TEXT PRIMARY KEY, user_id TEXT, expires_at TEXT);
+      CREATE TABLE sessions (token_hash TEXT PRIMARY KEY, user_id TEXT, expires_at TEXT, created_at TEXT);
       INSERT INTO users (id, membership) VALUES ('alice', 'free'), ('bob', 'free');
     `);
     await db.exec(fs.readFileSync(path.join(root, "db", "migrations", "024_site_theme.sql"), "utf8"));
     for (const [token, user] of [["alice-device-1", "alice"], ["alice-device-2", "alice"], ["bob-device", "bob"]]) {
-      await db.query("INSERT INTO sessions VALUES ($1, $2, $3)", [
+      await db.query("INSERT INTO sessions (token_hash, user_id, expires_at) VALUES ($1, $2, $3)", [
         crypto.createHash("sha256").update(token).digest("hex"), user, "2999-01-01T00:00:00.000Z",
       ]);
     }
@@ -201,12 +203,21 @@ test("saved theme follows the account across sessions without leaking to another
       const query = strings.reduce((result, part, index) => result + (index ? `$${index}` : "") + part, "");
       return (await db.query(query, values)).rows;
     };
+    sql.transaction = (queries) => Promise.all(queries);
     let token = "alice-device-1";
+    let prefetch = false;
     const auth = loadModule("lib/auth.ts", {
       "server-only": {},
       "node:crypto": crypto,
       react: { cache: (fn) => fn },
-      "next/headers": { cookies: async () => ({ get: () => token ? { value: token } : undefined }) },
+      "next/headers": {
+        cookies: async () => ({
+          get: () => token ? { value: token } : undefined,
+          delete: () => { token = null; },
+          set: (_name, value) => { token = value; },
+        }),
+        headers: async () => new Headers(prefetch ? { "next-router-prefetch": "1" } : {}),
+      },
       "next/navigation": { redirect: () => { throw new Error("Not authenticated"); } },
       "@/lib/db": { getSql: () => sql },
     });
@@ -223,11 +234,30 @@ test("saved theme follows the account across sessions without leaking to another
       "./theme-sync": { default: () => null },
     }).default;
 
+    await db.exec("UPDATE users SET last_activity_at = clock_timestamp() - interval '31 days' WHERE id = 'alice'");
+    const before = (await db.query("SELECT last_activity_at FROM users WHERE id = 'alice'")).rows[0].last_activity_at;
+    prefetch = true;
+    await auth.getCurrentUser();
+    assert.equal((await db.query("SELECT last_activity_at FROM users WHERE id = 'alice'")).rows[0].last_activity_at.getTime(), before.getTime());
+    prefetch = false;
+    await auth.getCurrentUser();
+    assert.ok((await db.query("SELECT last_activity_at FROM users WHERE id = 'alice'")).rows[0].last_activity_at > before);
+
     assert.ok((await action.saveSiteTheme({}, themeForm("lavender"))).success);
     token = "alice-device-2";
     assert.equal((await currentTheme()).props.theme, "lavender");
     token = "bob-device";
     assert.equal((await currentTheme()).props.theme, "classic");
+    token = "alice-device-1";
+    await db.exec("UPDATE users SET last_activity_at = clock_timestamp() - interval '31 days' WHERE id = 'alice'");
+    await auth.deleteCurrentSession();
+    assert.equal(token, null);
+    assert.ok((await db.query("SELECT last_activity_at FROM users WHERE id = 'alice'")).rows[0].last_activity_at > before);
+    assert.equal((await db.query("SELECT COUNT(*)::int AS n FROM sessions WHERE user_id = 'alice'")).rows[0].n, 1);
+    await db.exec("UPDATE users SET last_activity_at = clock_timestamp() - interval '31 days' WHERE id = 'alice'");
+    await auth.createSession("alice");
+    assert.equal((await auth.getCurrentUser()).id, "alice");
+    assert.ok((await db.query("SELECT last_activity_at FROM users WHERE id = 'alice'")).rows[0].last_activity_at > before);
     token = null;
     assert.equal((await currentTheme()).props.theme, "classic");
   } finally {

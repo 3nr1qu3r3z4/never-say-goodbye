@@ -15,6 +15,10 @@
     {
       "path": "/api/cron/moment-audio",
       "schedule": "45 0 * * *"
+    },
+    {
+      "path": "/api/cron/successor-transfers",
+      "schedule": "0 1 * * *"
     }
   ]
 }

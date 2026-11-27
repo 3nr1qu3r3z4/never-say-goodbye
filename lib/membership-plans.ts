@@ -14,7 +14,7 @@ export type MembershipPlan = {
     voiceMessages?: number | null;
     cannotOpenUntilMessages?: number;
   };
-  features: { text: string; planned?: boolean; preview?: boolean }[];
+  features: { text: string; planned?: boolean }[];
 };
 
 export const membershipPlans: readonly MembershipPlan[] = [
@@ -90,7 +90,7 @@ export const membershipPlans: readonly MembershipPlan[] = [
     features: [
       { text: "Everything in Family Legacy plus:" },
       { text: "1,000 Videos" },
-      { text: "Successor Assignment", preview: true },
+      { text: "Successor Assignment" },
     ],
   },
 ];

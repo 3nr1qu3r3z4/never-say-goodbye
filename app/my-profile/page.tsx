@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { getSql } from "@/lib/db";
-import { successorPreviewEnabled } from "@/lib/successor";
+import { canManageSuccessor } from "@/lib/successor";
 import ProfileEditor from "./profile-editor";
 import Appearance from "./appearance";
 
@@ -36,6 +36,7 @@ type ProfileDetails = {
 
 export default async function MyProfilePage() {
   const user = await requireUser();
+  const successorEligible = await canManageSuccessor(user.id);
   const sql = getSql();
   const rows = (await sql`
     SELECT u.account_status AS "accountStatus",
@@ -112,7 +113,7 @@ export default async function MyProfilePage() {
           <Link href="/my-profile/membership" className="inline-flex min-h-11 items-center text-sm font-semibold text-[color:var(--nsg-accent-light)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]">
             Membership &amp; Usage
           </Link>
-          {successorPreviewEnabled(user.id) && <Link href="/my-profile/successor" className="ml-5 inline-flex min-h-11 items-center text-sm font-semibold text-[color:var(--nsg-accent-light)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]">
+          {successorEligible && <Link href="/my-profile/successor" className="ml-5 inline-flex min-h-11 items-center text-sm font-semibold text-[color:var(--nsg-accent-light)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]">
             Legacy Successor™
           </Link>}
         </div>

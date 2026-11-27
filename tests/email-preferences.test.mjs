@@ -66,8 +66,9 @@ test("preferences page displays account email and defaults all options to checke
   const html = renderToStaticMarkup(await page({ searchParams: Promise.resolve({}) }));
   assert.match(html, /Email notifications are not enabled yet/);
   assert.match(html, /readOnly=""[^>]*value="alice@example.test"/);
-  assert.equal((html.match(/type="checkbox"/g) ?? []).length, 7);
-  assert.equal((html.match(/checked=""/g) ?? []).length, 7);
+  assert.equal((html.match(/type="checkbox"/g) ?? []).length, 6);
+  assert.equal((html.match(/checked=""/g) ?? []).length, 6);
+  assert.doesNotMatch(html, /Legacy Successor Updates/);
   for (const { label } of options.emailPreferenceOptions) assert.ok(html.includes(label));
 });
 
@@ -79,12 +80,12 @@ test("saving uses the authenticated user and preserves selected and unselected o
     async (strings, ...values) => { written = { query: strings.join("?"), values }; },
     (url) => { redirectPath = url; },
   );
-  const form = makeForm([names[0], names[2], names[6]]);
+  const form = makeForm([names[0], names[2], names[5]]);
   form.set("userId", "bob");
   form.set("email", "other@example.test");
   await action(form);
   assert.match(written.query, /ON CONFLICT \(user_id\) DO UPDATE/);
-  assert.deepEqual(written.values, ["alice", true, false, true, false, false, false, true]);
+  assert.deepEqual(written.values, ["alice", true, false, true, false, false, true]);
   assert.equal(redirectPath, "/email-preferences?saved=1");
 
   const saved = Object.fromEntries(names.map((name, i) => [name, written.values[i + 1]]));

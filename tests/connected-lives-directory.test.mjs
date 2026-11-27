@@ -68,7 +68,7 @@ test("directory searches and combines relationship and tag filters; sorts unknow
 });
 
 function loadDashboard(data, founder = false, familyActivity = [], bulletins = [], preview = {}) {
-  return loadModule("app/dashboard/page.tsx", {
+  const page = loadModule("app/dashboard/page.tsx", {
     react: React,
     "react/jsx-runtime": jsxRuntime,
     "next/link": { default: ({ children, ...props }) => React.createElement("a", props, children) },
@@ -102,14 +102,16 @@ function loadDashboard(data, founder = false, familyActivity = [], bulletins = [
       getLegacyConnections: async (id) => { assert.equal(id, "owner"); return preview.connections ?? []; },
     },
     "@/lib/successor": {
-      successorPreviewEnabled: () => Boolean(preview.successorEnabled),
+      canManageSuccessor: async () => Boolean(preview.successorEnabled),
       getOwnSuccessor: async () => preview.successor ?? null,
+      hasTransferredSuccessor: async () => false,
     },
     "@/app/moments/moment-card": { default: ({ moment }) => React.createElement("li", null, moment.title) },
     "@/lib/frequent-visits": { frequentVisitsEnabled: () => false },
     "./signup-welcome": { default: () => null },
     "./frequent-visits": { default: () => null },
   }).default;
+  return () => page({ searchParams: Promise.resolve({}) });
 }
 
 test("legacy reflections rotate through real counts and handle incomplete trees", () => {
@@ -148,19 +150,19 @@ test("dashboard places one reflection immediately beneath the welcome", async ()
   assert.equal((html.match(/Legacy Reflection/g) ?? []).length, 1);
 });
 
-test("successor preview displays current or unavailable state only for approved owners", async () => {
+test("successor controls appear only for eligible owners", async () => {
   const data = { counts: { sharedMoments: 0, personalMoments: 0, connectedLives: 0, newLivesRequests: 0,
     unreadLivesNotifications: 0, futureMomentMakers: 0, drafts: 0 }, recentActivity: [] };
   const disabled = renderToStaticMarkup(await loadDashboard(data)());
-  assert.match(disabled, /Legacy Successor™[\s\S]*?Limited Preview — available to approved preview accounts/);
+  assert.doesNotMatch(disabled, /Legacy Successor™/);
   assert.doesNotMatch(disabled, /href="\/my-profile\/successor"/);
   const disabledActions = disabled.match(/<section aria-labelledby="legacy-quick-actions-heading"[\s\S]*?<\/section>/)?.[0];
   assert.ok(disabledActions);
   assert.doesNotMatch(disabledActions, /Successor Assignment/);
   const available = renderToStaticMarkup(await loadDashboard(data, false, [], [], {
-    successorEnabled: true, successor: { name: "Alex", available: true },
+    successorEnabled: true, successor: { name: "Alex", valid: true },
   })());
-  assert.match(available, /Limited Preview — available to approved preview accounts/);
+  assert.doesNotMatch(available, /Limited Preview|approved preview accounts/);
   assert.match(available, /Legacy Successor™[\s\S]*?Alex[\s\S]*?href="\/my-profile\/successor"[^>]*>Manage Successor/);
   const enabledActions = available.match(/<section aria-labelledby="legacy-quick-actions-heading"[\s\S]*?<\/section>/)?.[0];
   assert.ok(enabledActions);
@@ -169,9 +171,9 @@ test("successor preview displays current or unavailable state only for approved 
   const unassigned = renderToStaticMarkup(await loadDashboard(data, false, [], [], { successorEnabled: true })());
   assert.match(unassigned, /Legacy Successor™[\s\S]*?Not Assigned[\s\S]*?href="\/my-profile\/successor"[^>]*>Assign Successor/);
   const unavailable = renderToStaticMarkup(await loadDashboard(data, false, [], [], {
-    successorEnabled: true, successor: { name: "Alex", available: false },
+    successorEnabled: true, successor: { name: "Alex", valid: false },
   })());
-  assert.match(unavailable, /Unavailable or no longer connected/);
+  assert.match(unavailable, /Choose another successor/);
 });
 
 test("My Legacy brings owner details and existing destinations together with empty previews", async () => {

@@ -50,7 +50,7 @@ test("approved limits, themes and planned features are resolved independently of
     assert.equal(policy.enforcementEnabled, false);
     assert.equal(service.getThemeAccess(policy, "sunset").eligibleAfterBeta, true);
     assert.equal(service.getFeatureAccess(policy, "successorAssignment").eligible, plan === "legacy-forever");
-    assert.equal(service.getFeatureAccess(policy, "successorAssignment").available, false);
+    assert.equal(service.getFeatureAccess(policy, "successorAssignment").available, true);
     assert.equal(service.getFeatureAccess(policy, "scheduledDelivery").eligible, plan !== "free");
     assert.equal(service.getFeatureAccess(policy, "cannotOpenUntil").available, false);
   }
@@ -121,6 +121,10 @@ test("unknown accounts error and legacy memberships remain explicitly unreviewed
   await assert.rejects(service.getEntitlements("legacy"), /Unknown stored membership/);
   rows = [{ membership: "free", betaAccess: null }];
   assert.equal((await service.getEntitlements("pending")).betaAccess, "unreviewed");
+  for (const membership of ["legacy-plus", "family-legacy", "legacy-forever"]) {
+    rows = [{ membership, betaAccess: null }];
+    assert.equal((await service.getEntitlements("paid")).plan, membership);
+  }
   assert.throws(() => service.resolveEntitlements("unknown", "unreviewed"), /Unknown membership plan/);
 });
 

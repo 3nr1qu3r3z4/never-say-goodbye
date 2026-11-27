@@ -22,6 +22,7 @@ function loadProfilePage(sql) {
     "next/link": { default: ({ children }) => React.createElement("a", null, children) },
     "@/lib/auth": { requireUser: async () => ({ id: "owner", displayName: "Owner" }) },
     "@/lib/db": { getSql: () => sql },
+    "@/lib/successor": { canManageSuccessor: async () => false },
     "./profile-editor": { default: () => null },
     "./appearance": { default: () => null },
   };

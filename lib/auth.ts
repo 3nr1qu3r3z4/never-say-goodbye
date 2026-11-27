@@ -2,7 +2,7 @@ import "server-only";
 
 import { createHash, randomBytes } from "node:crypto";
 import { cache } from "react";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getSql } from "@/lib/db";
 import type { SiteTheme } from "@/lib/site-themes";
@@ -17,7 +17,7 @@ export type AuthenticatedUser = {
   middleName: string | null;
   lastName: string;
   displayName: string;
-  membership: "free" | "tier-2" | "tier-3";
+  membership: "free" | "tier-2" | "tier-3" | "legacy-plus" | "family-legacy" | "legacy-forever";
   siteTheme: SiteTheme;
 };
 
@@ -31,10 +31,11 @@ export async function createSession(userId: string) {
   const now = new Date();
   const expiresAt = new Date(now.getTime() + sessionDurationMs);
 
-  await sql`
-    INSERT INTO sessions (token_hash, user_id, expires_at, created_at)
-    VALUES (${hashToken(token)}, ${userId}, ${expiresAt.toISOString()}, ${now.toISOString()})
-  `;
+  await sql.transaction([
+    sql`INSERT INTO sessions (token_hash, user_id, expires_at, created_at)
+        VALUES (${hashToken(token)}, ${userId}, ${expiresAt.toISOString()}, ${now.toISOString()})`,
+    sql`UPDATE users SET last_activity_at = GREATEST(last_activity_at, clock_timestamp()) WHERE id = ${userId}`,
+  ]);
 
   const cookieStore = await cookies();
   cookieStore.set(sessionCookieName, token, {
@@ -51,7 +52,14 @@ export async function deleteCurrentSession() {
   const token = cookieStore.get(sessionCookieName)?.value;
   if (token) {
     const sql = getSql();
-    await sql`DELETE FROM sessions WHERE token_hash = ${hashToken(token)}`;
+    await sql`
+      WITH revoked AS (
+        DELETE FROM sessions WHERE token_hash = ${hashToken(token)}
+        RETURNING user_id, expires_at
+      )
+      UPDATE users SET last_activity_at = GREATEST(last_activity_at, clock_timestamp())
+      WHERE id IN (SELECT user_id FROM revoked WHERE expires_at::timestamptz > clock_timestamp())
+    `;
   }
   cookieStore.delete(sessionCookieName);
 }
@@ -80,6 +88,11 @@ export const getCurrentUser = cache(async (): Promise<AuthenticatedUser | null> 
     return null;
   }
 
+  const requestHeaders = await headers();
+  if (requestHeaders.get("next-router-prefetch") !== "1" &&
+      requestHeaders.get("purpose") !== "prefetch") {
+    await sql`UPDATE users SET last_activity_at = GREATEST(last_activity_at, clock_timestamp()) WHERE id = ${user.id}`;
+  }
   return user;
 });
 

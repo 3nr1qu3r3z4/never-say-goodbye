@@ -89,24 +89,23 @@ release against edits, reassignment, disconnection, and archive, plus an edit
 crossing a scheduled-release boundary. The media stream in that test uses
 simulated storage; it does not verify a deployed Blob service.
 
-## Successor Assignment preview
+## Successor Assignment
 
-The informational-only Successor Assignment MVP is disabled by default.
-Before any preview, obtain founder approval for the audience and apply migration
-029. To enable it for approved accounts only, set
-`SUCCESSOR_ASSIGNMENT_ENABLED=true` and set
-`SUCCESSOR_ASSIGNMENT_PREVIEW_USER_IDS` to a comma-separated list of their user
-IDs, then redeploy. An empty or missing list enables it for nobody. These
-server-side settings control rollout, not membership eligibility; no billing or
-entitlement enforcement is enabled.
+Apply migration 035 before deploying. Lifetime ownership must be provisioned
+explicitly: create a `lifetime_memberships` record and set the owner's
+`users.membership` to `legacy-forever` in the same transaction. Do not infer
+Lifetime ownership from legacy tier memberships. Paid signup remains unavailable.
+Existing successor designations are preserved but do not start transfers.
 
-An owner may designate one accepted Connected Lives member, change or remove
-the designation, and see when the person is unavailable. The designation
-grants no access, ownership, transfer rights, legal authority, or decision-making
-authority. No notification or acceptance workflow is sent or initiated.
-Historical successor records are preserved and are not converted into new
-designations. Pricing describes the feature as a limited preview available to
-approved preview accounts; paid plans remain unavailable.
+Eligible Lifetime owners can choose a searchable member or an accepted connection
+and transfer now or after 30, 60, or 90 days of authenticated inactivity. A daily
+authenticated `/api/cron/successor-transfers` job processes due assignments; set
+`CRON_SECRET` and monitor failures. Other deployments must schedule that endpoint.
+Transfers can occur after the threshold when the job next runs. Invalid recipients
+are not transferred and need replacement. A successful transfer is permanent:
+the owner becomes Free, the successor receives Lifetime, and that membership cannot
+be transferred again. A paid successor's stored plan is superseded; this application
+does not currently manage external subscription cancellation.
 
 Family Calendar currently displays shared family dates and events. Reminder
 preferences can be saved, but automated notifications are not sent. Support
