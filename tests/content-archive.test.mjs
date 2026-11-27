@@ -46,6 +46,7 @@ test("owner management page identifies counted contents and explains legacy reco
       if (!user) throw new Error("Sign in required");
       return user;
     } },
+    "@/lib/cannot-open-until": { cannotOpenUntilEnabled: () => false },
     "@/lib/db": { getSql: () => async (strings, ...values) => {
       calls.push(values);
       return strings.join("").includes("FROM moments")

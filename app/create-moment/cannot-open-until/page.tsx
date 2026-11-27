@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { requireUser } from "@/lib/auth";
+import { cannotOpenUntilEnabled } from "@/lib/cannot-open-until";
 import MomentEditor from "../moment-editor";
 
 export const metadata: Metadata = {
@@ -10,5 +11,5 @@ export const instant = false;
 
 export default async function CannotOpenUntilPage() {
   await requireUser();
-  return <MomentEditor kind="cannot-open-until" />;
+  return <MomentEditor kind="cannot-open-until" timeCapsuleEnabled={cannotOpenUntilEnabled()} />;
 }

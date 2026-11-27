@@ -94,7 +94,7 @@ const sectionClassName =
 const secondaryButtonClassName =
   "inline-flex min-h-12 items-center justify-center rounded-full border border-[color:var(--nsg-accent)]/60 px-6 py-3 text-sm font-semibold text-[color:var(--nsg-accent-light)] transition hover:border-[color:var(--nsg-accent)] hover:bg-[color:var(--nsg-accent)]/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]";
 
-export default function MomentEditor({ kind }: { kind: MomentKind }) {
+export default function MomentEditor({ kind, timeCapsuleEnabled = false }: { kind: MomentKind; timeCapsuleEnabled?: boolean }) {
   const router = useRouter();
   const [draft, setDraft] = useState<MomentDraft>(initialMomentDraft);
   const [draftId, setDraftId] = useState("");
@@ -115,6 +115,7 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
   const [audioProgress, setAudioProgress] = useState(0);
   const [audioError, setAudioError] = useState("");
   const momentConfig = config[kind];
+  const uploadedMediaEnabled = kind === "shared" || (kind === "cannot-open-until" && timeCapsuleEnabled);
 
   useEffect(() => {
     let active = true;
@@ -218,7 +219,7 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
         return;
       }
 
-      if (option.value === "video" && kind === "shared") {
+      if (option.value === "video" && uploadedMediaEnabled) {
         setIsVideoUploading(true);
         setVideoProgress(0);
         setVideoError("");
@@ -248,7 +249,7 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
         return;
       }
 
-      if (option.value === "voice" && kind === "shared") {
+      if (option.value === "voice" && uploadedMediaEnabled) {
         setIsAudioUploading(true);
         setAudioProgress(0);
         setAudioError("");
@@ -297,7 +298,9 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
         setAccessCodeSaved(result.accessCodeSaved);
         setDraft((current) => ({ ...current, accessCode: "" }));
         setStatusMessage(
-          "Draft saved to your account. Photos and Shared Moment videos and audio are kept.",
+          timeCapsuleEnabled && kind === "cannot-open-until"
+            ? "Draft saved to your account. Photos, videos and audio are kept."
+            : "Draft saved to your account. Photos and Shared Moment videos and audio are kept.",
         );
       }
     } catch {
@@ -315,7 +318,7 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
       if ("error" in result) {
         setStatusMessage(result.error ?? "This moment could not be published.");
       } else {
-        router.push("/dashboard?published=1");
+        router.push(kind === "cannot-open-until" && timeCapsuleEnabled ? "/cannot-open-until" : "/dashboard?published=1");
       }
     } catch {
       setStatusMessage("We couldn’t publish this moment. Please try again.");
@@ -349,7 +352,9 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
             {momentConfig.title}
           </h1>
           <p className="mx-auto mt-4 max-w-xl font-serif text-lg leading-7 text-slate-300 sm:text-xl">
-            {momentConfig.subtitle}
+            {kind === "cannot-open-until" && timeCapsuleEnabled
+              ? "Save a Moment, then review it and activate its release date."
+              : momentConfig.subtitle}
           </p>
         </header>
 
@@ -422,9 +427,9 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
                     checked={draft.content.includes(option.value)}
                     disabled={(option.value === "photo" && isPhotoPreparing) ||
                       (option.value === "video" && (isVideoUploading ||
-                        (kind !== "shared" && !draft.content.includes("video")))) ||
+                        (!uploadedMediaEnabled && !draft.content.includes("video")))) ||
                       (option.value === "voice" && (isAudioUploading ||
-                        (kind !== "shared" && !draft.content.includes("voice"))))}
+                        (!uploadedMediaEnabled && !draft.content.includes("voice"))))}
                     onChange={() => toggleContent(option.value)}
                     className="h-4 w-4 shrink-0 accent-[color:var(--nsg-accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--nsg-accent)]"
                   />
@@ -432,7 +437,7 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
                     {option.icon}
                   </span>
                   {option.label}
-                  {(option.value === "video" || option.value === "voice") && kind !== "shared" && (
+                  {(option.value === "video" || option.value === "voice") && !uploadedMediaEnabled && (
                     <span className="text-xs text-slate-400">(Shared Moments only)</span>
                   )}
                 </label>
@@ -461,8 +466,8 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
                     accept={option.accept}
                     disabled={!isReady || isSaving ||
                       (option.value === "photo" && isPhotoPreparing) ||
-                      (option.value === "video" && (isVideoUploading || kind !== "shared")) ||
-                      (option.value === "voice" && (isAudioUploading || kind !== "shared"))}
+                      (option.value === "video" && (isVideoUploading || !uploadedMediaEnabled)) ||
+                      (option.value === "voice" && (isAudioUploading || !uploadedMediaEnabled))}
                     onChange={(event) =>
                       void handleMediaSelection(option, event.currentTarget)
                     }
@@ -494,7 +499,7 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
                       This older draft saved only the file name. Choose the photo again to include it.
                     </p>
                   )}
-                  {option.value === "video" && kind === "shared" && (
+                  {option.value === "video" && uploadedMediaEnabled && (
                     <p className="mt-2 text-xs text-slate-400">MP4, MOV, or M4V, up to 100 MiB. Playback depends on your browser and video codec.</p>
                   )}
                   {option.value === "video" && isVideoUploading && (
@@ -503,10 +508,10 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
                   {option.value === "video" && videoError && (
                     <p className="mt-2 text-xs text-amber-300" role="alert">{videoError}</p>
                   )}
-                  {option.value === "video" && kind === "shared" && draft.attachmentNames.video && !draft.videoUploadId && (
+                  {option.value === "video" && uploadedMediaEnabled && draft.attachmentNames.video && !draft.videoUploadId && (
                     <p className="mt-2 text-xs text-amber-300">This older draft saved only the file name. Choose the video again to include it.</p>
                   )}
-                  {option.value === "voice" && kind === "shared" && (
+                  {option.value === "voice" && uploadedMediaEnabled && (
                     <p className="mt-2 text-xs text-slate-400">MP3, M4A, or WAV, up to 100 MiB. Playback depends on your browser and audio codec.</p>
                   )}
                   {option.value === "voice" && isAudioUploading && (
@@ -517,7 +522,7 @@ export default function MomentEditor({ kind }: { kind: MomentKind }) {
                   )}
                   {option.value === "voice" && draft.attachmentNames.voice && !draft.audioUploadId && (
                     <p className="mt-2 text-xs text-amber-300">
-                      This older draft saved only the file name. {kind === "shared" ? "Choose the audio again to include it." : "Audio uploads are available for Shared Moments."}
+                      This older draft saved only the file name. {uploadedMediaEnabled ? "Choose the audio again to include it." : "Audio uploads are available for Shared Moments."}
                     </p>
                   )}
                 </div>

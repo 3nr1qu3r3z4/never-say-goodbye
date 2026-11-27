@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getSql } from "@/lib/db";
 import { hashSecret } from "@/lib/password";
 import { validatePhoto } from "@/lib/profile-photo";
+import { cannotOpenUntilEnabled } from "@/lib/cannot-open-until";
 import type {
   Audience,
   ContentKind,
@@ -139,7 +140,8 @@ export async function saveMomentDraft(
   }
 
   const sql = getSql();
-  if (kind === "shared" && draft.content.includes("video") && draft.videoUploadId) {
+  const uploadedMediaEnabled = kind === "shared" || (kind === "cannot-open-until" && cannotOpenUntilEnabled());
+  if (uploadedMediaEnabled && draft.content.includes("video") && draft.videoUploadId) {
     const [video] = await sql`
       UPDATE moment_videos SET last_used_at = CURRENT_TIMESTAMP
       WHERE id = ${draft.videoUploadId} AND user_id = ${user.id} AND state = 'ready'
@@ -147,7 +149,7 @@ export async function saveMomentDraft(
     `;
     if (!video) return { error: "This video is no longer available. Please upload it again." };
   }
-  if (kind === "shared" && draft.content.includes("voice") && draft.audioUploadId) {
+  if (uploadedMediaEnabled && draft.content.includes("voice") && draft.audioUploadId) {
     const [audio] = await sql`
       UPDATE moment_audio SET last_used_at = CURRENT_TIMESTAMP
       WHERE id = ${draft.audioUploadId} AND user_id = ${user.id} AND state = 'ready'
@@ -178,8 +180,8 @@ export async function saveMomentDraft(
     ...draft,
     attachmentNames,
     photoData: draft.content.includes("photo") ? draft.photoData : "",
-    videoUploadId: kind === "shared" && draft.content.includes("video") ? draft.videoUploadId : "",
-    audioUploadId: kind === "shared" && draft.content.includes("voice") ? draft.audioUploadId || "" : "",
+    videoUploadId: uploadedMediaEnabled && draft.content.includes("video") ? draft.videoUploadId : "",
+    audioUploadId: uploadedMediaEnabled && draft.content.includes("voice") ? draft.audioUploadId || "" : "",
     accessCode: "",
   };
   if (existing) {
@@ -214,6 +216,7 @@ export async function publishMoment(
   if (!isMomentKind(kind) || !isMomentDraft(draft)) {
     return { error: "This moment has invalid data and could not be published." };
   }
+  const uploadedMediaEnabled = kind === "shared" || (kind === "cannot-open-until" && cannotOpenUntilEnabled());
   if (!draft.title.trim() || draft.title.length > 200) {
     return { error: "Add a title of 200 characters or fewer." };
   }
@@ -224,15 +227,15 @@ export async function publishMoment(
   if (draft.content.includes("photo") && !draft.photoData) {
     return { error: "Choose a photo before publishing, or deselect Photo." };
   }
-  if (kind === "shared" && draft.content.includes("video") && !draft.videoUploadId) {
+  if (uploadedMediaEnabled && draft.content.includes("video") && !draft.videoUploadId) {
     return { error: "Upload a video before publishing, or deselect Video." };
   }
-  if (kind === "shared" && draft.content.includes("voice") && !draft.audioUploadId) {
+  if (uploadedMediaEnabled && draft.content.includes("voice") && !draft.audioUploadId) {
     return { error: "Upload audio before publishing, or deselect Audio." };
   }
   if (!draft.story.trim() && !draft.writtenMessage.trim() && !draft.content.includes("photo") &&
-      !(kind === "shared" && draft.content.includes("video") && draft.videoUploadId) &&
-      !(kind === "shared" && draft.content.includes("voice") && draft.audioUploadId)) {
+      !(uploadedMediaEnabled && draft.content.includes("video") && draft.videoUploadId) &&
+      !(uploadedMediaEnabled && draft.content.includes("voice") && draft.audioUploadId)) {
     return { error: "Add a written story, message, photo, video, or audio before publishing." };
   }
   if (
@@ -304,8 +307,8 @@ export async function publishMoment(
 
   const now = new Date().toISOString();
   const momentId = randomUUID();
-  const videoUploadId = kind === "shared" && draft.content.includes("video") ? draft.videoUploadId : null;
-  const audioUploadId = kind === "shared" && draft.content.includes("voice") ? draft.audioUploadId || null : null;
+  const videoUploadId = uploadedMediaEnabled && draft.content.includes("video") ? draft.videoUploadId : null;
+  const audioUploadId = uploadedMediaEnabled && draft.content.includes("voice") ? draft.audioUploadId || null : null;
   const futureMakerId =
     kind === "future-moment-maker" ? randomUUID() : null;
   const attachmentNames = { ...draft.attachmentNames };

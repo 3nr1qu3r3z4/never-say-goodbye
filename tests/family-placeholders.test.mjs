@@ -167,6 +167,7 @@ test("publishing links only an accessible placeholder and preserves audience", a
       "@/lib/db": { getSql: () => sql },
       "@/lib/password": { hashSecret: async () => "hash" },
       "@/lib/profile-photo": { validatePhoto: (value) => value },
+      "@/lib/cannot-open-until": { cannotOpenUntilEnabled: () => false },
     });
     const result = await actions.publishMoment("shared", "", {
       title: "A story", story: "A memory", tags: "", content: ["written"],

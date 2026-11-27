@@ -490,6 +490,120 @@ CREATE TABLE IF NOT EXISTS moments (
 );
 CREATE INDEX IF NOT EXISTS moments_user_kind_idx ON moments(user_id, kind, created_at);
 
+CREATE TABLE IF NOT EXISTS cannot_open_until_settings (
+  moment_id TEXT PRIMARY KEY REFERENCES moments(id) ON DELETE CASCADE,
+  status TEXT NOT NULL DEFAULT 'review_required' CHECK (status IN ('review_required', 'active')),
+  recipient_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+  connection_id TEXT REFERENCES connected_lives(id) ON DELETE SET NULL,
+  release_date DATE,
+  release_timezone TEXT,
+  unlock_at TIMESTAMPTZ,
+  manual_released_at TIMESTAMPTZ,
+  reviewed_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CHECK ((recipient_user_id IS NULL) = (connection_id IS NULL)),
+  CHECK (status <> 'active' OR
+    (release_date IS NOT NULL AND release_timezone IS NOT NULL AND unlock_at IS NOT NULL AND reviewed_at IS NOT NULL))
+);
+CREATE INDEX IF NOT EXISTS cannot_open_until_recipient_idx
+  ON cannot_open_until_settings(recipient_user_id) WHERE status = 'active';
+CREATE INDEX IF NOT EXISTS cannot_open_until_connection_idx
+  ON cannot_open_until_settings(connection_id) WHERE connection_id IS NOT NULL;
+
+CREATE OR REPLACE FUNCTION validate_cannot_open_until_assignment()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM moments WHERE id = NEW.moment_id AND kind = 'cannot-open-until') THEN
+    RAISE EXCEPTION 'Cannot Open Until settings require a matching Moment';
+  END IF;
+  IF NEW.recipient_user_id IS NOT NULL AND NOT EXISTS (
+    SELECT 1 FROM connected_lives c JOIN moments m ON m.id = NEW.moment_id
+    WHERE c.id = NEW.connection_id AND c.status = 'accepted'
+      AND m.user_id <> NEW.recipient_user_id
+      AND ((c.owner_user_id = m.user_id AND c.connected_user_id = NEW.recipient_user_id)
+        OR (c.connected_user_id = m.user_id AND c.owner_user_id = NEW.recipient_user_id))
+    FOR UPDATE OF c
+  ) THEN
+    RAISE EXCEPTION 'Recipient must be an accepted Connected Lives member';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS cannot_open_until_validate_assignment ON cannot_open_until_settings;
+CREATE TRIGGER cannot_open_until_validate_assignment
+  BEFORE INSERT OR UPDATE OF moment_id, recipient_user_id, connection_id ON cannot_open_until_settings
+  FOR EACH ROW EXECUTE FUNCTION validate_cannot_open_until_assignment();
+
+CREATE OR REPLACE FUNCTION protect_released_time_capsule()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+DECLARE
+  released BOOLEAN;
+BEGIN
+  IF OLD.kind <> 'cannot-open-until' THEN RETURN NEW; END IF;
+  SELECT (status = 'active' AND (manual_released_at IS NOT NULL OR unlock_at <= clock_timestamp()))
+    INTO released FROM cannot_open_until_settings WHERE moment_id = OLD.id FOR UPDATE;
+  IF COALESCE(released, FALSE) AND
+      ROW(NEW.kind, NEW.title, NEW.story, NEW.tags, NEW.content_json, NEW.details_json,
+          NEW.audience, NEW.access_code_hash, NEW.release_date, NEW.occasion)
+      IS DISTINCT FROM
+      ROW(OLD.kind, OLD.title, OLD.story, OLD.tags, OLD.content_json, OLD.details_json,
+          OLD.audience, OLD.access_code_hash, OLD.release_date, OLD.occasion) THEN
+    RAISE EXCEPTION 'Released Cannot Open Until Moments are read-only';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS moments_protect_released_time_capsule ON moments;
+CREATE TRIGGER moments_protect_released_time_capsule BEFORE UPDATE ON moments
+  FOR EACH ROW EXECUTE FUNCTION protect_released_time_capsule();
+
+CREATE OR REPLACE FUNCTION protect_released_time_capsule_schedule()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+  IF OLD.status = 'active' AND (OLD.manual_released_at IS NOT NULL OR OLD.unlock_at <= clock_timestamp())
+      AND ROW(NEW.status, NEW.release_date, NEW.release_timezone, NEW.unlock_at, NEW.manual_released_at)
+          IS DISTINCT FROM ROW(OLD.status, OLD.release_date, OLD.release_timezone, OLD.unlock_at, OLD.manual_released_at) THEN
+    RAISE EXCEPTION 'Released Cannot Open Until schedules are read-only';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS cannot_open_until_protect_released_schedule ON cannot_open_until_settings;
+CREATE TRIGGER cannot_open_until_protect_released_schedule BEFORE UPDATE ON cannot_open_until_settings
+  FOR EACH ROW EXECUTE FUNCTION protect_released_time_capsule_schedule();
+
+CREATE OR REPLACE FUNCTION invalidate_cannot_open_until_assignments()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+  IF OLD.status = 'accepted' AND (TG_OP = 'DELETE' OR NEW.status <> 'accepted'
+      OR NEW.owner_user_id IS DISTINCT FROM OLD.owner_user_id
+      OR NEW.connected_user_id IS DISTINCT FROM OLD.connected_user_id) THEN
+    UPDATE cannot_open_until_settings
+    SET recipient_user_id = NULL, connection_id = NULL, updated_at = clock_timestamp()
+    WHERE connection_id = OLD.id;
+  END IF;
+  IF TG_OP = 'DELETE' THEN RETURN OLD; END IF;
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS connected_lives_invalidate_cannot_open_until ON connected_lives;
+CREATE TRIGGER connected_lives_invalidate_cannot_open_until
+  BEFORE UPDATE OF status, owner_user_id, connected_user_id OR DELETE ON connected_lives
+  FOR EACH ROW EXECUTE FUNCTION invalidate_cannot_open_until_assignments();
+
+CREATE OR REPLACE FUNCTION invalidate_cannot_open_until_recipient()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+  UPDATE cannot_open_until_settings
+  SET recipient_user_id = NULL, connection_id = NULL, updated_at = clock_timestamp()
+  WHERE recipient_user_id = OLD.id;
+  RETURN OLD;
+END;
+$$;
+DROP TRIGGER IF EXISTS users_invalidate_cannot_open_until ON users;
+CREATE TRIGGER users_invalidate_cannot_open_until
+  BEFORE DELETE ON users FOR EACH ROW EXECUTE FUNCTION invalidate_cannot_open_until_recipient();
+
 CREATE TABLE IF NOT EXISTS moment_videos (
   id TEXT PRIMARY KEY,
   user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
@@ -518,6 +632,145 @@ CREATE TABLE IF NOT EXISTS moment_audio (
 );
 CREATE INDEX IF NOT EXISTS moment_audio_cleanup_idx
   ON moment_audio (state, last_used_at);
+
+CREATE OR REPLACE FUNCTION protect_released_time_capsule_media()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+DECLARE
+  target_id TEXT;
+  released BOOLEAN;
+BEGIN
+  IF TG_OP = 'UPDATE' AND
+      ROW(NEW.moment_id, NEW.state, NEW.pathname, NEW.filename, NEW.content_type, NEW.size_bytes)
+      IS NOT DISTINCT FROM
+      ROW(OLD.moment_id, OLD.state, OLD.pathname, OLD.filename, OLD.content_type, OLD.size_bytes) THEN
+    RETURN NEW;
+  END IF;
+  FOR target_id IN
+    SELECT DISTINCT id FROM (
+      SELECT CASE WHEN TG_OP <> 'INSERT' THEN OLD.moment_id END AS id
+      UNION ALL
+      SELECT CASE WHEN TG_OP <> 'DELETE' THEN NEW.moment_id END AS id
+    ) ids WHERE id IS NOT NULL ORDER BY id
+  LOOP
+    SELECT (s.status = 'active' AND (s.manual_released_at IS NOT NULL OR s.unlock_at <= clock_timestamp()))
+      INTO released
+      FROM cannot_open_until_settings s
+      JOIN moments m ON m.id = s.moment_id AND m.kind = 'cannot-open-until'
+      WHERE s.moment_id = target_id FOR UPDATE OF s;
+    IF COALESCE(released, FALSE) THEN
+      RAISE EXCEPTION 'Released Cannot Open Until media is read-only';
+    END IF;
+  END LOOP;
+  IF TG_OP = 'DELETE' THEN RETURN OLD; END IF;
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS moment_videos_protect_time_capsule ON moment_videos;
+CREATE TRIGGER moment_videos_protect_time_capsule
+  BEFORE INSERT OR UPDATE OR DELETE ON moment_videos
+  FOR EACH ROW EXECUTE FUNCTION protect_released_time_capsule_media();
+DROP TRIGGER IF EXISTS moment_audio_protect_time_capsule ON moment_audio;
+CREATE TRIGGER moment_audio_protect_time_capsule
+  BEFORE INSERT OR UPDATE OR DELETE ON moment_audio
+  FOR EACH ROW EXECUTE FUNCTION protect_released_time_capsule_media();
+
+DROP TRIGGER IF EXISTS moments_check_time_capsule_at_commit ON moments;
+CREATE CONSTRAINT TRIGGER moments_check_time_capsule_at_commit
+  AFTER UPDATE ON moments DEFERRABLE INITIALLY DEFERRED
+  FOR EACH ROW EXECUTE FUNCTION protect_released_time_capsule();
+DROP TRIGGER IF EXISTS moment_videos_check_time_capsule_at_commit ON moment_videos;
+CREATE CONSTRAINT TRIGGER moment_videos_check_time_capsule_at_commit
+  AFTER INSERT OR UPDATE OR DELETE ON moment_videos DEFERRABLE INITIALLY DEFERRED
+  FOR EACH ROW EXECUTE FUNCTION protect_released_time_capsule_media();
+DROP TRIGGER IF EXISTS moment_audio_check_time_capsule_at_commit ON moment_audio;
+CREATE CONSTRAINT TRIGGER moment_audio_check_time_capsule_at_commit
+  AFTER INSERT OR UPDATE OR DELETE ON moment_audio DEFERRABLE INITIALLY DEFERRED
+  FOR EACH ROW EXECUTE FUNCTION protect_released_time_capsule_media();
+
+CREATE OR REPLACE FUNCTION save_cannot_open_until_content(
+  p_owner TEXT, p_id TEXT, p_version TEXT, p_title TEXT, p_story TEXT, p_tags TEXT,
+  p_message TEXT, p_photo_action TEXT, p_photo_data TEXT, p_photo_name TEXT,
+  p_video_action TEXT, p_video_id TEXT, p_audio_action TEXT, p_audio_id TEXT
+) RETURNS TEXT LANGUAGE plpgsql AS $$
+DECLARE
+  item moments%ROWTYPE;
+  settings cannot_open_until_settings%ROWTYPE;
+  details JSONB;
+  content JSONB;
+  video_name TEXT;
+  audio_name TEXT;
+BEGIN
+  SELECT * INTO item FROM moments
+    WHERE id = p_id AND user_id = p_owner AND kind = 'cannot-open-until' FOR UPDATE;
+  IF NOT FOUND THEN RETURN 'not_found'; END IF;
+  SELECT * INTO settings FROM cannot_open_until_settings WHERE moment_id = p_id FOR UPDATE;
+  IF FOUND AND settings.status = 'active'
+      AND (settings.manual_released_at IS NOT NULL OR settings.unlock_at <= clock_timestamp()) THEN
+    RETURN 'released';
+  END IF;
+  IF item.updated_at <> p_version THEN RETURN 'conflict'; END IF;
+  IF p_photo_action NOT IN ('keep', 'replace', 'remove')
+      OR p_video_action NOT IN ('keep', 'replace', 'remove')
+      OR p_audio_action NOT IN ('keep', 'replace', 'remove') THEN
+    RETURN 'invalid';
+  END IF;
+  IF p_video_action = 'replace' THEN
+    SELECT filename INTO video_name FROM moment_videos
+      WHERE id = p_video_id AND user_id = p_owner AND state = 'ready' AND moment_id IS NULL FOR UPDATE;
+    IF NOT FOUND THEN RETURN 'video_unavailable'; END IF;
+  END IF;
+  IF p_audio_action = 'replace' THEN
+    SELECT filename INTO audio_name FROM moment_audio
+      WHERE id = p_audio_id AND user_id = p_owner AND state = 'ready' AND moment_id IS NULL FOR UPDATE;
+    IF NOT FOUND THEN RETURN 'audio_unavailable'; END IF;
+  END IF;
+  details := item.details_json::jsonb;
+  details := jsonb_set(details, '{writtenMessage}', to_jsonb(p_message), TRUE);
+  IF jsonb_typeof(details->'attachmentNames') IS DISTINCT FROM 'object' THEN
+    details := jsonb_set(details, '{attachmentNames}', '{}'::jsonb, TRUE);
+  END IF;
+  content := item.content_json::jsonb - 'written';
+  IF p_message <> '' THEN content := content || '"written"'::jsonb; END IF;
+  IF p_photo_action <> 'keep' THEN
+    details := jsonb_set(details, '{photoData}', to_jsonb(CASE WHEN p_photo_action = 'replace' THEN p_photo_data ELSE '' END), TRUE);
+    details := details #- '{attachmentNames,photo}';
+    content := content - 'photo';
+    IF p_photo_action = 'replace' THEN
+      details := jsonb_set(details, '{attachmentNames,photo}', to_jsonb(p_photo_name), TRUE);
+      content := content || '"photo"'::jsonb;
+    END IF;
+  END IF;
+  IF p_video_action <> 'keep' THEN
+    UPDATE moment_videos SET moment_id = NULL, state = 'deleting'
+      WHERE moment_id = p_id AND state = 'attached';
+    details := details #- '{attachmentNames,video}';
+    content := content - 'video';
+    IF p_video_action = 'replace' THEN
+      UPDATE moment_videos SET moment_id = p_id, state = 'attached', last_used_at = clock_timestamp()
+        WHERE id = p_video_id;
+      details := jsonb_set(details, '{attachmentNames,video}', to_jsonb(video_name), TRUE);
+      content := content || '"video"'::jsonb;
+    END IF;
+  END IF;
+  IF p_audio_action <> 'keep' THEN
+    UPDATE moment_audio SET moment_id = NULL, state = 'deleting'
+      WHERE moment_id = p_id AND state = 'attached';
+    details := details #- '{attachmentNames,voice}';
+    content := content - 'voice';
+    IF p_audio_action = 'replace' THEN
+      UPDATE moment_audio SET moment_id = p_id, state = 'attached', last_used_at = clock_timestamp()
+        WHERE id = p_audio_id;
+      details := jsonb_set(details, '{attachmentNames,voice}', to_jsonb(audio_name), TRUE);
+      content := content || '"voice"'::jsonb;
+    END IF;
+  END IF;
+  UPDATE moments SET title = p_title, story = p_story, tags = p_tags,
+    details_json = details::text, content_json = content::text,
+    updated_at = to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
+    WHERE id = p_id;
+  RETURN 'saved';
+END;
+$$;
 CREATE INDEX IF NOT EXISTS moments_family_placeholder_idx
   ON moments(family_placeholder_id);
 
@@ -615,4 +868,16 @@ ON CONFLICT (version) DO NOTHING;
 
 INSERT INTO schema_migrations (version)
 VALUES ('027_beta_access_reviews')
+ON CONFLICT (version) DO NOTHING;
+
+INSERT INTO schema_migrations (version)
+VALUES ('030_cannot_open_until')
+ON CONFLICT (version) DO NOTHING;
+
+INSERT INTO schema_migrations (version)
+VALUES ('031_cannot_open_until_media')
+ON CONFLICT (version) DO NOTHING;
+
+INSERT INTO schema_migrations (version)
+VALUES ('032_cannot_open_until_commit_guard')
 ON CONFLICT (version) DO NOTHING;

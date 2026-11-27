@@ -3,15 +3,18 @@
 import { useActionState } from "react";
 import { changeArchiveState } from "@/app/actions/content-archive";
 
-export default function ArchiveButton({ id, name, kind, archived }: {
+export default function ArchiveButton({ id, name, kind, archived, warnOnRestore = false }: {
   id: string;
   name: string;
   kind: "moment" | "future";
   archived: boolean;
+  warnOnRestore?: boolean;
 }) {
   const [state, action, pending] = useActionState(changeArchiveState, {});
   return (
-    <form action={action} className="shrink-0">
+    <form action={action} className="shrink-0" onSubmit={(event) => {
+      if (archived && warnOnRestore && !window.confirm("Restore this Moment? If it has been released, its assigned recipient can immediately open it.")) event.preventDefault();
+    }}>
       <input type="hidden" name="id" value={id} />
       <input type="hidden" name="kind" value={kind} />
       <input type="hidden" name="operation" value={archived ? "restore" : "archive"} />

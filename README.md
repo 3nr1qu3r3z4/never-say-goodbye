@@ -33,6 +33,20 @@ quota check. Paid registration, billing, and plan enforcement remain disabled.
 Reminder notifications, scheduled deliveries, and other features marked Coming
 Soon also require implementation.
 
+Cannot Open Until™ is incomplete and must not be enabled. Leave
+`CANNOT_OPEN_UNTIL_ENABLED` unset or false. Owner editing, legacy review, and
+the recipient inbox are available for development. Apply migrations 030–032
+before testing; recipient access still requires an accepted connection and
+ends on disconnection or archive. No notifications or delivery are provided.
+Live deployment and storage verification remain outstanding.
+
+The optional `tests/cannot-open-until-concurrency.test.mjs` test uses a disposable
+PostgreSQL database, configured with `CANNOT_OPEN_TEST_POSTGRES` and an installed
+`pg` module path in `CANNOT_OPEN_TEST_PG`. It exercises both orders of manual
+release against edits, reassignment, disconnection, and archive, plus an edit
+crossing a scheduled-release boundary. The media stream in that test uses
+simulated storage; it does not verify a deployed Blob service.
+
 ## Successor Assignment preview
 
 The informational-only Successor Assignment MVP is disabled by default.
@@ -49,7 +63,8 @@ the designation, and see when the person is unavailable. The designation
 grants no access, ownership, transfer rights, legal authority, or decision-making
 authority. No notification or acceptance workflow is sent or initiated.
 Historical successor records are preserved and are not converted into new
-designations. The public pricing feature remains Coming Soon during preview.
+designations. Pricing describes the feature as a limited preview available to
+approved preview accounts; paid plans remain unavailable.
 
 Family Calendar currently displays shared family dates and events. Reminder
 preferences can be saved, but automated notifications are not sent. Support

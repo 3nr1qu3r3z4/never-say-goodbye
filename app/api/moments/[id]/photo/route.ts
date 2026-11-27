@@ -1,11 +1,13 @@
 import { getCurrentUser } from "@/lib/auth";
 import { getAccessibleMoment } from "@/lib/moment-access";
+import { getAccessibleTimeCapsule } from "@/lib/cannot-open-until";
 import { validatePhoto } from "@/lib/profile-photo";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();
   const { id } = await params;
-  const moment = await getAccessibleMoment(user?.id ?? null, id);
+  const moment = await getAccessibleMoment(user?.id ?? null, id)
+    ?? await getAccessibleTimeCapsule(user?.id ?? null, id);
   if (!moment?.photoData) return new Response("Not found.", { status: 404, headers: { "Cache-Control": "private, no-store" } });
 
   const photo = validatePhoto(moment.photoData);

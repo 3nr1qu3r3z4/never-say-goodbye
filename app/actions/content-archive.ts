@@ -42,5 +42,9 @@ export async function changeArchiveState(_state: ArchiveState, form: FormData): 
   revalidatePath("/moments/[id]", "page");
   revalidatePath("/moment-maker/[id]", "page");
   revalidatePath("/future-moment-maker/[id]", "page");
+  revalidatePath("/cannot-open-until");
+  revalidatePath("/cannot-open-until/[id]", "page");
+  revalidatePath("/cannot-open-until/inbox");
+  revalidatePath("/cannot-open-until/inbox/[id]", "page");
   return { success: operation === "archive" ? "Archived." : "Restored." };
 }

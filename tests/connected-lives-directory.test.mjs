@@ -152,7 +152,7 @@ test("successor preview displays current or unavailable state only for approved 
   const data = { counts: { sharedMoments: 0, personalMoments: 0, connectedLives: 0, newLivesRequests: 0,
     unreadLivesNotifications: 0, futureMomentMakers: 0, drafts: 0 }, recentActivity: [] };
   const disabled = renderToStaticMarkup(await loadDashboard(data)());
-  assert.match(disabled, /Legacy Successor™[\s\S]*?Coming Soon/);
+  assert.match(disabled, /Legacy Successor™[\s\S]*?Limited Preview — available to approved preview accounts/);
   assert.doesNotMatch(disabled, /href="\/my-profile\/successor"/);
   const disabledActions = disabled.match(/<section aria-labelledby="legacy-quick-actions-heading"[\s\S]*?<\/section>/)?.[0];
   assert.ok(disabledActions);
@@ -160,6 +160,7 @@ test("successor preview displays current or unavailable state only for approved 
   const available = renderToStaticMarkup(await loadDashboard(data, false, [], [], {
     successorEnabled: true, successor: { name: "Alex", available: true },
   })());
+  assert.match(available, /Limited Preview — available to approved preview accounts/);
   assert.match(available, /Legacy Successor™[\s\S]*?Alex[\s\S]*?href="\/my-profile\/successor"[^>]*>Manage Successor/);
   const enabledActions = available.match(/<section aria-labelledby="legacy-quick-actions-heading"[\s\S]*?<\/section>/)?.[0];
   assert.ok(enabledActions);
@@ -311,10 +312,10 @@ test("My Legacy keeps requested quick actions and retains request and update lin
       ["Legacy Controls™", "/legacy-controls"],
       ["Appearance", "/my-profile#appearance"],
       ["Email Preferences", "/email-preferences"],
+      ["Membership &amp; Usage", "/my-profile/membership"],
     ]) {
       assert.match(actions, new RegExp(`<a href="${href}"[^>]*>${label}</a>`));
     }
-    assert.match(actions, /<a href="\/my-profile\/membership"[^>]*><span aria-hidden="true" class="mr-1">📊<\/span>Membership &amp; Usage<\/a>/);
     assert.doesNotMatch(actions, /View your membership details, content usage, themes, and content management tools/);
     assert.equal((actions.match(/<a /g) ?? []).length, 6);
     assert.match(html, /My Legacy Snapshot[\s\S]*?Moment Making Menu/);

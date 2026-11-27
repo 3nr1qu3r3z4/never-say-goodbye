@@ -276,13 +276,9 @@ export default async function DashboardPage() {
               { label: "Legacy Controls™", href: "/legacy-controls" },
               { label: "Appearance", href: "/my-profile#appearance" },
               { label: "Email Preferences", href: "/email-preferences" },
-              {
-                label: "Membership & Usage",
-                href: "/my-profile/membership",
-                icon: "📊",
-              },
+              { label: "Membership & Usage", href: "/my-profile/membership" },
             ].map((item) => <Link key={item.href} href={item.href} className={`${actionCardClassName} ${actionFocusClassName} flex min-h-14 items-center justify-center p-4 text-center font-semibold text-[color:var(--nsg-accent-light)]`}>
-              {item.icon && <span aria-hidden="true" className="mr-1">{item.icon}</span>}{item.label}
+              {item.label}
             </Link>)}
           </div>
         </section>
@@ -461,9 +457,10 @@ export default async function DashboardPage() {
               >
                 Legacy Successor™
               </h2>
-              <p className="mt-3 font-serif text-lg text-slate-300">
-                {!successorEnabled ? "Coming Soon" : successor ? successor.name : "Not Assigned"}
-              </p>
+              <p className="mt-3 text-sm text-slate-300">Limited Preview — available to approved preview accounts</p>
+              {successorEnabled && <p className="mt-3 font-serif text-lg text-slate-300">
+                {successor ? successor.name : "Not Assigned"}
+              </p>}
               {successorEnabled && successor && !successor.available && <p className="mt-2 text-sm text-slate-400">Unavailable or no longer connected</p>}
             </div>
             {successorEnabled && <Link

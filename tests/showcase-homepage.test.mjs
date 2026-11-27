@@ -170,10 +170,11 @@ test("pricing displays the requested roadmap without implying paid access or del
     "Automatic Family Reminders",
     "2 Cannot Open Until™ Messages", "25 Cannot Open Until™ Messages",
     "Scheduled Message Delivery",
-    "Successor Assignment",
   ]) {
     assert.ok(html.includes(`${text}<span class="text-slate-400"> (Coming Soon)</span>`), text);
   }
+  assert.ok(html.includes('Successor Assignment<span class="text-slate-400"> (Limited Preview — available to approved preview accounts)</span>'));
+  assert.ok(!html.includes('Successor Assignment<span class="text-slate-400"> (Coming Soon)</span>'));
   for (const text of ["Automatic Family Reminders", "Scheduled Message Delivery"]) {
     assert.equal(html.split(`${text}<span class="text-slate-400"> (Coming Soon)</span>`).length - 1, 2);
   }
@@ -221,7 +222,7 @@ test("pricing displays the requested roadmap without implying paid access or del
     [
       { text: "Everything in Family Legacy plus:" },
       { text: "1,000 Videos" },
-      { text: "Successor Assignment", planned: true },
+      { text: "Successor Assignment", preview: true },
     ],
   ]);
   assert.deepEqual(JSON.parse(JSON.stringify([free.limits, plus.limits, family.limits, forever.limits])), [

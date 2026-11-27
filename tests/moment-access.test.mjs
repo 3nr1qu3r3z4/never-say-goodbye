@@ -108,6 +108,7 @@ test("shared moment cards link their previews and titles without enclosing the a
     "next/link": { default: ({ href, children }) => React.createElement("a", { href }, children) },
     "@/lib/auth": { requireUser: async () => ({ id: "viewer" }) },
     "@/lib/moment-access": { getAccessibleMoments: async (id) => { assert.equal(id, "viewer"); return rows; } },
+    "@/lib/cannot-open-until": { cannotOpenUntilEnabled: () => false },
     "./moment-card": { default: card },
   }).default;
   const html = renderToStaticMarkup(await page());
@@ -127,6 +128,7 @@ test("photo previews recheck access and return private image data only for autho
   const route = loadModule("app/api/moments/[id]/photo/route.ts", {
     "@/lib/auth": { getCurrentUser: async () => viewer },
     "@/lib/moment-access": { getAccessibleMoment: async (...args) => { calls.push(args); return result; } },
+    "@/lib/cannot-open-until": { getAccessibleTimeCapsule: async () => null },
     "@/lib/profile-photo": loadModule("lib/profile-photo.ts", { "server-only": {} }),
   });
   const get = () => route.GET(new Request("https://example.test/photo"), { params: Promise.resolve({ id: "moment" }) });
@@ -436,6 +438,7 @@ test("moment audiences are enforced against current relationships in PostgreSQL"
       "@/lib/db": { getSql: () => sql },
       "@/lib/password": { hashSecret: async () => "hash" },
       "@/lib/profile-photo": { validatePhoto },
+      "@/lib/cannot-open-until": { cannotOpenUntilEnabled: () => false },
     });
     const photoData = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=";
     const photoDraft = {
@@ -461,6 +464,7 @@ test("moment audiences are enforced against current relationships in PostgreSQL"
     const photoRoute = loadModule("app/api/moments/[id]/photo/route.ts", {
       "@/lib/auth": { getCurrentUser: async () => photoViewer },
       "@/lib/moment-access": access,
+      "@/lib/cannot-open-until": { getAccessibleTimeCapsule: async () => null },
       "@/lib/profile-photo": { validatePhoto },
     });
     const getPhoto = () => photoRoute.GET(new Request("https://example.test/photo"), { params: Promise.resolve({ id: published.id }) });
@@ -599,6 +603,7 @@ test("moment audiences are enforced against current relationships in PostgreSQL"
     const audioRoute = loadModule("app/api/moments/[id]/audio/route.ts", {
       "@/lib/auth": { getCurrentUser: async () => audioViewer },
       "@/lib/moment-access": access,
+      "@/lib/cannot-open-until": { getAccessibleTimeCapsule: async () => null },
       "@/lib/db": { getSql: () => sql },
       "@/lib/moment-media-stream": audioStream,
     });

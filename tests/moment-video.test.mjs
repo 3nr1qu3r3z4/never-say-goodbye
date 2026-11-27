@@ -215,6 +215,7 @@ test("playback authorizes each request and forwards valid byte ranges privately"
   const route = loadModule("app/api/moments/[id]/video/route.ts", {
     "@/lib/moment-media-stream": stream,
     "@/lib/auth": { getCurrentUser: async () => ({ id: "viewer" }) },
+    "@/lib/cannot-open-until": { getAccessibleTimeCapsule: async () => null },
     "@/lib/moment-access": { getAccessibleMoment: async (viewer, id, includePhoto) => {
       assert.equal(viewer, "viewer");
       assert.equal(id, "moment");
