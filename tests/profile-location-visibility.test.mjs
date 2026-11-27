@@ -224,6 +224,10 @@ test("public profile and search queries suppress disabled values before renderin
   const searchQueries = [];
   const search = loadModule("app/search/page.tsx", {
     ...basicDependencies,
+    "@/lib/auth": { getCurrentUser: async () => null },
+    "@/lib/moment-access": { searchAccessibleMoments: async () => [] },
+    "@/lib/legacy-search": { searchOwnedLegacy: async () => ({ trees: [], futureMakers: [], drafts: [] }) },
+    "@/app/moments/moment-card": { default: () => null },
     "@/lib/db": { getSql: () => async (strings) => {
       searchQueries.push(strings.join("?"));
       return [];

@@ -336,6 +336,39 @@ test("moment audiences are enforced against current relationships in PostgreSQL"
     assert.deepEqual(Array.from(await access.getAccessibleMoments("outsider"), (moment) => moment.id), []);
     assert.deepEqual(Array.from(await access.getRecentOwnMoments("author"), (moment) => moment.id).sort(), ["connections", "family", "private", "public"]);
     assert.deepEqual(Array.from(await access.getRecentOwnMoments("relative"), (moment) => moment.id), []);
+    assert.deepEqual(Array.from(await access.searchAccessibleMoments("accepted", "connection message"), (moment) => moment.id), ["connections"]);
+    assert.deepEqual(Array.from(await access.searchAccessibleMoments("pending", "connection message"), (moment) => moment.id), []);
+    assert.deepEqual(Array.from(await access.searchAccessibleMoments("relative", "family story"), (moment) => moment.id), ["family"]);
+    assert.deepEqual(Array.from(await access.searchAccessibleMoments("outsider", "family story"), (moment) => moment.id), []);
+    assert.deepEqual(Array.from(await access.searchAccessibleMoments("outsider", "public story"), (moment) => moment.id), ["public"]);
+    assert.deepEqual(Array.from(await access.searchAccessibleMoments("outsider", "secret"), (moment) => moment.id), []);
+    assert.deepEqual(Array.from(await access.searchAccessibleMoments("author", "secret"), (moment) => moment.id), ["private"]);
+    const legacySearch = loadModule("lib/legacy-search.ts", {
+      "server-only": {},
+      "@/lib/db": { getSql: () => sql },
+    });
+    await db.exec(`
+      INSERT INTO future_moment_makers (id, owner_user_id, name, relationship, created_at, updated_at)
+      VALUES ('author-future', 'author', 'Shared Future', 'Family', '2026-01-01', '2026-01-01'),
+             ('outsider-future', 'outsider', 'Shared Future', 'Family', '2026-01-01', '2026-01-01');
+      INSERT INTO drafts (id, user_id, kind, title, payload_json, created_at, updated_at)
+      VALUES ('author-draft', 'author', 'shared', 'Shared Draft', '{}', '2026-01-01', '2026-01-01'),
+             ('outsider-draft', 'outsider', 'shared', 'Shared Draft', '{}', '2026-01-01', '2026-01-01');
+    `);
+    const ownerSearch = await legacySearch.searchOwnedLegacy("author", "shared");
+    assert.deepEqual(Array.from(ownerSearch.trees, (row) => row.id), ["shared-tree"]);
+    assert.deepEqual(Array.from(ownerSearch.futureMakers, (row) => row.id), ["author-future"]);
+    assert.deepEqual(Array.from(ownerSearch.drafts, (row) => row.id), ["author-draft"]);
+    const outsiderSearch = await legacySearch.searchOwnedLegacy("outsider", "shared");
+    assert.deepEqual(Array.from(outsiderSearch.trees), []);
+    assert.deepEqual(Array.from(outsiderSearch.futureMakers, (row) => row.id), ["outsider-future"]);
+    assert.deepEqual(Array.from(outsiderSearch.drafts, (row) => row.id), ["outsider-draft"]);
+    assert.deepEqual(Array.from((await legacySearch.searchOwnedLegacy("relative", "shared")).trees, (row) => row.id), ["shared-tree"]);
+    await db.exec("DELETE FROM legacy_tree_members WHERE tree_id = 'shared-tree' AND user_id = 'relative'");
+    assert.deepEqual(Array.from((await legacySearch.searchOwnedLegacy("relative", "shared")).trees), []);
+    assert.deepEqual(Array.from(await access.searchAccessibleMoments("relative", "family story")), []);
+    await db.exec("INSERT INTO legacy_tree_members (tree_id, user_id, role, joined_at) VALUES ('shared-tree', 'relative', 'member', '2026-01-01')");
+    await db.exec("DELETE FROM drafts WHERE id IN ('author-draft', 'outsider-draft'); DELETE FROM future_moment_makers WHERE id IN ('author-future', 'outsider-future');");
     for (const viewer of [null, "author", "relative", "outsider"]) {
       const profileMoments = await access.getPublicProfileSharedMoments(viewer, "author");
       assert.deepEqual(Array.from(profileMoments, (moment) => moment.id), ["public"]);
@@ -382,12 +415,14 @@ test("moment audiences are enforced against current relationships in PostgreSQL"
 
     await db.exec("UPDATE users SET public_shared_moments = FALSE WHERE id = 'author'");
     assert.equal(await access.getAccessibleMoment(null, "public"), null);
+    assert.deepEqual(Array.from(await access.searchAccessibleMoments("outsider", "public story")), []);
     assert.equal((await access.getAccessibleMoment("author", "public"))?.story, "Public story");
     assert.equal((await access.getPublicProfileSharedMoments("author", "author")).length, 0);
     assert.equal((await access.getPublicProfileSharedMoments(null, "author")).length, 0);
     assert.deepEqual(await activityFor("accepted"), ["connections"]);
     await db.exec("UPDATE users SET public_shared_moments = TRUE, discoverability = 'private' WHERE id = 'author'");
     assert.equal(await access.getAccessibleMoment(null, "public"), null);
+    assert.deepEqual(Array.from(await access.searchAccessibleMoments("outsider", "public story")), []);
     assert.equal((await access.getAccessibleMoment("author", "public"))?.story, "Public story");
     assert.equal((await access.getPublicProfileSharedMoments("author", "author")).length, 0);
     assert.equal((await access.getPublicProfileSharedMoments(null, "author")).length, 0);

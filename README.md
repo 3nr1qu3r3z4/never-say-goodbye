@@ -34,6 +34,11 @@ accessible tree, using the same membership and sharing checks as Family Calendar
 Other Moment types do not yet have viewing pages. Profile editing, appearance,
 privacy controls, and the owner profile preview remain on their existing pages.
 
+Search Legacy uses the existing search page. Signed-in users can find visible
+profiles, accessible Shared Moments by title, story, tags or written message,
+member trees, owned Future Moment Makers and owned drafts by name or title.
+Guests can search visible profiles. Results are limited to 30 per category.
+
 ## Homepage video
 
 The homepage plays the promotional video at

@@ -22,7 +22,7 @@ export type AccessibleMoment = {
   isAuthor: boolean;
 };
 
-async function findAccessibleMoments(viewerId: string | null, momentId: string | null, includePhoto: boolean, familyActivity = false, profileAuthorId: string | null = null, ownerOnly = false) {
+async function findAccessibleMoments(viewerId: string | null, momentId: string | null, includePhoto: boolean, familyActivity = false, profileAuthorId: string | null = null, ownerOnly = false, searchTerm: string | null = null) {
   const sql = getSql();
   return (await sql`
     SELECT m.id, m.title, m.story, m.tags,
@@ -48,6 +48,11 @@ async function findAccessibleMoments(viewerId: string | null, momentId: string |
       AND m.access_code_hash IS NULL
       AND (${momentId}::text IS NULL OR m.id = ${momentId})
       AND (NOT ${ownerOnly}::boolean OR m.user_id = ${viewerId})
+      AND (${searchTerm}::text IS NULL OR
+        strpos(lower(m.title), lower(${searchTerm})) > 0 OR
+        strpos(lower(m.story), lower(${searchTerm})) > 0 OR
+        strpos(lower(m.tags), lower(${searchTerm})) > 0 OR
+        strpos(lower(COALESCE(m.details_json::jsonb ->> 'writtenMessage', '')), lower(${searchTerm})) > 0)
       AND (
         ${profileAuthorId}::text IS NULL
         OR (
@@ -79,7 +84,7 @@ async function findAccessibleMoments(viewerId: string | null, momentId: string |
       AND (
         m.user_id = ${viewerId}
         OR (
-          (${momentId}::text IS NOT NULL OR ${familyActivity}::boolean OR ${profileAuthorId}::text IS NOT NULL)
+          (${momentId}::text IS NOT NULL OR ${familyActivity}::boolean OR ${profileAuthorId}::text IS NOT NULL OR ${searchTerm}::text IS NOT NULL)
           AND m.audience = 'public'
           AND u.discoverability IN ('searchable', 'public')
           AND COALESCE((to_jsonb(u) ->> 'public_shared_moments')::boolean, TRUE)
@@ -108,7 +113,7 @@ async function findAccessibleMoments(viewerId: string | null, momentId: string |
         )
       )
     ORDER BY m.created_at DESC, m.id
-    LIMIT ${familyActivity || ownerOnly ? 5 : null}
+    LIMIT ${familyActivity || ownerOnly ? 5 : searchTerm !== null ? 30 : null}
   `) as AccessibleMoment[];
 }
 
@@ -118,6 +123,10 @@ export async function getAccessibleMoments(viewerId: string) {
 
 export async function getRecentOwnMoments(viewerId: string) {
   return findAccessibleMoments(viewerId, null, false, false, null, true);
+}
+
+export async function searchAccessibleMoments(viewerId: string, searchTerm: string) {
+  return findAccessibleMoments(viewerId, null, false, false, null, false, searchTerm);
 }
 
 export async function getAccessibleMoment(viewerId: string | null, momentId: string, includePhoto = true) {

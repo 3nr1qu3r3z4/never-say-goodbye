@@ -34,8 +34,6 @@ const actionCardClassName =
   "group rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] transition duration-200 hover:-translate-y-1 hover:border-[color:var(--nsg-accent)]/40 hover:bg-white/[0.06] hover:shadow-lg hover:shadow-[color:var(--nsg-accent)]/10";
 const actionFocusClassName =
   "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]";
-const notificationActionClassName =
-  "flex min-h-14 w-full items-center justify-center gap-3 rounded-xl border border-[color:var(--nsg-accent)]/70 bg-[color:var(--nsg-accent)]/10 px-5 py-3 text-center font-semibold text-[color:var(--nsg-accent-light)] shadow-lg shadow-[color:var(--nsg-accent)]/10 transition hover:-translate-y-0.5 hover:border-[color:var(--nsg-accent)] hover:bg-[color:var(--nsg-accent)]/15 hover:shadow-[color:var(--nsg-accent)]/20 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--nsg-accent)]";
 
 export default async function DashboardPage() {
   const user = await requireUser();
@@ -121,15 +119,14 @@ export default async function DashboardPage() {
     },
   ];
   const statistics = [
-    { label: "Shared Moments", value: data.counts.sharedMoments, href: "/moments" },
+    { label: "Shared Moments", value: data.counts.sharedMoments },
     { label: "Personal Moments", value: data.counts.personalMoments },
-    { label: "Connected Lives", value: data.counts.connectedLives, href: "/connected-lives" },
+    { label: "Connected Lives", value: data.counts.connectedLives },
     {
       label: "Future Moment Makers™",
       value: data.counts.futureMomentMakers,
-      href: "/connected-lives#future-heading",
     },
-    { label: "Drafts", value: data.counts.drafts, href: "/drafts" },
+    { label: "Drafts", value: data.counts.drafts },
   ];
 
   return (
@@ -257,10 +254,6 @@ export default async function DashboardPage() {
                   : `${data.counts.unreadLivesNotifications} ${data.counts.unreadLivesNotifications === 1 ? "New Update" : "New Updates"}`}
               </Link>
             )}
-            <Link href="/search" className={`mt-4 ${notificationActionClassName}`}>
-              <span>Find People</span>
-              <span aria-hidden="true" className="text-lg">→</span>
-            </Link>
           </section>
         </div>
       </header>
@@ -275,8 +268,10 @@ export default async function DashboardPage() {
           <div className="mt-5 grid gap-3 sm:grid-cols-3">
             {[
               { label: "Create Moment", href: "/create-moment" },
-              { label: "Find People", href: "/search" },
               { label: "Open Legacy Tree™", href: "/legacy-tree" },
+              { label: "Legacy Controls™", href: "/legacy-controls" },
+              { label: "Appearance", href: "/my-profile#appearance" },
+              { label: "Email Preferences", href: "/email-preferences" },
             ].map((item) => <Link key={item.href} href={item.href} className={`${actionCardClassName} ${actionFocusClassName} flex min-h-14 items-center justify-center p-4 text-center font-semibold text-[color:var(--nsg-accent-light)]`}>{item.label}</Link>)}
           </div>
         </section>
@@ -315,17 +310,6 @@ export default async function DashboardPage() {
             <Link href="/legacy-tree" className={`mt-4 inline-flex min-h-11 items-center text-sm font-semibold text-[color:var(--nsg-accent-light)] hover:underline ${actionFocusClassName}`}>Open Legacy Tree™</Link>
           </section>
         </div>
-
-        <section aria-labelledby="settings-shortcuts-heading">
-          <h2 id="settings-shortcuts-heading" className="font-serif text-2xl text-white sm:text-3xl">Settings</h2>
-          <div className="mt-4 flex flex-wrap gap-3">
-            {[
-              { label: "Legacy Controls™", href: "/legacy-controls" },
-              { label: "Appearance", href: "/my-profile#appearance" },
-              { label: "Email Preferences", href: "/email-preferences" },
-            ].map((item) => <Link key={item.href} href={item.href} className={`${actionFocusClassName} inline-flex min-h-11 items-center rounded-full border border-[color:var(--nsg-accent)]/40 px-5 py-2 text-sm font-semibold text-[color:var(--nsg-accent-light)] hover:bg-white/5`}>{item.label}</Link>)}
-          </div>
-        </section>
 
         {frequentVisits && <FrequentVisits {...frequentVisits} />}
         <section
@@ -398,55 +382,13 @@ export default async function DashboardPage() {
           </div>
         </section>
 
-        <section aria-label="Search your legacy">
-          <label htmlFor="legacy-search" className="sr-only">
-            Search moments, people, messages, trees, future moment makers, and
-            drafts
-          </label>
-          <input
-            id="legacy-search"
-            type="search"
-            placeholder="Search moments, people, messages, trees, future moment makers, and drafts..."
-            className="w-full rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] px-5 py-4 text-sm text-white placeholder:text-slate-500 focus:border-[color:var(--nsg-accent)]/50 focus:outline-none focus:ring-2 focus:ring-[color:var(--nsg-accent)]/20"
-          />
-        </section>
-
-        <section aria-labelledby="summary-heading">
-          <div className="mb-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[color:var(--nsg-accent)]">
-              Your story, at a glance
-            </p>
-            <h2
-              id="summary-heading"
-              className="mt-2 font-serif text-2xl text-white sm:text-3xl"
-            >
-              My Legacy Snapshot
-            </h2>
-          </div>
-          <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5">
+        <section aria-labelledby="summary-heading" className="rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5">
+          <h2 id="summary-heading" className="font-serif text-2xl text-white">My Legacy Snapshot</h2>
+          <dl className="mt-4 space-y-3">
             {statistics.map((statistic) => (
-              <div
-                key={statistic.label}
-                className={`relative flex flex-col rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5 sm:p-6 ${
-                  statistic.href ? "group transition hover:border-[color:var(--nsg-accent)]/40 hover:bg-white/[0.06]" : ""
-                }`}
-              >
-                <dt className="order-2 mt-2 text-sm leading-5 text-slate-400">
-                  {statistic.label}
-                  {statistic.href && (
-                    <>
-                      <span aria-hidden="true" className="ml-2 inline-block text-[color:var(--nsg-accent-light)] transition group-hover:translate-x-1">→</span>
-                      <Link
-                        href={statistic.href}
-                        aria-label={`View ${statistic.label}, ${statistic.value}`}
-                        className={`absolute inset-0 rounded-2xl ${actionFocusClassName}`}
-                      />
-                    </>
-                  )}
-                </dt>
-                <dd className="order-1 font-serif text-3xl text-[color:var(--nsg-accent-light)] sm:text-4xl">
-                  {statistic.value}
-                </dd>
+              <div key={statistic.label} className="flex items-baseline justify-between gap-4 text-sm">
+                <dt className="text-slate-300">{statistic.label}</dt>
+                <dd className="font-semibold tabular-nums text-white">{statistic.value}</dd>
               </div>
             ))}
           </dl>

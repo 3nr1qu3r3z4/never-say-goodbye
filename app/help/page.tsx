@@ -50,7 +50,7 @@ const guides = [
       {
         question: "How do I send or accept a request?",
         steps: [
-          "Use Find People to search by name, open a profile, and choose Add To Connected Lives™.",
+          "From My Legacy, open Connected Lives™ and choose Find A Moment Maker. Search by name, open a profile, and choose Add To Connected Lives™.",
           "To respond to a request, open Connected Lives™ and find Pending Connection Requests at the top. Choose a relationship before accepting, or decline the request.",
         ],
       },

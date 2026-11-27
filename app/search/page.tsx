@@ -1,12 +1,16 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { getCurrentUser } from "@/lib/auth";
 import { getSql } from "@/lib/db";
+import { searchAccessibleMoments } from "@/lib/moment-access";
+import { searchOwnedLegacy } from "@/lib/legacy-search";
+import MomentCard from "@/app/moments/moment-card";
 import SearchForm from "./search-form";
 
 export const metadata: Metadata = {
-  title: "Find A Moment Maker | Never Say Goodbye",
-  description: "Search for discoverable Moment Maker profiles.",
+  title: "Search Legacy | Never Say Goodbye",
+  description: "Search your Never Say Goodbye legacy.",
 };
 
 export const instant = false;
@@ -43,8 +47,9 @@ export default async function SearchPage({
   const birthLocation = rawBirthLocation?.trim().slice(0, 100) ?? "";
   const homeLocation = rawHomeLocation?.trim().slice(0, 100) ?? "";
   const sql = getSql();
-  const profiles = name
-    ? ((await sql`
+  const user = await getCurrentUser();
+  const [profileRows, moments, legacy] = await Promise.all([
+    name ? sql`
         SELECT
           u.id,
           COALESCE(NULLIF(BTRIM(u.display_name), ''), 'Moment Maker') AS "displayName",
@@ -67,8 +72,13 @@ export default async function SearchPage({
           AND u.display_name ILIKE ${`%${name}%`}
         ORDER BY u.featured DESC, u.display_name
         LIMIT 30
-      `) as SearchProfile[])
-    : [];
+      ` : Promise.resolve([]),
+    name && user ? searchAccessibleMoments(user.id, name) : Promise.resolve([]),
+    name && user ? searchOwnedLegacy(user.id, name) : Promise.resolve({ trees: [], futureMakers: [], drafts: [] }),
+  ]);
+  const profiles = profileRows as SearchProfile[];
+  const hasResults = profiles.length > 0 || moments.length > 0 ||
+    legacy.trees.length > 0 || legacy.futureMakers.length > 0 || legacy.drafts.length > 0;
   const descriptors = (profile: SearchProfile) =>
     [
       profile.descriptorOne,
@@ -86,11 +96,8 @@ export default async function SearchPage({
         <div className="mx-auto max-w-5xl">
           <header className="mt-4 text-center sm:mt-8">
             <h1 className="font-serif text-4xl tracking-tight text-white sm:text-5xl md:text-6xl">
-              Find A Moment Maker
+              Search Legacy
             </h1>
-            <p className="mx-auto mt-5 max-w-2xl leading-7 text-slate-400 sm:text-lg">
-              Search for people and the moments they chose to share.
-            </p>
           </header>
 
           <SearchForm
@@ -106,7 +113,9 @@ export default async function SearchPage({
                 Search results for “{name}”
               </h2>
               {profiles.length > 0 ? (
-                <ul className="mt-6 grid gap-4 sm:grid-cols-2">
+                <>
+                <h3 className="mt-8 font-serif text-xl text-white">People</h3>
+                <ul className="mt-4 grid gap-4 sm:grid-cols-2">
                   {profiles.map((profile) => (
                     <li
                       key={profile.id}
@@ -171,17 +180,35 @@ export default async function SearchPage({
                     </li>
                   ))}
                 </ul>
-              ) : (
+                </>
+              ) : null}
+              {moments.length > 0 && (
+                <section aria-labelledby="moment-results-heading" className="mt-8">
+                  <h3 id="moment-results-heading" className="font-serif text-xl text-white">Shared Moments</h3>
+                  <ul className="mt-4 grid gap-4 sm:grid-cols-2">
+                    {moments.map((moment) => <MomentCard key={moment.id} moment={moment} />)}
+                  </ul>
+                </section>
+              )}
+              {[
+                { label: "Legacy Trees™", items: legacy.trees.map((tree) => ({ id: tree.id, title: tree.name, href: `/legacy-tree#legacy-tree-item-${encodeURIComponent(tree.id)}` })) },
+                { label: "Future Moment Makers™", items: legacy.futureMakers.map((maker) => ({ id: maker.id, title: maker.name, href: `/future-moment-maker/${encodeURIComponent(maker.id)}` })) },
+                { label: "Drafts", items: legacy.drafts.map((draft) => ({ id: draft.id, title: draft.title, href: `/drafts#draft-${encodeURIComponent(draft.id)}` })) },
+              ].map((group) => group.items.length > 0 && (
+                <section key={group.label} className="mt-8">
+                  <h3 className="font-serif text-xl text-white">{group.label}</h3>
+                  <ul className="mt-4 grid gap-4 sm:grid-cols-2">
+                    {group.items.map((item) => <li key={item.id}><Link href={item.href} className="block rounded-2xl border border-[color:var(--nsg-accent)]/20 bg-white/[0.03] p-5 break-words text-white hover:border-[color:var(--nsg-accent)]/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--nsg-accent)]">{item.title}</Link></li>)}
+                  </ul>
+                </section>
+              ))}
+              {!hasResults && (
                 <p className="mt-6 rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-6 text-slate-300">
-                  No Moment Makers found.
+                  No results found.
                 </p>
               )}
             </section>
-          ) : (
-            <p className="mt-10 text-center text-sm text-slate-500">
-              Enter a name to find a Moment Maker.
-            </p>
-          )}
+          ) : null}
         </div>
       </section>
     </main>

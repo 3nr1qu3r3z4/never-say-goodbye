@@ -52,7 +52,7 @@ export default function SearchForm({
         htmlFor="search-name"
         className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--nsg-accent)]"
       >
-        Name
+        Search
       </label>
       <div className="mt-3 flex flex-col gap-3 sm:flex-row">
         <input
@@ -61,8 +61,8 @@ export default function SearchForm({
           type="search"
           value={name}
           onChange={(event) => setName(event.currentTarget.value)}
-          placeholder="Moment Maker"
-          autoComplete="name"
+          placeholder="Search Legacy"
+          autoComplete="off"
           maxLength={100}
           required
           className="min-h-14 min-w-0 flex-1 rounded-full border border-[color:var(--nsg-border)]/15 bg-slate-950/60 px-5 text-base text-white outline-none transition placeholder:text-slate-500 focus:border-[color:var(--nsg-accent)]/70 focus:ring-2 focus:ring-[color:var(--nsg-accent)]/20"
@@ -139,7 +139,7 @@ export default function SearchForm({
         </div>
       </fieldset>
       <p aria-live="polite" className="mt-3 min-h-5 text-center text-sm text-slate-400">
-        {isPending ? "Searching Moment Maker profiles…" : ""}
+        {isPending ? "Searching…" : ""}
       </p>
     </form>
   );

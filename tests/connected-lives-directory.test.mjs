@@ -154,7 +154,7 @@ test("My Legacy brings owner details and existing destinations together with emp
   assert.match(html, /Jane Owner/);
   assert.match(html, /A private owner bio/);
   assert.match(html, /Profile visibility: Hidden/);
-  for (const href of ["/my-profile", "/my-profile/preview", "/create-moment", "/search", "/legacy-tree", "/connected-lives", "/family-calendar", "/legacy-controls", "/my-profile#appearance", "/email-preferences"]) {
+  for (const href of ["/my-profile", "/my-profile/preview", "/create-moment", "/legacy-tree", "/connected-lives", "/family-calendar", "/legacy-controls", "/my-profile#appearance", "/email-preferences"]) {
     assert.ok(html.includes(`href="${href}"`), href);
   }
   assert.match(html, /You haven&#x27;t published a Shared Moment yet/);
@@ -248,7 +248,7 @@ test("admin dashboard link is visible only to the founder", async () => {
   assert.match(renderToStaticMarkup(await loadDashboard(data, true)()), /href="\/admin-dashboard"/);
 });
 
-test("Moments in the Making always offers Find People and retains request and update links", async () => {
+test("My Legacy keeps requested quick actions and retains request and update links", async () => {
   const data = {
     counts: {
       sharedMoments: 0, personalMoments: 0, connectedLives: 0,
@@ -273,7 +273,20 @@ test("Moments in the Making always offers Find People and retains request and up
     assert.equal((card.match(/❤️/g) ?? []).length, 1);
     assert.match(card, /<h2 id="moments-in-the-making-heading"[^>]*>Moments in the Making<\/h2>/);
     assert.doesNotMatch(card, /See the latest memories, photos, videos, and messages/);
-    assert.match(card, /<a href="\/search"[^>]*><span>Find People<\/span>/);
+    assert.doesNotMatch(html, /href="\/search"|legacy-search|Search moments, people, messages|settings-shortcuts-heading/);
+    const actions = html.match(/<section aria-labelledby="legacy-quick-actions-heading"[\s\S]*?<\/section>/)?.[0];
+    assert.ok(actions);
+    for (const [label, href] of [
+      ["Create Moment", "/create-moment"],
+      ["Open Legacy Tree™", "/legacy-tree"],
+      ["Legacy Controls™", "/legacy-controls"],
+      ["Appearance", "/my-profile#appearance"],
+      ["Email Preferences", "/email-preferences"],
+    ]) {
+      assert.match(actions, new RegExp(`<a href="${href}"[^>]*>${label}</a>`));
+    }
+    assert.equal((actions.match(/<a /g) ?? []).length, 5);
+    assert.match(html, /Moment Making Menu[\s\S]*?My Legacy Snapshot/);
     assert.doesNotMatch(card, /View Connected Lives|Stay Connected|Someone Is Thinking of You/);
     if (expected) {
       assert.match(card, new RegExp(`<a href="/connected-lives"[^>]*>${expected}</a>`));
@@ -346,7 +359,7 @@ test("dashboard omits the future-maker section while retaining its count and men
   }
 });
 
-test("dashboard snapshot links available counts to their corresponding pages", async () => {
+test("dashboard snapshot displays actual counts in one informational card", async () => {
   const dashboard = loadDashboard({
     counts: {
       sharedMoments: 3, personalMoments: 2, connectedLives: 4,
@@ -357,15 +370,17 @@ test("dashboard snapshot links available counts to their corresponding pages", a
   const html = renderToStaticMarkup(await dashboard());
   const snapshot = html.match(/<section aria-labelledby="summary-heading"[\s\S]*?<\/section>/)?.[0];
   assert.ok(snapshot);
-  for (const [label, count, href] of [
-    ["Shared Moments", 3, "/moments"],
-    ["Connected Lives", 4, "/connected-lives"],
-    ["Future Moment Makers™", 5, "/connected-lives#future-heading"],
-    ["Drafts", 6, "/drafts"],
+  for (const [label, count] of [
+    ["Shared Moments", 3],
+    ["Personal Moments", 2],
+    ["Connected Lives", 4],
+    ["Future Moment Makers™", 5],
+    ["Drafts", 6],
   ]) {
-    assert.match(snapshot, new RegExp(`<dt[^>]*>${label}[\\s\\S]*?<a href="${href}" aria-label="View ${label}, ${count}"[^>]*></a></dt><dd[^>]*>${count}</dd>`));
+    assert.match(snapshot, new RegExp(`<dt[^>]*>${label}</dt><dd[^>]*>${count}</dd>`));
   }
-  assert.match(snapshot, /<dt[^>]*>Personal Moments<\/dt><dd[^>]*>2<\/dd>/);
+  assert.equal((snapshot.match(/<dt/g) ?? []).length, 5);
+  assert.doesNotMatch(snapshot, /<a |<button|Your story, at a glance/);
 });
 
 test("pending incoming requests are highlighted above the directory with visible actions", async () => {

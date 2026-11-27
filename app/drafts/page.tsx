@@ -61,7 +61,8 @@ export default async function DraftsPage() {
             drafts.map((draft) => (
               <article
                 key={draft.id}
-                className="flex flex-col gap-4 rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6"
+                id={`draft-${draft.id}`}
+                className="flex scroll-mt-6 flex-col gap-4 rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6"
               >
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--nsg-accent)]">
