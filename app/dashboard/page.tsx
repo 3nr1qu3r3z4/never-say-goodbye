@@ -119,14 +119,15 @@ export default async function DashboardPage() {
     },
   ];
   const statistics = [
-    { label: "Shared Moments", value: data.counts.sharedMoments },
+    { label: "Shared Moments", value: data.counts.sharedMoments, href: "/moments" },
     { label: "Personal Moments", value: data.counts.personalMoments },
-    { label: "Connected Lives", value: data.counts.connectedLives },
+    { label: "Connected Lives", value: data.counts.connectedLives, href: "/connected-lives" },
     {
       label: "Future Moment Makers™",
       value: data.counts.futureMomentMakers,
+      href: "/connected-lives#future-heading",
     },
-    { label: "Drafts", value: data.counts.drafts },
+    { label: "Drafts", value: data.counts.drafts, href: "/drafts" },
   ];
 
   return (
@@ -288,7 +289,7 @@ export default async function DashboardPage() {
           <a href="/moments" className={`mt-4 inline-flex min-h-11 items-center text-sm font-semibold text-[color:var(--nsg-accent-light)] hover:underline ${actionFocusClassName}`}>View Shared Moments</a>
         </section>
 
-        <div className="grid gap-4 lg:grid-cols-3">
+        <div className="grid auto-rows-fr gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <section aria-labelledby="connections-preview-heading" className="rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5">
             <h2 id="connections-preview-heading" className="font-serif text-2xl text-white">Connected Lives™</h2>
             {connections.length ? <ul className="mt-4 space-y-2 text-sm text-slate-300">{connections.map((connection) => <li key={connection.id} className="break-words">{connection.displayName}</li>)}</ul> : <p className="mt-4 text-sm text-slate-400">Your accepted connections will appear here.</p>}
@@ -308,6 +309,27 @@ export default async function DashboardPage() {
             <h2 id="tree-preview-heading" className="font-serif text-2xl text-white">Legacy Tree™</h2>
             {calendar.trees.length ? <ul className="mt-4 space-y-2 text-sm text-slate-300">{calendar.trees.slice(0, 3).map((tree) => <li key={tree.id} className="break-words"><Link href={`/legacy-tree#legacy-tree-item-${encodeURIComponent(tree.id)}`} className={`hover:underline ${actionFocusClassName}`}>{tree.name}</Link></li>)}</ul> : <p className="mt-4 text-sm text-slate-400">Your family trees will appear here.</p>}
             <Link href="/legacy-tree" className={`mt-4 inline-flex min-h-11 items-center text-sm font-semibold text-[color:var(--nsg-accent-light)] hover:underline ${actionFocusClassName}`}>Open Legacy Tree™</Link>
+          </section>
+          <section aria-labelledby="summary-heading" className="min-w-0 rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5">
+            <h2 id="summary-heading" className="font-serif text-2xl text-white">My Legacy Snapshot</h2>
+            <dl className="mt-4">
+              {statistics.map((statistic) => (
+                <div key={statistic.label} className="relative flex min-h-11 items-center justify-between gap-3 text-sm">
+                  <dt className="min-w-0 text-slate-300">
+                    {statistic.href ? (
+                      <Link
+                        href={statistic.href}
+                        aria-label={`View ${statistic.label}, ${statistic.value}`}
+                        className={`transition hover:text-[color:var(--nsg-accent-light)] after:absolute after:inset-0 ${actionFocusClassName}`}
+                      >
+                        {statistic.label}
+                      </Link>
+                    ) : statistic.label}
+                  </dt>
+                  <dd className="shrink-0 font-semibold tabular-nums text-white">{statistic.value}</dd>
+                </div>
+              ))}
+            </dl>
           </section>
         </div>
 
@@ -380,18 +402,6 @@ export default async function DashboardPage() {
               );
             })}
           </div>
-        </section>
-
-        <section aria-labelledby="summary-heading" className="rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5">
-          <h2 id="summary-heading" className="font-serif text-2xl text-white">My Legacy Snapshot</h2>
-          <dl className="mt-4 space-y-3">
-            {statistics.map((statistic) => (
-              <div key={statistic.label} className="flex items-baseline justify-between gap-4 text-sm">
-                <dt className="text-slate-300">{statistic.label}</dt>
-                <dd className="font-semibold tabular-nums text-white">{statistic.value}</dd>
-              </div>
-            ))}
-          </dl>
         </section>
 
         <section aria-labelledby="activity-heading">

@@ -286,7 +286,7 @@ test("My Legacy keeps requested quick actions and retains request and update lin
       assert.match(actions, new RegExp(`<a href="${href}"[^>]*>${label}</a>`));
     }
     assert.equal((actions.match(/<a /g) ?? []).length, 5);
-    assert.match(html, /Moment Making Menu[\s\S]*?My Legacy Snapshot/);
+    assert.match(html, /My Legacy Snapshot[\s\S]*?Moment Making Menu/);
     assert.doesNotMatch(card, /View Connected Lives|Stay Connected|Someone Is Thinking of You/);
     if (expected) {
       assert.match(card, new RegExp(`<a href="/connected-lives"[^>]*>${expected}</a>`));
@@ -353,13 +353,13 @@ test("dashboard omits the future-maker section while retaining its count and men
     data.counts.futureMomentMakers = futureMakers.length;
     const html = renderToStaticMarkup(await dashboard());
     assert.doesNotMatch(html, /future-makers-heading|A place for a story still to come/);
-    assert.match(html, new RegExp(`<dt[^>]*>Future Moment Makers™[\\s\\S]*?</dt><dd[^>]*>${futureMakers.length}</dd>`));
+    assert.match(html, new RegExp(`<dt[^>]*>[\\s\\S]*?Future Moment Makers™</a></dt><dd[^>]*>${futureMakers.length}</dd>`));
     assert.match(html, /href="\/create-moment\/future-moment-maker"[^>]*>Create Future Moment Maker™<\/a>/);
     assert.match(html, /href="\/connected-lives#future-heading"[^>]*>View Future Moment Makers™<\/a>/);
   }
 });
 
-test("dashboard snapshot displays actual counts in one informational card", async () => {
+test("dashboard snapshot shares the card row and links available metrics", async () => {
   const dashboard = loadDashboard({
     counts: {
       sharedMoments: 3, personalMoments: 2, connectedLives: 4,
@@ -370,17 +370,23 @@ test("dashboard snapshot displays actual counts in one informational card", asyn
   const html = renderToStaticMarkup(await dashboard());
   const snapshot = html.match(/<section aria-labelledby="summary-heading"[\s\S]*?<\/section>/)?.[0];
   assert.ok(snapshot);
-  for (const [label, count] of [
-    ["Shared Moments", 3],
-    ["Personal Moments", 2],
-    ["Connected Lives", 4],
-    ["Future Moment Makers™", 5],
-    ["Drafts", 6],
-  ]) {
-    assert.match(snapshot, new RegExp(`<dt[^>]*>${label}</dt><dd[^>]*>${count}</dd>`));
+  const cards = html.match(/<div class="grid auto-rows-fr gap-4 sm:grid-cols-2 lg:grid-cols-4">[\s\S]*?<\/section><\/div>/)?.[0];
+  assert.ok(cards);
+  for (const heading of ["connections-preview-heading", "calendar-preview-heading", "tree-preview-heading", "summary-heading"]) {
+    assert.match(cards, new RegExp(`aria-labelledby="${heading}"`));
   }
+  for (const [label, count, href] of [
+    ["Shared Moments", 3, "/moments"],
+    ["Connected Lives", 4, "/connected-lives"],
+    ["Future Moment Makers™", 5, "/connected-lives#future-heading"],
+    ["Drafts", 6, "/drafts"],
+  ]) {
+    assert.match(snapshot, new RegExp(`<dt[^>]*><a href="${href}" aria-label="View ${label}, ${count}"[^>]*>${label}</a></dt><dd[^>]*>${count}</dd>`));
+  }
+  assert.match(snapshot, /<dt[^>]*>Personal Moments<\/dt><dd[^>]*>2<\/dd>/);
   assert.equal((snapshot.match(/<dt/g) ?? []).length, 5);
-  assert.doesNotMatch(snapshot, /<a |<button|Your story, at a glance/);
+  assert.equal((snapshot.match(/<a /g) ?? []).length, 4);
+  assert.doesNotMatch(snapshot, /<button|Your story, at a glance/);
 });
 
 test("pending incoming requests are highlighted above the directory with visible actions", async () => {
