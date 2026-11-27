@@ -30,8 +30,7 @@ be reviewed before any restrictions are considered. Legacy `tier-2` and
 `tier-3` memberships require explicit review rather than an assumed mapping.
 No current creation path calls or enforces the advisory Future Moment Maker
 quota check. Paid registration, billing, and plan enforcement remain disabled.
-Reminder notifications, scheduled deliveries, and other features marked Coming
-Soon also require implementation.
+Reminder notifications are not yet implemented.
 
 Cannot Open Until™ public rollout remains disabled. Leave
 `CANNOT_OPEN_UNTIL_ENABLED` unset or false. To grant a private founder preview,

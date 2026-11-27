@@ -170,15 +170,13 @@ test("pricing displays the requested roadmap without implying paid access or del
   for (const text of [
     "Automatic Family Reminders",
     "2 Cannot Open Until™ Messages", "25 Cannot Open Until™ Messages",
-    "Scheduled Message Delivery",
   ]) {
     assert.ok(html.includes(`${text}<span class="text-slate-400"> (Coming Soon)</span>`), text);
   }
   assert.doesNotMatch(html, /Limited Preview|approved preview accounts/);
   assert.ok(!html.includes('Successor Assignment<span class="text-slate-400"> (Coming Soon)</span>'));
-  for (const text of ["Automatic Family Reminders", "Scheduled Message Delivery"]) {
-    assert.equal(html.split(`${text}<span class="text-slate-400"> (Coming Soon)</span>`).length - 1, 2);
-  }
+  assert.equal(html.split('Automatic Family Reminders<span class="text-slate-400"> (Coming Soon)</span>').length - 1, 2);
+  assert.doesNotMatch(html, /Scheduled Message Delivery|Delayed Message Delivery|Future Message Delivery/i);
   for (const text of ["Track family dates and events with Family Calendar™", "Printable Legacy Tree™ PDF Export", "5 Audio Moments", "50 Audio Moments", "Unlimited Audio Moments"]) {
     assert.ok(html.includes(text));
     assert.ok(!html.includes(`${text}<span class="text-slate-400"> (Coming Soon)</span>`));
@@ -213,7 +211,6 @@ test("pricing displays the requested roadmap without implying paid access or del
       { text: "50 Audio Moments" },
       { text: "25 Cannot Open Until™ Messages", planned: true },
       { text: "Automatic Family Reminders", planned: true },
-      { text: "Scheduled Message Delivery", planned: true },
     ],
     [
       { text: "Everything in Legacy Plus plus:" },
@@ -232,6 +229,15 @@ test("pricing displays the requested roadmap without implying paid access or del
     { videos: { total: 250 }, photos: null, stories: null, voiceMessages: null },
     { videos: { total: 1000 } },
   ]);
+});
+
+test("Legacy Frame describes delayed opening under the Cannot Open Until brand", () => {
+  const page = loadPage(["app", "legacy-frame", "page.tsx"], null, {
+    "./waitlist": { default: () => null },
+  });
+  const html = renderToStaticMarkup(React.createElement(page));
+  assert.match(html, /Cannot Open Until™ Moments/);
+  assert.doesNotMatch(html, /Cannot Open Until™ Deliveries/);
 });
 
 test("signup lists all roadmap plans but allows only Free Legacy", () => {

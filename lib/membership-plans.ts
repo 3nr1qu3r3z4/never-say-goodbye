@@ -59,7 +59,6 @@ export const membershipPlans: readonly MembershipPlan[] = [
       { text: "50 Audio Moments" },
       { text: "25 Cannot Open Until™ Messages", planned: true },
       { text: "Automatic Family Reminders", planned: true },
-      { text: "Scheduled Message Delivery", planned: true },
     ],
   },
   {

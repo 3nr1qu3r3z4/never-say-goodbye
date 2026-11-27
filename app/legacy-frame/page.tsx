@@ -14,7 +14,7 @@ const frameContents = [
   { icon: "📷", label: "Shared Photos" },
   { icon: "🎥", label: "Family Videos" },
   { icon: "🎤", label: "Audio Moments" },
-  { icon: "⏳", label: "Cannot Open Until™ Deliveries" },
+  { icon: "⏳", label: "Cannot Open Until™ Moments" },
   { icon: "✨", label: "Future Moment Maker™ Milestones" },
 ];
 

@@ -9,7 +9,6 @@ export const metadata: Metadata = {
 
 const spotlight = [
   { text: "Automatic Family Reminders", planned: true },
-  { text: "Scheduled Message Delivery", planned: true },
 ];
 
 export default function PricingPage() {
