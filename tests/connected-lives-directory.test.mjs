@@ -172,11 +172,11 @@ function loadDashboard(data, founder = false, familyActivity = [], bulletins = [
     "@/lib/family-calendar-data": {
       getFamilyBulletins: async () => bulletins,
       getCalendarSettings: async (id) => { assert.equal(id, "owner"); return { trees: preview.trees ?? [] }; },
-      getCalendarEvents: async (id, tree) => { assert.equal(id, "owner"); assert.equal(tree, preview.trees[0].id); return preview.events ?? []; },
+      getCalendarEvents: async (id, tree) => { assert.equal(id, "owner"); assert.equal(tree, preview.trees.find((item) => item.ownerId === id).id); return preview.events ?? []; },
     },
     "@/lib/family-calendar": loadModule("lib/family-calendar.ts"),
     "@/lib/tree-milestones-data": { getTreeMilestones: async (id, tree) => {
-      assert.equal(id, "owner"); assert.equal(tree, preview.trees[0].id); return preview.milestones ?? [];
+      assert.equal(id, "owner"); assert.equal(tree, preview.trees.find((item) => item.ownerId === id).id); return preview.milestones ?? [];
     } },
     "@/lib/my-legacy-data": {
       getLegacyProfile: async (id) => { assert.equal(id, "owner"); return preview.profile ?? { displayName: "Owner", bio: "", profilePhoto: null, discoverability: "private" }; },
@@ -272,12 +272,12 @@ test("My Legacy brings owner details and existing destinations together with emp
   }
   assert.match(html, /You haven&#x27;t published a Shared Moment yet/);
   assert.match(html, /Your accepted connections will appear here/);
-  assert.match(html, /Create or join a Legacy Tree™ to see its family calendar/);
+  assert.match(html, /Create your Legacy Tree™ to see your family calendar/);
   assert.match(html, /Your family trees will appear here/);
   await assert.rejects(loadDashboard(data, false, [], [], { unauthenticated: true })(), /Not authenticated/);
 });
 
-test("My Legacy previews own moments, connections and the first accessible tree's upcoming dates", async () => {
+test("My Legacy previews own moments, connections and the owned tree's upcoming dates", async () => {
   const data = { counts: { sharedMoments: 1, personalMoments: 0, connectedLives: 1, newLivesRequests: 0,
     unreadLivesNotifications: 0, futureMomentMakers: 0, drafts: 0 }, recentActivity: [] };
   const date = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
@@ -285,7 +285,7 @@ test("My Legacy previews own moments, connections and the first accessible tree'
     profile: { displayName: "Owner", bio: "", profilePhoto: null, discoverability: "searchable" },
     ownMoments: [{ id: "own", title: "My memory" }],
     connections: [{ id: "connection", displayName: "Family member" }],
-    trees: [{ id: "tree/one", name: "First tree" }, { id: "tree-two", name: "Second tree" }],
+    trees: [{ id: "tree-two", name: "Second tree", ownerId: "other" }, { id: "tree/one", name: "First tree", ownerId: "owner" }],
     events: [{ id: "event", title: "Family gathering", date, repeatsYearly: false, source: "Manual Event" },
       { id: "past", title: "Past event", date: "2000-01-01", repeatsYearly: false, source: "Manual Event" }],
     milestones: [{ id: "milestone", kind: "birthday", personName: "Jane", title: "Birthday", year: null,
@@ -296,7 +296,7 @@ test("My Legacy previews own moments, connections and the first accessible tree'
   assert.match(html, /Connected Lives™[\s\S]*Family member/);
   assert.match(html, /First tree · Next 90 days[\s\S]*Family gathering[\s\S]*Jane Birthday|First tree · Next 90 days[\s\S]*Jane Birthday[\s\S]*Family gathering/);
   assert.doesNotMatch(html, /Past event/);
-  assert.match(html, /href="\/family-calendar\?tree=tree%2Fone&amp;view=agenda"/);
+  assert.match(html, /href="\/family-calendar\?view=agenda"/);
   assert.match(html, /href="\/legacy-tree#legacy-tree-item-tree%2Fone"/);
   assert.match(html, /Second tree/);
 });

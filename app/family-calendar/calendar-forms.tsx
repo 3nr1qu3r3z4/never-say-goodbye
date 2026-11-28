@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import {
   addRelationshipMilestone,
   createCalendarEvent,
@@ -68,8 +68,7 @@ export function ProfileDates({ profile, open = false }: { profile: CalendarProfi
 
 export function ReminderSettings({ reminders }: { reminders: Reminders }) {
   return (
-    <details className="rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5">
-      <summary className="cursor-pointer font-serif text-xl text-white">🔔 Reminder Settings</summary>
+    <>
       <p className="my-4 text-sm text-slate-400">Preferences are saved for future reminders. Notifications are not sent yet.</p>
       <ActionForm action={saveCalendarReminders} label="Save Reminder Settings">
         <Checkbox name="dayOf" label="Day Of" checked={reminders.dayOf} />
@@ -77,7 +76,7 @@ export function ReminderSettings({ reminders }: { reminders: Reminders }) {
         <Checkbox name="oneWeek" label="1 Week Before" checked={reminders.oneWeek} />
         <Checkbox name="oneMonth" label="1 Month Before" checked={reminders.oneMonth} />
       </ActionForm>
-    </details>
+    </>
   );
 }
 
@@ -87,8 +86,7 @@ export function ImportDates({ treeId }: { treeId: string }) {
 
 export function ManualEvent({ treeId }: { treeId: string }) {
   return (
-    <details className="rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5">
-      <summary className="cursor-pointer font-serif text-xl text-white">Add Family Event</summary>
+    <>
       <p className="my-4 text-sm text-slate-400">This event is visible to members of the selected Legacy Tree™.</p>
       <ActionForm action={createCalendarEvent} label="Add Event">
         <input type="hidden" name="treeId" value={treeId} />
@@ -96,7 +94,37 @@ export function ManualEvent({ treeId }: { treeId: string }) {
         <label className="block text-sm text-slate-200">Date <input name="date" type="date" required className={fieldClass} /></label>
         <Checkbox name="repeatsYearly" label="Repeat yearly" />
       </ActionForm>
-    </details>
+    </>
+  );
+}
+
+export function CalendarActions({ treeId, reminders }: { treeId: string | null; reminders: Reminders }) {
+  const eventDialog = useRef<HTMLDialogElement>(null);
+  const reminderDialog = useRef<HTMLDialogElement>(null);
+  const button = "rounded-full border border-[color:var(--nsg-border)]/10 px-4 py-2 text-sm text-slate-300";
+  return (
+    <>
+      {treeId && <button type="button" className={button} onClick={() => eventDialog.current?.showModal()}>Add Event</button>}
+      <button type="button" className={button} onClick={() => reminderDialog.current?.showModal()}>Reminders</button>
+      {treeId && <dialog ref={eventDialog} aria-labelledby="calendar-event-heading"
+        onKeyDown={(event) => { if (event.key === "Escape") eventDialog.current?.close(); }}
+        className="m-auto w-[calc(100%-2rem)] max-w-lg rounded-2xl border border-[color:var(--nsg-border)]/20 bg-[color:var(--nsg-background)] p-5 text-slate-100 backdrop:bg-slate-950/70">
+        <div className="flex items-center justify-between gap-4">
+          <h2 id="calendar-event-heading" className="font-serif text-xl text-white">Add Family Event</h2>
+          <button type="button" aria-label="Close Add Family Event" onClick={() => eventDialog.current?.close()} className="h-11 w-11 text-2xl">×</button>
+        </div>
+        <ManualEvent treeId={treeId} />
+      </dialog>}
+      <dialog ref={reminderDialog} aria-labelledby="calendar-reminder-heading"
+        onKeyDown={(event) => { if (event.key === "Escape") reminderDialog.current?.close(); }}
+        className="m-auto w-[calc(100%-2rem)] max-w-lg rounded-2xl border border-[color:var(--nsg-border)]/20 bg-[color:var(--nsg-background)] p-5 text-slate-100 backdrop:bg-slate-950/70">
+        <div className="flex items-center justify-between gap-4">
+          <h2 id="calendar-reminder-heading" className="font-serif text-xl text-white">Reminder Settings</h2>
+          <button type="button" aria-label="Close Reminder Settings" onClick={() => reminderDialog.current?.close()} className="h-11 w-11 text-2xl">×</button>
+        </div>
+        <ReminderSettings reminders={reminders} />
+      </dialog>
+    </>
   );
 }
 

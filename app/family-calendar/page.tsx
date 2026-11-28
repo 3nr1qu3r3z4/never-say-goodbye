@@ -5,9 +5,10 @@ import { requireUser } from "@/lib/auth";
 import { getCalendarEvents, getCalendarSettings } from "@/lib/family-calendar-data";
 import { getTreeMilestones } from "@/lib/tree-milestones-data";
 import { milestoneDate } from "@/lib/tree-milestones";
-import { datedCalendarMilestones, occurrences, upcomingOccurrences, validCalendarDate, type CalendarEvent } from "@/lib/family-calendar";
+import { calendarEventIcon, datedCalendarMilestones, occurrences, upcomingOccurrences, validCalendarDate, type CalendarEvent } from "@/lib/family-calendar";
 import FamilyFeed from "@/app/family-feed";
-import { ManualEvent, ReminderSettings } from "./calendar-forms";
+import { CalendarActions } from "./calendar-forms";
+import UpcomingFamilyMoments from "./upcoming-family-moments";
 
 export const metadata: Metadata = {
   title: "Family Calendar™ | Never Say Goodbye",
@@ -20,23 +21,12 @@ const dateText = (date: Date) => date.toISOString().slice(0, 10);
 const readable = (date: string, options: Intl.DateTimeFormatOptions) =>
   new Intl.DateTimeFormat("en-US", { ...options, timeZone: "UTC" }).format(new Date(`${date}T00:00:00Z`));
 
-function eventIcon(id: string) {
-  if (id.startsWith("birthday:") || id.startsWith("placeholder-birthday:")) return "🎂";
-  if (id.startsWith("memorial:") || id.startsWith("placeholder-memorial:") || id.startsWith("honored-passing:")) return "🕊";
-  if (id.startsWith("anniversary:")) return "💍";
-  if (id.startsWith("tree-birthday:")) return "🎂";
-  if (id.startsWith("tree-anniversary:") || id.startsWith("tree-wedding:")) return "💍";
-  if (id.startsWith("tree-graduation:")) return "🎓";
-  if (id.startsWith("future:") || id.startsWith("milestone:")) return "✨";
-  return "📅";
-}
-
 function EventList({ events }: { events: CalendarEvent[] }) {
   return (
     <ul className="space-y-2">
       {events.map((event) => (
         <li key={`${event.id}-${event.date}`} className="rounded-lg border border-[color:var(--nsg-accent)]/20 bg-[color:var(--nsg-accent)]/[0.07] p-2 text-sm text-slate-100">
-          <span className="block break-words"><span aria-hidden="true">{eventIcon(event.id)} </span>{event.title}</span>
+          <span className="block break-words"><span aria-hidden="true">{calendarEventIcon(event.id)} </span>{event.title}</span>
           <span className="block text-xs text-slate-400">Source: {event.source}</span>
         </li>
       ))}
@@ -52,8 +42,7 @@ export default async function FamilyCalendarPage({
   const user = await requireUser();
   const params = await searchParams;
   const { reminders, trees } = await getCalendarSettings(user.id);
-  const selected = params.tree ? trees.find((tree) => tree.id === params.tree) : trees[0];
-  if (params.tree && !selected) notFound();
+  const selected = trees.find((tree) => tree.ownerId === user.id);
   const view = params.view ?? "month";
   if (!["month", "week", "agenda"].includes(view)) notFound();
   const anchor = params.date ?? dateText(new Date());
@@ -83,7 +72,6 @@ export default async function FamilyCalendarPage({
   const upcoming = upcomingOccurrences(allEvents, today);
   const link = (nextView: string, date = anchor) => {
     const query = new URLSearchParams({ view: nextView, date });
-    if (selected) query.set("tree", selected.id);
     return `/family-calendar?${query.toString()}`;
   };
   const previous = view === "month"
@@ -101,46 +89,24 @@ export default async function FamilyCalendarPage({
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[color:var(--nsg-accent)]">A place for family</p>
           <h1 className="mt-3 font-serif text-4xl text-white sm:text-5xl">Family Calendar™</h1>
           <p className="mt-4 max-w-2xl leading-7 text-slate-300">Remember the dates and milestones that bring your family together.</p>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400">Family milestones are managed in your Legacy Tree™ and appear here automatically when shared with this tree.</p>
         </header>
-        <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+        <div className="mt-8">
           <div className="min-w-0">
             {!selected ? (
-              <p className="text-slate-300">Create or join a Legacy Tree™ to see its family calendar. <Link href="/legacy-tree" className="text-[color:var(--nsg-accent-light)] underline">Explore Legacy Tree™</Link></p>
+              <>
+                <p className="text-slate-300">Create your Legacy Tree™ to see your family calendar. <Link href="/legacy-tree" className="text-[color:var(--nsg-accent-light)] underline">Explore Legacy Tree™</Link></p>
+                <div className="mt-5 flex flex-wrap gap-2"><CalendarActions treeId={null} reminders={reminders} /></div>
+              </>
             ) : (
               <>
-                <form action="/family-calendar" className="mb-5">
-                  <label htmlFor="tree" className="block text-sm text-slate-300">Family tree</label>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    <select id="tree" name="tree" defaultValue={selected.id} className="min-h-11 max-w-full rounded-xl border border-[color:var(--nsg-border)]/10 bg-slate-950 px-3 text-white">
-                      {trees.map((tree) => <option key={tree.id} value={tree.id}>{tree.name}</option>)}
-                    </select>
-                    <input type="hidden" name="view" value={view} /><input type="hidden" name="date" value={anchor} />
-                    <button className="min-h-11 rounded-xl border border-[color:var(--nsg-border)]/20 px-4 text-sm">View Calendar</button>
-                  </div>
-                </form>
-                <section aria-labelledby="upcoming-family-moments" className="mb-6 rounded-3xl border border-[color:var(--nsg-accent)]/30 bg-[color:var(--nsg-accent)]/[0.06] p-5 sm:p-6">
-                  <h2 id="upcoming-family-moments" className="font-serif text-2xl text-white">Upcoming Family Moments</h2>
-                  {upcoming.length ? <ul className="mt-4 grid gap-3 sm:grid-cols-2">
-                    {upcoming.map((event) => <li key={`${event.id}-${event.date}`} className="flex items-start gap-3 rounded-xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-4">
-                      <span aria-hidden="true" className="text-xl">{eventIcon(event.id)}</span>
-                      <div className="min-w-0">
-                        <p className="break-words font-semibold text-white">{event.title}</p>
-                        <time dateTime={event.date} className="mt-1 block text-sm text-slate-400">
-                          {event.date === today ? "Today" : event.date === tomorrow ? "Tomorrow" : readable(event.date, {
-                            month: "long", day: "numeric", ...(event.date.slice(0, 4) !== today.slice(0, 4) ? { year: "numeric" } : {}),
-                          })}
-                        </time>
-                      </div>
-                    </li>)}
-                  </ul> : <p className="mt-4 text-sm text-slate-400">No upcoming family moments.</p>}
-                </section>
+                <UpcomingFamilyMoments events={upcoming} today={today} tomorrow={tomorrow} />
                 <section aria-label="Family calendar" className="rounded-3xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-4 sm:p-6">
                 <div className="flex flex-wrap items-center justify-between gap-4">
-                  <div className="flex flex-wrap gap-2" aria-label="Calendar views">
+                  <div className="flex flex-wrap gap-2">
                     {["month", "week", "agenda"].map((item) => (
                       <Link key={item} href={link(item)} aria-current={view === item ? "page" : undefined} className={`rounded-full border px-4 py-2 text-sm capitalize ${view === item ? "border-[color:var(--nsg-accent)] bg-[color:var(--nsg-accent)]/15 text-[color:var(--nsg-accent-light)]" : "border-[color:var(--nsg-border)]/10 text-slate-300"}`}>{item}</Link>
                     ))}
+                    <CalendarActions treeId={selected.id} reminders={reminders} />
                   </div>
                   <div className="flex gap-4 text-sm text-[color:var(--nsg-accent-light)]">
                     {previous.getUTCFullYear() >= 1000 && <Link href={link(view, dateText(previous))}>← Previous</Link>}
@@ -175,10 +141,6 @@ export default async function FamilyCalendarPage({
               </>
             )}
           </div>
-          <aside aria-label="Calendar settings" className="space-y-4">
-            {selected && <ManualEvent treeId={selected.id} />}
-            <ReminderSettings reminders={reminders} />
-          </aside>
         </div>
       </div>
       <FamilyFeed initialTreeId={selected?.id ?? null} />

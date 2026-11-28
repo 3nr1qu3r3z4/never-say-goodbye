@@ -49,15 +49,14 @@ export async function createLegacyTree(): Promise<void> {
     sql`
       INSERT INTO legacy_trees (id, owner_user_id, name, created_at, updated_at)
       SELECT ${treeId}, ${user.id}, ${treeName}, ${now}, ${now}
-      WHERE NOT EXISTS (SELECT 1 FROM legacy_tree_members WHERE user_id = ${user.id})
-        AND NOT EXISTS (SELECT 1 FROM legacy_trees WHERE owner_user_id = ${user.id})
+      WHERE NOT EXISTS (SELECT 1 FROM legacy_trees WHERE owner_user_id = ${user.id})
     `,
     sql`
       INSERT INTO legacy_tree_members (tree_id, user_id, role, joined_at)
       SELECT tree.id, ${user.id}, 'owner', ${now}
       FROM legacy_trees AS tree
       WHERE tree.owner_user_id = ${user.id}
-        AND NOT EXISTS (SELECT 1 FROM legacy_tree_members WHERE user_id = ${user.id})
+        AND NOT EXISTS (SELECT 1 FROM legacy_tree_members WHERE user_id = ${user.id} AND tree_id = tree.id)
       ORDER BY tree.created_at, tree.id
       LIMIT 1
       ON CONFLICT (tree_id, user_id) DO NOTHING

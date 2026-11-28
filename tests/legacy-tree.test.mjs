@@ -657,6 +657,15 @@ test("tree creation and membership-scoped display in disposable PostgreSQL", {
     await actions.createLegacyTree();
     assert.equal((await db.query("SELECT COUNT(*)::int AS count FROM legacy_trees WHERE owner_user_id = 'orphan'")).rows[0].count, 1);
     assert.equal((await db.query("SELECT COUNT(*)::int AS count FROM legacy_tree_members WHERE tree_id = 'orphan-tree' AND user_id = 'orphan'")).rows[0].count, 1);
+    user = { id: "newmember", displayName: "New Member" };
+    const beforeCreate = await renderFamily(familyComponent(user, sql));
+    assert.match(beforeCreate, /Create My Legacy Tree/);
+    await actions.createLegacyTree();
+    await actions.createLegacyTree();
+    const owned = (await db.query("SELECT id FROM legacy_trees WHERE owner_user_id = 'newmember'")).rows;
+    assert.equal(owned.length, 1);
+    assert.equal((await db.query("SELECT COUNT(*)::int AS count FROM legacy_tree_members WHERE user_id = 'newmember' AND tree_id IN ($1, 'second-tree')", [owned[0].id])).rows[0].count, 2);
+    assert.doesNotMatch(await renderFamily(familyComponent(user, sql)), /Create My Legacy Tree/);
     user = { id: "rollback", displayName: "Rollback" };
     failMembershipInsert = true;
     await assert.rejects(actions.createLegacyTree(), /simulated membership failure/);

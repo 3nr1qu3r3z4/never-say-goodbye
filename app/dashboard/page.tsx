@@ -51,7 +51,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     getFamilyBulletins(user.id, null),
     successorEnabled ? getOwnSuccessor(user.id) : Promise.resolve(null),
   ]);
-  const selectedTree = calendar.trees[0];
+  const selectedTree = calendar.trees.find((tree) => tree.ownerId === user.id);
   const [calendarEvents, milestones] = selectedTree
     ? await Promise.all([
       getCalendarEvents(user.id, selectedTree.id),
@@ -307,9 +307,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               <>
                 <p className="mt-3 break-words text-sm text-slate-400">{selectedTree.name} · Next 90 days</p>
                 {upcomingEvents.length ? <ul className="mt-3 space-y-3">{upcomingEvents.map((event) => <li key={`${event.id}-${event.date}`} className="break-words text-sm text-slate-300"><time dateTime={event.date} className="block text-xs text-slate-400">{new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeZone: "UTC" }).format(new Date(`${event.date}T00:00:00Z`))}</time>{event.title}</li>)}</ul> : <p className="mt-3 text-sm text-slate-400">No upcoming events in this period.</p>}
-                <Link href={`/family-calendar?tree=${encodeURIComponent(selectedTree.id)}&view=agenda`} className={`mt-4 inline-flex min-h-11 items-center text-sm font-semibold text-[color:var(--nsg-accent-light)] hover:underline ${actionFocusClassName}`}>View Family Calendar™</Link>
+                <Link href="/family-calendar?view=agenda" className={`mt-4 inline-flex min-h-11 items-center text-sm font-semibold text-[color:var(--nsg-accent-light)] hover:underline ${actionFocusClassName}`}>View Family Calendar™</Link>
               </>
-            ) : <><p className="mt-4 text-sm text-slate-400">Create or join a Legacy Tree™ to see its family calendar.</p><Link href="/family-calendar" className={`mt-4 inline-flex min-h-11 items-center text-sm font-semibold text-[color:var(--nsg-accent-light)] hover:underline ${actionFocusClassName}`}>View Family Calendar™</Link></>}
+            ) : <><p className="mt-4 text-sm text-slate-400">Create your Legacy Tree™ to see your family calendar.</p><Link href="/family-calendar" className={`mt-4 inline-flex min-h-11 items-center text-sm font-semibold text-[color:var(--nsg-accent-light)] hover:underline ${actionFocusClassName}`}>View Family Calendar™</Link></>}
           </section>
           <section aria-labelledby="tree-preview-heading" className="rounded-2xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5">
             <h2 id="tree-preview-heading" className="font-serif text-2xl text-white">Legacy Tree™</h2>

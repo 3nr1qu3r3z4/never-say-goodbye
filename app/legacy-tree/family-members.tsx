@@ -242,6 +242,11 @@ async function FamilyMembersForUser({ userId }: { userId: string }) {
 
   return (
     <div className="mx-auto max-w-6xl space-y-12 px-4 pb-20 sm:px-8">
+      {!treeRows.some((tree) => tree.ownerId === userId) && (
+        <form action={createLegacyTree}>
+          <button type="submit" className={buttonClassName}>Create My Legacy Tree</button>
+        </form>
+      )}
       <div id="tree-map" className="scroll-mt-6 space-y-12">
         {treeRows.length > 1 && (
           <nav aria-label="Choose a tree to view">

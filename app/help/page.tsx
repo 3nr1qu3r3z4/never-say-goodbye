@@ -90,7 +90,7 @@ const guides = [
       },
       {
         question: "How do family milestones appear on the calendar?",
-        answer: "Add milestones within a Legacy Tree™. Saving shares them with that tree, and they appear in its Family Calendar™ automatically. Account holders manage their own milestones and can allow tree owners and admins to manage them; owners and admins can also manage placeholder and Honored Life™ milestones. Dates without a known day appear separately rather than on an invented day. Existing family-date sharing choices still apply.",
+        answer: "Add milestones within a Legacy Tree™. Saving shares them with that tree, and they appear automatically in its owner's Family Calendar™. Account holders manage their own milestones and can allow tree owners and admins to manage them; owners and admins can also manage placeholder and Honored Life™ milestones. Dates without a known day appear separately rather than on an invented day. Existing family-date sharing choices still apply.",
       },
     ],
   },

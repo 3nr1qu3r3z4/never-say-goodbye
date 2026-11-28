@@ -24,6 +24,11 @@ function loadModule(relativePath, dependencies = {}, globals = {}) {
       if (name === "@/app/family-feed" && !(name in dependencies)) return {
         default: () => React.createElement("button", null, "Family Feed™"),
       };
+      if (name === "./upcoming-family-moments" && !(name in dependencies)) return {
+        default: loadModule("app/family-calendar/upcoming-family-moments.tsx", {
+          react: React, "react/jsx-runtime": jsxRuntime, "@/lib/family-calendar": calendar,
+        }).default,
+      };
       if (!(name in dependencies)) throw new Error(`Unexpected import: ${name}`);
       return dependencies[name];
     },
@@ -84,14 +89,14 @@ test("upcoming section uses today rather than the browsed calendar date", async 
     "@/lib/tree-milestones": milestones,
     "@/lib/tree-milestones-data": { getTreeMilestones: async () => [] },
     "@/lib/family-calendar-data": {
-      getCalendarSettings: async () => ({ reminders: {}, trees: [{ id: "tree", name: "Family" }] }),
+      getCalendarSettings: async () => ({ reminders: {}, trees: [{ id: "tree", name: "Family", ownerId: "owner" }] }),
       getCalendarEvents: async () => [
         { id: "past", title: "Past event", date: yesterday, repeatsYearly: false },
         { id: "today", title: "Today event", date: today, repeatsYearly: false },
         { id: "tomorrow", title: "Tomorrow event", date: tomorrow, repeatsYearly: false },
       ],
     },
-    "./calendar-forms": { ManualEvent: () => null, ReminderSettings: () => null },
+    "./calendar-forms": { CalendarActions: () => null },
   }).default;
   const html = renderToStaticMarkup(await page({ searchParams: Promise.resolve({ date: "2040-01-01" }) }));
   const upcoming = html.match(/<section aria-labelledby="upcoming-family-moments"[\s\S]*?<\/section>/)?.[0];
@@ -99,6 +104,67 @@ test("upcoming section uses today rather than the browsed calendar date", async 
   assert.match(upcoming, /Today event[\s\S]*?>Today<\/time>[\s\S]*?Tomorrow event[\s\S]*?>Tomorrow<\/time>/);
   assert.doesNotMatch(upcoming, /Past event/);
   assert.ok(html.indexOf("Upcoming Family Moments") < html.indexOf('aria-label="Family calendar"'));
+});
+
+test("upcoming moments toggle between grid and compact list without changing dates", () => {
+  let view = "grid";
+  let controls = [];
+  const capture = (factory) => (type, props, key) => {
+    if (type === "button") controls.push(props);
+    return factory(type, props, key);
+  };
+  const upcoming = loadModule("app/family-calendar/upcoming-family-moments.tsx", {
+    react: { useState: () => [view, (next) => { view = next; }] },
+    "react/jsx-runtime": { ...jsxRuntime, jsx: capture(jsxRuntime.jsx), jsxs: capture(jsxRuntime.jsxs) },
+    "@/lib/family-calendar": calendar,
+  }).default;
+  const props = { today: "2026-03-10", tomorrow: "2026-03-11", events: [
+    { id: "birthday:one", title: "Alex Birthday", date: "2026-03-11" },
+    { id: "two", title: "Family Gathering", date: "2026-04-02" },
+  ] };
+  const render = () => { controls = []; return renderToStaticMarkup(upcoming(props)); };
+  let html = render();
+  assert.match(html, /sm:grid-cols-2/);
+  assert.equal(controls.find((control) => control.children === "Grid")["aria-pressed"], true);
+  controls.find((control) => control.children === "List").onClick();
+  html = render();
+  assert.doesNotMatch(html, /sm:grid-cols-2/);
+  assert.match(html, /Alex Birthday[\s\S]*Tomorrow[\s\S]*Family Gathering[\s\S]*April 2/);
+  assert.equal(controls.find((control) => control.children === "List")["aria-pressed"], true);
+  controls.find((control) => control.children === "Grid").onClick();
+  assert.match(render(), /sm:grid-cols-2/);
+});
+
+test("calendar loads only the owned tree even when a different tree is requested", async () => {
+  let trees = [
+    { id: "joined", name: "Joined", ownerId: "other", role: "admin" },
+    { id: "owned", name: "Owned", ownerId: "owner", role: "owner" },
+  ];
+  const loaded = [];
+  const page = loadModule("app/family-calendar/page.tsx", {
+    "react/jsx-runtime": jsxRuntime,
+    "next/link": { default: ({ href, children }) => React.createElement("a", { href }, children) },
+    "next/navigation": { notFound: () => { throw new Error("not found"); } },
+    "@/lib/auth": { requireUser: async () => ({ id: "owner" }) },
+    "@/lib/family-calendar": calendar,
+    "@/lib/tree-milestones": milestones,
+    "@/lib/tree-milestones-data": { getTreeMilestones: async (_user, tree) => { loaded.push(tree); return []; } },
+    "@/lib/family-calendar-data": {
+      getCalendarSettings: async () => ({ reminders: {}, trees }),
+      getCalendarEvents: async (_user, tree) => { loaded.push(tree); return []; },
+    },
+    "./calendar-forms": { CalendarActions: ({ treeId }) => React.createElement("span", null, `Actions: ${treeId ?? "none"}`) },
+  }).default;
+  let html = renderToStaticMarkup(await page({ searchParams: Promise.resolve({ tree: "joined" }) }));
+  assert.deepEqual(loaded, ["owned", "owned"]);
+  assert.match(html, /Actions: owned/);
+  assert.doesNotMatch(html, /View Calendar|<select|aria-label="Calendar settings"/);
+  trees = trees.slice(0, 1);
+  loaded.length = 0;
+  html = renderToStaticMarkup(await page({ searchParams: Promise.resolve({ tree: "joined" }) }));
+  assert.deepEqual(loaded, []);
+  assert.match(html, /Create your Legacy Tree™/);
+  assert.match(html, /Actions: none/);
 });
 
 test("calendar places exact milestones and separately shows partial or unknown dates", async () => {
@@ -116,11 +182,11 @@ test("calendar places exact milestones and separately shows partial or unknown d
     "@/lib/tree-milestones": milestones,
     "@/lib/tree-milestones-data": { getTreeMilestones: async () => rows },
     "@/lib/family-calendar-data": {
-      getCalendarSettings: async () => ({ reminders: {}, trees: [{ id: "tree", name: "Family", role: "owner" }] }),
+      getCalendarSettings: async () => ({ reminders: {}, trees: [{ id: "tree", name: "Family", role: "owner", ownerId: "owner" }] }),
       getCalendarEvents: async () => [],
       getFamilyBulletins: async () => [],
     },
-    "./calendar-forms": Object.fromEntries(["BulletinForm", "ManualEvent", "ReminderSettings"].map((name) => [name, () => null])),
+    "./calendar-forms": { CalendarActions: () => null },
   }).default;
   const html = renderToStaticMarkup(await page({ searchParams: Promise.resolve({ tree: "tree", date: "2026-05-12" }) }));
   assert.match(html, /Courtney Birthday/);
@@ -277,7 +343,7 @@ test("calendar renders month, week and agenda views with source labels", async (
     "@/lib/tree-milestones-data": { getTreeMilestones: async () => [] },
     "@/lib/family-calendar-data": {
       getCalendarSettings: async () => ({
-        profile: {}, reminders: {}, trees: [{ id: "tree", name: "Family", role: "owner" }],
+        profile: {}, reminders: {}, trees: [{ id: "tree", name: "Family", role: "owner", ownerId: "owner" }],
       }),
       getCalendarEvents: async () => [
         { id: "birthday", title: "Emma Birthday", date: "2020-05-04", repeatsYearly: true, source: "Legacy Tree™" },
@@ -286,7 +352,7 @@ test("calendar renders month, week and agenda views with source labels", async (
       getFamilyBulletins: async () => [],
     },
     "./calendar-forms": Object.fromEntries(
-      ["BulletinForm", "ImportDates", "ManualEvent", "ProfileDates", "ReminderSettings", "SourceDates"].map((name) => [name, () => null]),
+      ["CalendarActions", "BulletinForm", "ImportDates", "ManualEvent", "ProfileDates", "ReminderSettings", "SourceDates"].map((name) => [name, () => null]),
     ),
   };
   const page = loadModule("app/family-calendar/page.tsx", dependencies).default;
@@ -296,7 +362,9 @@ test("calendar renders month, week and agenda views with source labels", async (
     assert.match(html, /Source: Legacy Tree™/);
     assert.match(html, new RegExp(`view=${view}`));
   }
-  await assert.rejects(page({ searchParams: Promise.resolve({ tree: "other" }) }), /not found/);
+  const otherLink = renderToStaticMarkup(await page({ searchParams: Promise.resolve({ tree: "other", date: "2026-05-04" }) }));
+  assert.match(otherLink, /Emma Birthday/);
+  assert.doesNotMatch(otherLink, /Family tree<\/label>|View Calendar|managed in your Legacy Tree/);
 });
 
 test("empty calendar directs milestone management to the tree", async () => {
@@ -309,13 +377,13 @@ test("empty calendar directs milestone management to the tree", async () => {
     "@/lib/tree-milestones": milestones,
     "@/lib/tree-milestones-data": { getTreeMilestones: async () => [] },
     "@/lib/family-calendar-data": {
-      getCalendarSettings: async () => ({ profile: {}, reminders: {}, trees: [{ id: "tree", name: "Family", role: "owner" }] }),
+      getCalendarSettings: async () => ({ profile: {}, reminders: {}, trees: [{ id: "tree", name: "Family", role: "owner", ownerId: "owner" }] }),
       getCalendarEvents: async () => [],
       getEditableCalendarSources: async () => [],
       getFamilyBulletins: async () => [],
     },
     "./calendar-forms": Object.fromEntries(
-      ["BulletinForm", "ImportDates", "ManualEvent", "ProfileDates", "ReminderSettings", "SourceDates"].map((name) => [name, () => null]),
+      ["CalendarActions", "BulletinForm", "ImportDates", "ManualEvent", "ProfileDates", "ReminderSettings", "SourceDates"].map((name) => [name, () => null]),
     ),
   }).default;
   const html = renderToStaticMarkup(await page({ searchParams: Promise.resolve({ date: "2026-05-04" }) }));
@@ -347,6 +415,34 @@ test("calendar forms explain sync, privacy, and full-date requirements", () => {
   assert.match(shoutOut, />Share Shout-Out<\/button>/);
 });
 
+test("calendar action controls open the event and reminder forms", () => {
+  const dialogs = [{ open: false, showModal() { this.open = true; }, close() { this.open = false; } },
+    { open: false, showModal() { this.open = true; }, close() { this.open = false; } }];
+  let index = 0;
+  const controls = [];
+  const capture = (factory) => (type, props, key) => {
+    if (type === "button" || type === "dialog") controls.push({ type, ...props });
+    return factory(type, props, key);
+  };
+  const forms = loadModule("app/family-calendar/calendar-forms.tsx", {
+    "react/jsx-runtime": { ...jsxRuntime, jsx: capture(jsxRuntime.jsx), jsxs: capture(jsxRuntime.jsxs) },
+    react: { ...React, useRef: () => ({ current: dialogs[index++] }), useActionState: () => [{}, () => {}, false], useEffect: () => {} },
+    "@/app/actions/family-calendar": Object.fromEntries(
+      ["addRelationshipMilestone", "createCalendarEvent", "createFamilyBulletin", "enableCalendarImports", "saveCalendarProfile",
+        "saveCalendarReminders", "saveTreeSourceDate"].map((name) => [name, () => {}]),
+    ),
+  });
+  const html = renderToStaticMarkup(forms.CalendarActions({ treeId: "owned", reminders: { dayOf: true } }));
+  assert.match(html, /name="treeId" value="owned"/);
+  assert.match(html, /name="dayOf" checked=""/);
+  controls.find((control) => control.type === "button" && control.children === "Add Event").onClick();
+  controls.find((control) => control.type === "button" && control.children === "Reminders").onClick();
+  assert.equal(dialogs[0].open, true);
+  assert.equal(dialogs[1].open, true);
+  controls.find((control) => control.type === "dialog" && control["aria-labelledby"] === "calendar-reminder-heading").onKeyDown({ key: "Escape" });
+  assert.equal(dialogs[1].open, false);
+});
+
 test("calendar no longer renders shout-outs in its page content", async () => {
   const page = loadModule("app/family-calendar/page.tsx", {
     "react/jsx-runtime": jsxRuntime,
@@ -357,12 +453,12 @@ test("calendar no longer renders shout-outs in its page content", async () => {
     "@/lib/tree-milestones": milestones,
     "@/lib/tree-milestones-data": { getTreeMilestones: async () => [] },
     "@/lib/family-calendar-data": {
-      getCalendarSettings: async () => ({ profile: {}, reminders: {}, trees: [{ id: "tree", name: "Family", role: "member" }] }),
+      getCalendarSettings: async () => ({ profile: {}, reminders: {}, trees: [{ id: "tree", name: "Family", role: "owner", ownerId: "owner" }] }),
       getCalendarEvents: async () => [],
       getFamilyBulletins: async () => [{ id: "note", authorName: "Enrique", createdAt: "2026-11-19T19:21:00Z", message: "Happy Birthday!" }],
     },
     "./calendar-forms": Object.fromEntries(
-      ["BulletinForm", "ImportDates", "ManualEvent", "ProfileDates", "ReminderSettings", "SourceDates"].map((name) => [name, () => null]),
+      ["CalendarActions", "BulletinForm", "ImportDates", "ManualEvent", "ProfileDates", "ReminderSettings", "SourceDates"].map((name) => [name, () => null]),
     ),
   }).default;
   const html = renderToStaticMarkup(await page({ searchParams: Promise.resolve({ tree: "tree", date: "2026-11-19" }) }));
@@ -483,14 +579,17 @@ test("family calendar authorization, consent and live imports in disposable Post
       return (await db.query(text, values)).rows;
     };
     const now = "2026-01-01";
-    for (const id of ["owner", "member", "outsider"]) {
+    for (const id of ["owner", "member", "outsider", "otherowner"]) {
       await db.query(`INSERT INTO users (id, email, password_hash, first_name, last_name, display_name, display_style, membership, created_at, updated_at)
         VALUES ($1, $2, 'hash', $1, 'Person', $1, 'full-name', 'free', $3, $3)`, [id, `${id}@example.test`, now]);
     }
     await db.exec(`
-      INSERT INTO legacy_trees (id, owner_user_id, name, created_at, updated_at) VALUES ('tree', 'owner', 'Family', '${now}', '${now}');
+      INSERT INTO legacy_trees (id, owner_user_id, name, created_at, updated_at) VALUES
+        ('tree', 'owner', 'Family', '${now}', '${now}'),
+        ('joined-tree', 'otherowner', 'Other Family', '${now}', '${now}');
       INSERT INTO legacy_tree_members (tree_id, user_id, role, joined_at) VALUES
-        ('tree', 'owner', 'owner', '${now}'), ('tree', 'member', 'member', '${now}');
+        ('tree', 'owner', 'owner', '${now}'), ('tree', 'member', 'member', '${now}'),
+        ('joined-tree', 'otherowner', 'owner', '${now}'), ('joined-tree', 'owner', 'admin', '${now}');
       INSERT INTO family_placeholders (id, legacy_tree_id, created_by_user_id, name, relationship, birth_year, created_at, updated_at)
         VALUES ('placeholder', 'tree', 'owner', 'Grandparent', 'Grandparent', 1940, '${now}', '${now}'),
                ('year-only', 'tree', 'owner', 'Relative', 'Family', 1950, '${now}', '${now}');
@@ -511,6 +610,9 @@ test("family calendar authorization, consent and live imports in disposable Post
     const data = loadModule("lib/family-calendar-data.ts", dependencies);
     dependencies["@/lib/family-calendar-data"] = data;
     const actions = loadModule("app/actions/family-calendar.ts", dependencies);
+    const accessibleTrees = (await data.getCalendarSettings("owner")).trees;
+    assert.equal(accessibleTrees.find((tree) => tree.id === "tree").ownerId, "owner");
+    assert.equal(accessibleTrees.find((tree) => tree.id === "joined-tree").ownerId, "otherowner");
     const treeActions = loadModule("app/actions/tree-milestones.ts", dependencies);
     const treeData = loadModule("lib/tree-milestones-data.ts", dependencies);
     const save = (type, id, firstDate, secondDate = "") => actions.saveTreeSourceDate({}, form({

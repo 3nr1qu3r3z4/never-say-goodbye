@@ -4,7 +4,7 @@ import { getSql } from "@/lib/db";
 import type { CalendarEvent } from "@/lib/family-calendar";
 import type { CalendarProfile, Reminders, SourceRecord } from "@/app/family-calendar/calendar-forms";
 
-export type CalendarTree = { id: string; name: string; role: string };
+export type CalendarTree = { id: string; name: string; role: string; ownerId: string };
 export type FamilyBulletin = { id: string; treeId: string; message: string; authorName: string; createdAt: string };
 
 export async function getFamilyBulletins(userId: string, treeId: string | null): Promise<FamilyBulletin[]> {
@@ -35,7 +35,7 @@ export async function getCalendarSettings(userId: string) {
     sql`SELECT day_of AS "dayOf", one_day_before AS "oneDay",
                one_week_before AS "oneWeek", one_month_before AS "oneMonth"
         FROM family_calendar_reminders WHERE user_id = ${userId}`,
-    sql`SELECT t.id, t.name, m.role FROM legacy_trees t
+    sql`SELECT t.id, t.name, m.role, t.owner_user_id AS "ownerId" FROM legacy_trees t
         JOIN legacy_tree_members m ON m.tree_id = t.id
         WHERE m.user_id = ${userId} ORDER BY t.name, t.id`,
   ]);

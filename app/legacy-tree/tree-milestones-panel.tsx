@@ -22,7 +22,7 @@ export default async function TreeMilestonesPanel({ treeId, userId, people, isAd
   return (
     <section aria-label="Family Milestones" className="mt-6 rounded-3xl border border-[color:var(--nsg-accent)]/25 bg-slate-950/20 p-4 sm:p-6">
       <h3 className="font-serif text-2xl text-white">🎂 Family Milestones</h3>
-      <p className="mt-3 text-sm leading-6 text-slate-400">Save family milestones here. Tree members can see approved milestones in Family Calendar™ automatically. A month-only or undated milestone appears separately until an exact day is known. Manage an existing full birthday in the previously saved family dates below instead of adding it again.</p>
+      <p className="mt-3 text-sm leading-6 text-slate-400">Save family milestones here. Approved milestones appear in the tree owner&apos;s Family Calendar™ automatically. A month-only or undated milestone appears separately until an exact day is known. Manage an existing full birthday in the previously saved family dates below instead of adding it again.</p>
       <FamilyDatesManager key={treeId} treeId={treeId} userId={userId} people={people} milestones={milestones} sources={sources} profile={settings.profile} />
       {existingDates.length > 0 && <details className="mt-5">
         <summary className="cursor-pointer text-sm font-semibold text-[color:var(--nsg-accent-light)]">View Existing Family Dates →</summary>

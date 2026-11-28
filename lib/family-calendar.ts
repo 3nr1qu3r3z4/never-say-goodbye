@@ -8,6 +8,17 @@ export type CalendarEvent = {
   source: string;
 };
 
+export function calendarEventIcon(id: string): string {
+  if (id.startsWith("birthday:") || id.startsWith("placeholder-birthday:")) return "🎂";
+  if (id.startsWith("memorial:") || id.startsWith("placeholder-memorial:") || id.startsWith("honored-passing:")) return "🕊";
+  if (id.startsWith("anniversary:")) return "💍";
+  if (id.startsWith("tree-birthday:")) return "🎂";
+  if (id.startsWith("tree-anniversary:") || id.startsWith("tree-wedding:")) return "💍";
+  if (id.startsWith("tree-graduation:")) return "🎓";
+  if (id.startsWith("future:") || id.startsWith("milestone:")) return "✨";
+  return "📅";
+}
+
 export function datedCalendarMilestones(milestones: TreeMilestone[]): CalendarEvent[] {
   return milestones.flatMap((milestone) => {
     if (milestone.month === null || milestone.day === null) return [];

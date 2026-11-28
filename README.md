@@ -106,7 +106,8 @@ the owner becomes Free, the successor receives Lifetime, and that membership can
 be transferred again. A paid successor's stored plan is superseded; this application
 does not currently manage external subscription cancellation.
 
-Family Calendar currently displays shared family dates and events. Reminder
+Family Calendar displays shared family dates and events from the current user's
+owned Legacy Tree. Reminder
 preferences can be saved, but automated notifications are not sent. Support
 is available to every family.
 
@@ -129,8 +130,8 @@ status was not recorded. Existing Shared Moment deletion remains permanent.
 
 The signed-in landing page at `/dashboard` brings together the owner's profile,
 recent Shared Moments, family activity, accepted connections, and tree links.
-Its calendar preview shows up to three events in the next 90 days for the first
-accessible tree, using the same membership and sharing checks as Family Calendar.
+Its calendar preview shows up to three events in the next 90 days for the user's
+owned tree, using the same membership and sharing checks as Family Calendar.
 Other Moment types do not yet have viewing pages. Profile editing, appearance,
 privacy controls, and the owner profile preview remain on their existing pages.
 
