@@ -92,7 +92,6 @@ export default async function FamilyCalendarPage({
         <header className="mt-8">
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[color:var(--nsg-accent)]">A place for family</p>
           <h1 className="mt-3 font-serif text-4xl text-white sm:text-5xl">Family Calendar™</h1>
-          <p className="mt-4 max-w-2xl leading-7 text-slate-300">Remember the dates and milestones that bring your family together.</p>
         </header>
         <div className="mt-8">
           <div className="min-w-0">

@@ -531,6 +531,8 @@ test("empty calendar directs milestone management to the tree", async () => {
     ),
   }).default;
   const html = renderToStaticMarkup(await page({ searchParams: Promise.resolve({ date: "2026-05-04" }) }));
+  assert.match(html, /A place for family[\s\S]*Family Calendar™/);
+  assert.doesNotMatch(html, /Remember the dates and milestones that bring your family together/);
   assert.match(html, /Upcoming Family Moments/);
   assert.match(html, /No upcoming family moments/);
   assert.match(html, /Family Feed™/);
