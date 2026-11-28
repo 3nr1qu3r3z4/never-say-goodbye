@@ -178,6 +178,8 @@ test("Honored Lives creation, access and atomicity in PostgreSQL", {
       "@/lib/auth": { requireUser: async () => user },
       "@/lib/db": dependencies["@/lib/db"],
       "@/lib/family-calendar": dependencies["@/lib/family-calendar"],
+      "@/lib/family-calendar-data": {},
+      "@/lib/tree-milestones-data": {},
     });
     const invalidUpdate = await calendar.saveTreeSourceDate({}, form({
       treeId: "tree", sourceId: sameYearId, sourceType: "placeholder",

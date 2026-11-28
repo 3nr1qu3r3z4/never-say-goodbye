@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
-import { getCalendarEvents, getCalendarSettings } from "@/lib/family-calendar-data";
+import { getCalendarEvents, getCalendarNotes, getCalendarSettings } from "@/lib/family-calendar-data";
 import { getTreeMilestones } from "@/lib/tree-milestones-data";
 import { milestoneDate } from "@/lib/tree-milestones";
 import { calendarEventIcon, datedCalendarMilestones, occurrences, upcomingOccurrences, validCalendarDate, type CalendarEvent } from "@/lib/family-calendar";
@@ -21,13 +21,17 @@ const dateText = (date: Date) => date.toISOString().slice(0, 10);
 const readable = (date: string, options: Intl.DateTimeFormatOptions) =>
   new Intl.DateTimeFormat("en-US", { ...options, timeZone: "UTC" }).format(new Date(`${date}T00:00:00Z`));
 
-function EventList({ events }: { events: CalendarEvent[] }) {
+function EventList({ events, tone = "default" }: { events: CalendarEvent[]; tone?: "default" | "past" | "today" }) {
   return (
     <ul className="space-y-2">
       {events.map((event) => (
-        <li key={`${event.id}-${event.date}`} className="rounded-lg border border-[color:var(--nsg-accent)]/20 bg-[color:var(--nsg-accent)]/[0.07] p-2 text-sm text-slate-100">
+        <li key={`${event.id}-${event.date}`} className={`rounded-lg border p-2 text-sm ${tone === "today"
+          ? "border-slate-300 bg-transparent text-slate-900"
+          : tone === "past"
+            ? "border-[color:var(--nsg-border)]/10 bg-white/[0.02] text-slate-400"
+            : "border-[color:var(--nsg-accent)]/20 bg-[color:var(--nsg-accent)]/[0.07] text-slate-100"}`}>
           <span className="block break-words"><span aria-hidden="true">{calendarEventIcon(event.id)} </span>{event.title}</span>
-          <span className="block text-xs text-slate-400">Source: {event.source}</span>
+          <span className={`block text-xs ${tone === "today" ? "text-slate-600" : tone === "past" ? "text-slate-500" : "text-slate-400"}`}>Source: {event.source}</span>
         </li>
       ))}
     </ul>
@@ -70,6 +74,7 @@ export default async function FamilyCalendarPage({
   const today = dateText(new Date());
   const tomorrow = dateText(new Date(new Date(`${today}T00:00:00Z`).getTime() + dayMs));
   const upcoming = upcomingOccurrences(allEvents, today);
+  const notes = selected ? await getCalendarNotes(user.id, selected.id, today) : [];
   const link = (nextView: string, date = anchor) => {
     const query = new URLSearchParams({ view: nextView, date });
     return `/family-calendar?${query.toString()}`;
@@ -99,7 +104,7 @@ export default async function FamilyCalendarPage({
               </>
             ) : (
               <>
-                <UpcomingFamilyMoments events={upcoming} today={today} tomorrow={tomorrow} />
+                <UpcomingFamilyMoments events={upcoming} notes={notes} treeId={selected.id} today={today} tomorrow={tomorrow} />
                 <section aria-label="Family calendar" className="rounded-3xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-4 sm:p-6">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div className="flex flex-wrap gap-2">
@@ -123,9 +128,11 @@ export default async function FamilyCalendarPage({
                   <div className="grid gap-2 sm:grid-cols-7">
                     {Array.from({ length: count }, (_, index) => {
                       const date = dateText(new Date(start.getTime() + index * dayMs));
-                      return <div key={date} className={`min-w-0 rounded-xl border border-[color:var(--nsg-border)]/10 p-2 ${date.slice(0, 7) !== anchor.slice(0, 7) && view === "month" ? "opacity-60" : ""}`}>
-                        <h3 className="mb-2 text-xs font-semibold text-slate-300"><time dateTime={date}>{readable(date, { weekday: "short", month: "short", day: "numeric" })}</time></h3>
-                        <EventList events={events.filter((event) => event.date === date)} />
+                      const dayEvents = events.filter((event) => event.date === date);
+                      const tone = date === today ? "today" : date < today ? "past" : "default";
+                      return <div key={date} className={`min-w-0 rounded-xl border p-2 ${dayEvents.length ? "border-[#d8a35b]/60" : "border-[color:var(--nsg-border)]/10"} ${tone === "today" ? "bg-white" : tone === "past" ? "bg-black/20" : "bg-white/[0.06]"}`}>
+                        <h3 className={`mb-2 text-xs font-semibold ${tone === "today" ? "text-slate-900" : tone === "past" ? "text-slate-500" : "text-slate-300"}`}><time dateTime={date}>{readable(date, { weekday: "short", month: "short", day: "numeric" })}</time></h3>
+                        <EventList events={dayEvents} tone={tone} />
                       </div>;
                     })}
                   </div>

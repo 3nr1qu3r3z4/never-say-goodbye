@@ -107,7 +107,8 @@ be transferred again. A paid successor's stored plan is superseded; this applica
 does not currently manage external subscription cancellation.
 
 Family Calendar displays shared family dates and events from the current user's
-owned Legacy Tree. Reminder
+owned Legacy Tree. Apply migration 036 for private notes on individual upcoming
+event occurrences; notes do not repeat with yearly events. Reminder
 preferences can be saved, but automated notifications are not sent. Support
 is available to every family.
 

@@ -27,7 +27,11 @@ function loadModule(relativePath, dependencies = {}, globals = {}) {
       if (name === "./upcoming-family-moments" && !(name in dependencies)) return {
         default: loadModule("app/family-calendar/upcoming-family-moments.tsx", {
           react: React, "react/jsx-runtime": jsxRuntime, "@/lib/family-calendar": calendar,
+          "@/app/actions/family-calendar": { saveCalendarEventNote: async () => ({}) },
         }).default,
+      };
+      if (name === "@/lib/family-calendar-data" && name in dependencies) return {
+        getCalendarNotes: async () => [], ...dependencies[name],
       };
       if (!(name in dependencies)) throw new Error(`Unexpected import: ${name}`);
       return dependencies[name];
@@ -109,16 +113,18 @@ test("upcoming section uses today rather than the browsed calendar date", async 
 test("upcoming moments toggle between grid and compact list without changing dates", () => {
   let view = "grid";
   let controls = [];
+  const reactState = React.useState;
   const capture = (factory) => (type, props, key) => {
     if (type === "button") controls.push(props);
     return factory(type, props, key);
   };
   const upcoming = loadModule("app/family-calendar/upcoming-family-moments.tsx", {
-    react: { useState: () => [view, (next) => { view = next; }] },
+    react: { ...React, useState: (initial) => initial === "grid" ? [view, (next) => { view = next; }] : reactState(initial) },
     "react/jsx-runtime": { ...jsxRuntime, jsx: capture(jsxRuntime.jsx), jsxs: capture(jsxRuntime.jsxs) },
     "@/lib/family-calendar": calendar,
+    "@/app/actions/family-calendar": { saveCalendarEventNote: async () => ({}) },
   }).default;
-  const props = { today: "2026-03-10", tomorrow: "2026-03-11", events: [
+  const props = { today: "2026-03-10", tomorrow: "2026-03-11", treeId: "tree", notes: [], events: [
     { id: "birthday:one", title: "Alex Birthday", date: "2026-03-11" },
     { id: "two", title: "Family Gathering", date: "2026-04-02" },
   ] };
@@ -133,6 +139,70 @@ test("upcoming moments toggle between grid and compact list without changing dat
   assert.equal(controls.find((control) => control.children === "List")["aria-pressed"], true);
   controls.find((control) => control.children === "Grid").onClick();
   assert.match(render(), /sm:grid-cols-2/);
+});
+
+test("event notes open, save, report errors, and clear in an upcoming card", async () => {
+  const states = [];
+  let stateIndex = 0, controls = [], card, result = { note: "Dinner at 7" }, task;
+  const capture = (factory) => (type, props, key) => {
+    if (typeof type === "function" && type.name === "UpcomingCard") card = { type, props };
+    if (type === "button" || type === "textarea" || type === "form") controls.push({ type, ...props });
+    return factory(type, props, key);
+  };
+  const upcoming = loadModule("app/family-calendar/upcoming-family-moments.tsx", {
+    react: {
+      useState(initial) {
+        const index = stateIndex++;
+        if (!(index in states)) states[index] = initial;
+        return [states[index], (value) => { states[index] = value; }];
+      },
+      useTransition: () => [false, (callback) => { task = callback(); }],
+      useRef: () => ({ current: null }),
+      useEffect: () => {},
+    },
+    "react/jsx-runtime": { ...jsxRuntime, jsx: capture(jsxRuntime.jsx), jsxs: capture(jsxRuntime.jsxs) },
+    "@/lib/family-calendar": calendar,
+    "@/app/actions/family-calendar": {
+      saveCalendarEventNote: async (tree, id, date) => {
+        assert.equal(tree, "tree"); assert.equal(id, "birthday:one"); assert.equal(date, "2026-03-11");
+        return result;
+      },
+    },
+  }).default;
+  upcoming({ treeId: "tree", today: "2026-03-10", tomorrow: "2026-03-11",
+    events: [{ id: "birthday:one", title: "Alex Birthday", date: "2026-03-11" }],
+    notes: [{ eventId: "birthday:one", date: "2025-03-11", note: "Old note" }] });
+  assert.equal(card.props.initialNote, "");
+  states.length = 0;
+  const render = () => { stateIndex = 0; controls = []; return renderToStaticMarkup(card.type(card.props)); };
+  let html = render();
+  assert.doesNotMatch(html, /Old note/);
+  assert.match(html, /aria-label="Add note for Alex Birthday"/);
+  assert.match(controls.find((control) => control.type === "button").className, /text-slate-400/);
+  controls.find((control) => control.type === "button").onClick();
+  render();
+  controls.find((control) => control.type === "textarea").onChange({ target: { value: "Dinner at 7" } });
+  render();
+  controls.find((control) => control.type === "form").onSubmit({ preventDefault() {} });
+  await task;
+  html = render();
+  assert.match(html, /Tomorrow<\/time>[\s\S]*Dinner at 7/);
+  assert.match(html, /aria-label="Edit note for Alex Birthday"[^>]*aria-expanded="false"/);
+  assert.match(controls.find((control) => control.type === "button").className, /nsg-accent-light/);
+  controls.find((control) => control.type === "button").onClick();
+  render();
+  result = { error: "Unable to save." };
+  controls.find((control) => control.type === "form").onSubmit({ preventDefault() {} });
+  await task;
+  assert.match(render(), /role="alert"[^>]*>Unable to save/);
+  controls.find((control) => control.type === "textarea").onChange({ target: { value: "" } });
+  render();
+  result = { note: "" };
+  controls.find((control) => control.type === "form").onSubmit({ preventDefault() {} });
+  await task;
+  html = render();
+  assert.doesNotMatch(html, /Dinner at 7|Unable to save/);
+  assert.match(html, /aria-label="Add note for Alex Birthday"/);
 });
 
 test("calendar loads only the owned tree even when a different tree is requested", async () => {
@@ -365,6 +435,52 @@ test("calendar renders month, week and agenda views with source labels", async (
   const otherLink = renderToStaticMarkup(await page({ searchParams: Promise.resolve({ tree: "other", date: "2026-05-04" }) }));
   assert.match(otherLink, /Emma Birthday/);
   assert.doesNotMatch(otherLink, /Family tree<\/label>|View Calendar|managed in your Legacy Tree/);
+});
+
+test("calendar day cells distinguish past, today, future, and event dates across month boundaries", async () => {
+  class FixedDate extends Date {
+    constructor(...args) { super(...(args.length ? args : ["2026-04-30T12:00:00Z"])); }
+    static now() { return Date.parse("2026-04-30T12:00:00Z"); }
+  }
+  const page = loadModule("app/family-calendar/page.tsx", {
+    "react/jsx-runtime": jsxRuntime,
+    "next/link": { default: ({ href, children }) => React.createElement("a", { href }, children) },
+    "next/navigation": { notFound: () => { throw new Error("not found"); } },
+    "@/lib/auth": { requireUser: async () => ({ id: "owner" }) },
+    "@/lib/family-calendar": calendar,
+    "@/lib/tree-milestones": milestones,
+    "@/lib/tree-milestones-data": { getTreeMilestones: async () => [
+      { id: "m", kind: "graduation", personName: "Alex", title: "Graduation", year: 2026, month: 4, day: 29, repeatsYearly: false },
+    ] },
+    "@/lib/family-calendar-data": {
+      getCalendarSettings: async () => ({ reminders: {}, trees: [{ id: "tree", ownerId: "owner" }] }),
+      getCalendarEvents: async () => [
+        { id: "event:one", title: "Past event", date: "2026-04-28", repeatsYearly: false, source: "Manual Event" },
+        { id: "birthday:one", title: "Birthday", date: "2026-04-30", repeatsYearly: false, source: "Legacy Tree™" },
+        { id: "anniversary:one", title: "Anniversary", date: "2026-05-01", repeatsYearly: false, source: "Connected Lives™" },
+      ],
+    },
+    "./calendar-forms": { CalendarActions: () => null },
+  }, { Date: FixedDate }).default;
+  for (const view of ["month", "week"]) {
+    const html = renderToStaticMarkup(await page({ searchParams: Promise.resolve({ view, date: "2026-05-01" }) }));
+    const day = (date) => {
+      const match = html.match(new RegExp(`<div class="([^"]+)"><h3 class="([^"]+)"><time dateTime="${date}"[^>]*>[\\s\\S]*?<\\/h3>([\\s\\S]*?)<\\/div>`));
+      assert.ok(match, `${view}: missing ${date}`);
+      return { cell: match[1], heading: match[2], contents: match[3] };
+    };
+    for (const date of ["2026-04-28", "2026-04-29", "2026-04-30", "2026-05-01"]) {
+      assert.match(day(date).cell, /border-\[#d8a35b\]\/60/);
+    }
+    assert.match(day("2026-04-28").cell, /bg-black\/20/);
+    assert.match(day("2026-04-28").contents, /text-slate-400/);
+    assert.match(day("2026-04-30").cell, /bg-white/);
+    assert.doesNotMatch(day("2026-04-30").cell, /opacity-60|bg-white\/\[/);
+    assert.match(day("2026-04-30").heading, /text-slate-900/);
+    assert.match(day("2026-04-30").contents, /bg-transparent text-slate-900[\s\S]*text-slate-600/);
+    assert.match(day("2026-05-02").cell, /bg-white\/\[0\.06\]/);
+    assert.doesNotMatch(day("2026-05-02").cell, /border-\[#d8a35b\]/);
+  }
 });
 
 test("empty calendar directs milestone management to the tree", async () => {
@@ -609,12 +725,35 @@ test("family calendar authorization, consent and live imports in disposable Post
     };
     const data = loadModule("lib/family-calendar-data.ts", dependencies);
     dependencies["@/lib/family-calendar-data"] = data;
+    const treeData = loadModule("lib/tree-milestones-data.ts", dependencies);
+    dependencies["@/lib/tree-milestones-data"] = treeData;
     const actions = loadModule("app/actions/family-calendar.ts", dependencies);
     const accessibleTrees = (await data.getCalendarSettings("owner")).trees;
     assert.equal(accessibleTrees.find((tree) => tree.id === "tree").ownerId, "owner");
     assert.equal(accessibleTrees.find((tree) => tree.id === "joined-tree").ownerId, "otherowner");
     const treeActions = loadModule("app/actions/tree-milestones.ts", dependencies);
-    const treeData = loadModule("lib/tree-milestones-data.ts", dependencies);
+    await db.exec(fs.readFileSync(path.join(root, "db", "migrations", "036_family_calendar_notes.sql"), "utf8"));
+    const occurrenceDate = new Date().toISOString().slice(0, 10);
+    const nextYear = new Date(Date.parse(`${occurrenceDate}T00:00:00Z`) + 370 * 86400000).toISOString().slice(0, 10);
+    await db.query(`INSERT INTO family_calendar_events (id, tree_id, creator_user_id, title, event_date, repeats_yearly)
+      VALUES ('note-event', 'tree', 'owner', 'Birthday', $1::date, TRUE)`, [occurrenceDate]);
+    assert.equal((await actions.saveCalendarEventNote("tree", "event:note-event", occurrenceDate, " Dinner at 7 ")).note, "Dinner at 7");
+    assert.equal((await data.getCalendarNotes("owner", "tree", occurrenceDate))[0].note, "Dinner at 7");
+    assert.equal((await data.getCalendarNotes("member", "tree", occurrenceDate)).length, 0);
+    assert.equal((await data.getCalendarNotes("owner", "joined-tree", occurrenceDate)).length, 0);
+    assert.equal((await data.getCalendarNotes("owner", "tree", nextYear)).length, 0);
+    assert.ok((await actions.saveCalendarEventNote("tree", "event:note-event", nextYear, "Next year")).error);
+    assert.ok((await actions.saveCalendarEventNote("joined-tree", "event:note-event", occurrenceDate, "No")).error);
+    assert.ok((await actions.saveCalendarEventNote("tree", "event:missing", occurrenceDate, "No")).error);
+    assert.ok((await actions.saveCalendarEventNote("tree", "event:note-event", occurrenceDate, "x".repeat(1001))).error);
+    currentUser = "member";
+    assert.ok((await actions.saveCalendarEventNote("tree", "event:note-event", occurrenceDate, "Not mine")).error);
+    currentUser = "owner";
+    assert.equal((await actions.saveCalendarEventNote("tree", "event:note-event", occurrenceDate, "Updated")).note, "Updated");
+    assert.equal((await data.getCalendarNotes("owner", "tree", occurrenceDate))[0].note, "Updated");
+    assert.equal((await actions.saveCalendarEventNote("tree", "event:note-event", occurrenceDate, " ")).note, "");
+    assert.equal((await data.getCalendarNotes("owner", "tree", occurrenceDate)).length, 0);
+    await db.query("DELETE FROM family_calendar_events WHERE id = 'note-event'");
     const save = (type, id, firstDate, secondDate = "") => actions.saveTreeSourceDate({}, form({
       treeId: "tree", sourceId: id, sourceType: type, firstDate, secondDate,
     }));
@@ -635,6 +774,12 @@ test("family calendar authorization, consent and live imports in disposable Post
     assert.equal(treeItems[0].repeatsYearly, true);
     assert.equal(treeItems[0].canEdit, false);
     assert.equal((await treeData.getTreeMilestones("outsider", "tree")).length, 0);
+    currentUser = "owner";
+    const milestoneOccurrence = calendar.upcomingOccurrences(calendar.datedCalendarMilestones(treeItems), occurrenceDate)[0];
+    assert.equal((await actions.saveCalendarEventNote("tree", milestoneOccurrence.id, milestoneOccurrence.date, "Bring cake")).note, "Bring cake");
+    assert.equal((await data.getCalendarNotes("owner", "tree", occurrenceDate)).find((item) => item.eventId === milestoneOccurrence.id).note, "Bring cake");
+    assert.equal((await actions.saveCalendarEventNote("tree", milestoneOccurrence.id, milestoneOccurrence.date, "")).note, "");
+    currentUser = "member";
     assert.ok((await treeActions.saveMilestoneAdminConsent({}, form({ treeId: "tree", allow: "on" }))).success);
     currentUser = "owner";
     assert.ok((await addMilestone({ kind: "custom", title: "First Day of College" })).success);
@@ -789,7 +934,7 @@ test("standalone schema and migration expose the same calendar columns", {
     await bootstrap.exec(fs.readFileSync(path.join(root, "db", "schema.sql"), "utf8"));
     const query = `SELECT table_name, column_name, data_type, is_nullable, column_default
       FROM information_schema.columns WHERE table_schema = 'public' AND (
-        table_name IN ('family_calendar_events', 'family_calendar_import_settings', 'family_calendar_reminders', 'family_relationship_milestones', 'family_bulletins', 'family_tree_milestones')
+        table_name IN ('family_calendar_events', 'family_calendar_notes', 'family_calendar_import_settings', 'family_calendar_reminders', 'family_relationship_milestones', 'family_bulletins', 'family_tree_milestones')
         OR (table_name = 'legacy_tree_members' AND column_name = 'allow_milestone_admin')
         OR (table_name = 'users' AND column_name IN ('birth_date', 'birth_year', 'memorial_date', 'share_birthday', 'share_anniversary', 'share_memorial_date', 'share_relationship_milestones'))
         OR (table_name = 'family_placeholders' AND column_name IN ('birth_date', 'memorial_date'))

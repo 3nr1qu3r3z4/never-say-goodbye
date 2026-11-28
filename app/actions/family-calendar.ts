@@ -4,8 +4,9 @@ import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { getCurrentUser, requireUser } from "@/lib/auth";
 import { getSql } from "@/lib/db";
-import { validCalendarDate } from "@/lib/family-calendar";
-import { getCalendarSettings, getFamilyBulletins, type CalendarTree, type FamilyBulletin } from "@/lib/family-calendar-data";
+import { datedCalendarMilestones, upcomingOccurrences, validCalendarDate } from "@/lib/family-calendar";
+import { getCalendarEvents, getCalendarSettings, getFamilyBulletins, type CalendarTree, type FamilyBulletin } from "@/lib/family-calendar-data";
+import { getTreeMilestones } from "@/lib/tree-milestones-data";
 
 export type CalendarActionState = { error?: string; success?: string };
 
@@ -99,6 +100,56 @@ export async function createCalendarEvent(
   revalidatePath("/family-calendar");
   revalidatePath("/dashboard");
   return { success: "Family event added." };
+}
+
+export async function saveCalendarEventNote(
+  treeId: string, eventId: string, date: string, note: string,
+): Promise<{ error: string } | { note: string }> {
+  const user = await requireUser();
+  if (typeof treeId !== "string" || !treeId || typeof eventId !== "string" || !eventId || eventId.length > 512 ||
+      typeof date !== "string" || !validCalendarDate(date) || typeof note !== "string" || note.length > 1000) {
+    return { error: "Enter a valid note of up to 1,000 characters." };
+  }
+  const { trees } = await getCalendarSettings(user.id);
+  if (!trees.some((tree) => tree.id === treeId && tree.ownerId === user.id)) {
+    return { error: "This family calendar is no longer available." };
+  }
+  const [events, milestones] = await Promise.all([
+    getCalendarEvents(user.id, treeId),
+    getTreeMilestones(user.id, treeId),
+  ]);
+  const today = new Date().toISOString().slice(0, 10);
+  if (!upcomingOccurrences([...events, ...datedCalendarMilestones(milestones)], today)
+    .some((event) => event.id === eventId && event.date === date)) {
+    return { error: "This upcoming family moment is no longer available." };
+  }
+  const value = note.trim();
+  const sql = getSql();
+  const rows = value ? await sql`
+    INSERT INTO family_calendar_notes (user_id, tree_id, event_id, occurrence_date, note)
+    SELECT ${user.id}, tree.id, ${eventId}, ${date}::date, ${value}
+    FROM legacy_trees tree
+    JOIN legacy_tree_members member ON member.tree_id = tree.id AND member.user_id = ${user.id}
+    WHERE tree.id = ${treeId} AND tree.owner_user_id = ${user.id}
+    ON CONFLICT (user_id, tree_id, event_id, occurrence_date)
+    DO UPDATE SET note = EXCLUDED.note
+    RETURNING user_id
+  ` : await sql`
+    WITH access AS (
+      SELECT tree.id FROM legacy_trees tree
+      JOIN legacy_tree_members member ON member.tree_id = tree.id AND member.user_id = ${user.id}
+      WHERE tree.id = ${treeId} AND tree.owner_user_id = ${user.id}
+    ), removed AS (
+      DELETE FROM family_calendar_notes
+      WHERE user_id = ${user.id} AND tree_id IN (SELECT id FROM access)
+        AND event_id = ${eventId} AND occurrence_date = ${date}::date
+      RETURNING user_id
+    )
+    SELECT id FROM access
+  `;
+  if (!rows.length) return { error: "This family calendar is no longer available." };
+  revalidatePath("/family-calendar");
+  return { note: value };
 }
 
 export async function createFamilyBulletin(
