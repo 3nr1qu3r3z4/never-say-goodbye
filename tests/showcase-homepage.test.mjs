@@ -30,6 +30,8 @@ function loadPage(relativePath, user = null, overrides = {}, globals = {}) {
     "@/lib/membership-plans": planExports,
     "./weekly-moment-makers": { default: () => null },
     "./homepage-video": { default: () => React.createElement("div", { "data-video-player": true }) },
+    "../weekly-moment-makers": { default: () => null },
+    "../homepage-video": { default: () => React.createElement("div", { "data-video-player": true }) },
     "./first-message": { default: () => null },
     "./protected-moment": { default: () => null },
     ...overrides,
@@ -67,6 +69,20 @@ test("homepage hero preserves guest actions and removes the signed-in duplicate"
   const signedIn = await renderHero({ id: "viewer" });
   assert.doesNotMatch(signedIn, /My Legacy|href="\/dashboard"|Create Your Legacy/);
   assert.match(signedIn, /href="\/search"[^>]*bg-\[color:var\(--nsg-accent\)\][^>]*>Find A Moment Maker<\/a>/);
+});
+
+test("homepage keeps its hero and footer, with matching links to mission and discovery", () => {
+  const html = renderPage(["app", "page.tsx"]);
+  const mission = html.match(/<p class="([^"]+)">Not quite ready\?<br\/><a href="\/about" class="([^"]+)">Learn why Never Say Goodbye exists\.<\/a><\/p>/);
+  const discovery = html.match(/<p class="([^"]+)">What NSG Offers<br\/><a href="\/what-nsg-offers" class="([^"]+)">See all our features here\.<\/a><\/p>/);
+  assert.ok(mission);
+  assert.ok(discovery);
+  assert.equal(mission[2], discovery[2]);
+  assert.ok(mission[1].includes("text-sm text-slate-400"));
+  assert.ok(discovery[1].includes("text-sm text-slate-400"));
+  assert.ok(html.indexOf("Not quite ready?") < html.indexOf("What NSG Offers"));
+  assert.doesNotMatch(html, /Explore Legacy Tree™|A Message For The Future|How It Works|Meet Our Moment Makers™|id="features"/);
+  assert.match(html, /<footer\b/);
 });
 
 test("signed-in primary navigation retains My Legacy and Sign Out", async () => {
@@ -265,17 +281,18 @@ test("signup lists all roadmap plans but allows only Free Legacy", () => {
   assert.match(html, /plan limits are not enforced/);
 });
 
-test("the homepage showcase link opens John's profile without the message fragment", () => {
-  const html = renderPage(["app", "page.tsx"]);
+test("the discovery showcase link opens John's profile without the message fragment", () => {
+  const html = renderPage(["app", "what-nsg-offers", "page.tsx"]);
   assert.match(html, /<a href="\/profile-preview"[^>]*>View Profile<\/a>/);
   assert.doesNotMatch(html, /profile-preview#first-message/);
 });
 
-test("the homepage places the promotional video before the consolidated Moment Makers section", () => {
-  const page = loadPage(["app", "page.tsx"], null, {
+test("the discovery page preserves the promotional video and Moment Makers section", () => {
+  const page = loadPage(["app", "what-nsg-offers", "page.tsx"], null, {
     "next/image": { default: ({ src, alt }) => React.createElement("img", { src, alt }) },
   });
   const html = renderToStaticMarkup(React.createElement(page));
+  assert.match(html, /<h1[^>]*>What NSG Offers<\/h1>/);
   assert.match(html, /❤️ A Message For The Future/);
   assert.match(html, /Imagine recording a message today that your child won&#x27;t open until they turn 18/);
   assert.match(html, /data-video-player="true"/);
@@ -317,7 +334,7 @@ test("promotional video reports playback failures", async () => {
 });
 
 test("How It Works keeps its existing cards and adds Stop Making Notes", () => {
-  const html = renderPage(["app", "page.tsx"]);
+  const html = renderPage(["app", "what-nsg-offers", "page.tsx"]);
   const section = html.match(/<section\b[^>]*>[\s\S]*?<\/section>/g)
     ?.find((item) => item.includes("How It Works"));
   assert.ok(section);
@@ -336,8 +353,8 @@ test("How It Works keeps its existing cards and adds Stop Making Notes", () => {
   assert.match(cards[5], /Never Say Goodbye helps you remember the moments that matter\./);
 });
 
-test("homepage feature cards explain each feature and retain their links", () => {
-  const html = renderPage(["app", "page.tsx"]);
+test("discovery feature cards explain each feature and retain their links", () => {
+  const html = renderPage(["app", "what-nsg-offers", "page.tsx"]);
   const section = html.match(/<section id="features"[\s\S]*?<\/section>/)?.[0];
   assert.ok(section);
   const cards = [...section.matchAll(/<a href="([^"]+)"[^>]*><h3[^>]*>([^<]+)<\/h3><p[^>]*>([^<]+)<\/p><\/a>/g)];

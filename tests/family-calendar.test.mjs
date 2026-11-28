@@ -674,10 +674,12 @@ test("family feed opens linked shout-outs and updates, switches trees, refreshes
   effects[1]();
   assert.equal(scrolled, "bulletin-note");
   assert.match(html, /Enrique[\s\S]*?dateTime="2026-11-19T19:21:00Z"[\s\S]*?Hello family/);
-  assert.match(html, /Family Updates[\s\S]*Reunion[\s\S]*Courtney[\s\S]*Bring cake/);
-  controls.find((control) => control.type === "button" && control.className?.includes("w-full rounded-xl")).onClick();
+  assert.match(html, /Family Updates[\s\S]*Courtney updated Reunion\.[\s\S]*Bring cake[\s\S]*View Event/);
+  assert.ok(html.indexOf("Family Updates") < html.indexOf("Recent Family Shout-Outs"));
+  controls.find((control) => control.type === "button" && control["aria-label"] === "View Event: Reunion").onClick();
   assert.equal(openedEvent.treeId, "two");
   assert.equal(openedEvent.eventId, "event:1");
+  assert.equal(openedEvent.date, "2026-12-01");
   controls.find((control) => control.type === "select").onChange({ target: { value: "two" } });
   // A dashboard link can open another tree while the first request is still in flight.
   feed.FamilyFeedLink({ treeId: "one", bulletinId: "note" }).props.onClick({

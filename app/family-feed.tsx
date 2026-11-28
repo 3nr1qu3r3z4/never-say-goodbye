@@ -135,6 +135,23 @@ export default function FamilyFeed({ initialTreeId = null }: { initialTreeId?: s
         ) : data && (
           data.selectedTreeId ? (
             <>
+              <section className="mt-6" aria-labelledby="family-feed-updates">
+                <h3 id="family-feed-updates" className="font-serif text-xl text-white">Family Updates</h3>
+                {data.updates.length ? <ol className="mt-3 space-y-3">
+                  {data.updates.map((update) => <li key={update.id} className="rounded-xl border border-[color:var(--nsg-border)]/10 p-4">
+                    <p className="font-semibold text-white">{update.authorName} updated {update.title}.</p>
+                    <p className="mt-1 text-xs text-slate-400">{update.treeName} · <time dateTime={update.createdAt}>
+                      {new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" }).format(new Date(update.createdAt))} UTC
+                    </time></p>
+                    <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-slate-200">{update.message}</p>
+                    <button type="button" onClick={() => openFamilyEvent({ treeId: update.treeId, eventId: update.eventId, date: update.date })}
+                      aria-label={`View Event: ${update.title}`}
+                      className="mt-3 min-h-11 text-sm font-semibold text-[color:var(--nsg-accent-light)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--nsg-accent)]">
+                      View Event
+                    </button>
+                  </li>)}
+                </ol> : <p className="mt-3 text-sm text-slate-400">No family updates yet.</p>}
+              </section>
               {data.trees.length > 1 && <label className="mt-6 block text-sm text-slate-300">Family tree
                 <select value={data.selectedTreeId} onChange={(event) => { setTarget(null); void load(event.target.value); }}
                   className="mt-2 min-h-11 w-full rounded-xl border border-[color:var(--nsg-border)]/15 bg-slate-950 px-3 text-white">
@@ -157,21 +174,6 @@ export default function FamilyFeed({ initialTreeId = null }: { initialTreeId?: s
                   </li>)}
                 </ol> : <p className="mt-3 text-sm text-slate-400">No family shout-outs yet.</p>}
                 {target && !data.bulletins.some((bulletin) => bulletin.id === target) && <p role="status" className="mt-3 text-sm text-slate-400">This shout-out is no longer available.</p>}
-              </section>
-              <section className="mt-6" aria-labelledby="family-feed-updates">
-                <h3 id="family-feed-updates" className="font-serif text-xl text-white">Family Updates</h3>
-                {data.updates.length ? <ol className="mt-3 space-y-3">
-                  {data.updates.map((update) => <li key={update.id}>
-                    <button type="button" onClick={() => openFamilyEvent({ treeId: update.treeId, eventId: update.eventId, date: update.date })}
-                      className="w-full rounded-xl border border-[color:var(--nsg-border)]/10 p-4 text-left hover:border-[color:var(--nsg-accent)]/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--nsg-accent)]">
-                      <span className="block font-semibold text-white">{update.title}</span>
-                      <span className="mt-1 block text-xs text-slate-400">{update.treeName} · {update.authorName} · <time dateTime={update.createdAt}>
-                        {new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" }).format(new Date(update.createdAt))} UTC
-                      </time></span>
-                      <span className="mt-3 block whitespace-pre-wrap break-words text-sm leading-6 text-slate-200">{update.message}</span>
-                    </button>
-                  </li>)}
-                </ol> : <p className="mt-3 text-sm text-slate-400">No family updates yet.</p>}
               </section>
             </>
           ) : <p className="mt-6 text-sm text-slate-300">Create or join a <a href="/legacy-tree" className="text-[color:var(--nsg-accent-light)] underline">Legacy Tree™</a> to share with family.</p>

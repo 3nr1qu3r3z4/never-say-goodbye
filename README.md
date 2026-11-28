@@ -143,9 +143,11 @@ profiles, accessible Shared Moments by title, story, tags or written message,
 member trees, owned Future Moment Makers and owned drafts by name or title.
 Guests can search visible profiles. Results are limited to 30 per category.
 
-## Homepage video
+## What NSG Offers
 
-The homepage plays the promotional video at
+The homepage links to `/what-nsg-offers`, which contains the platform's feature
+sections, examples, weekly Moment Makers, and promotional video. The page plays
+the video at
 `public/videos/never-say-goodbye-ad.mp4` with native playback controls. The file
 is loaded on playback rather than autoplaying. Replace that public asset when
 the video is updated. A caption track or transcript is not currently provided.
@@ -638,7 +640,7 @@ stages and error types, not file names or image contents. A header-read failure
 occurs before upload; an image is reported opened only after decoding succeeds.
 
 Migration 013 adds This Week's Moment Makers™ settings and selection history.
-The first homepage request each UTC week selects up to the configured count of
+The first What NSG Offers request each UTC week selects up to the configured count of
 opted-in, discoverable profiles, prioritizing those never featured and then
 those featured least recently. Profiles selected in the previous four weeks
 are excluded; the section may show fewer profiles. A member who opts out or
@@ -655,7 +657,7 @@ UPDATE weekly_moment_maker_settings SET profile_count = 6 WHERE singleton = TRUE
 The allowed range is 0–100. Changes apply when the next week is first generated;
 existing weekly selections are not replaced or expanded midweek. This setting
 can be exposed through a secured admin interface later. Apply migration 013
-before deployment; otherwise the homepage reports that featured profiles are
+before deployment; otherwise the discovery page reports that featured profiles are
 temporarily unavailable.
 
 For database-backed rotation checks, apply the migrations to an empty,
