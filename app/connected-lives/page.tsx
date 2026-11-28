@@ -7,6 +7,7 @@ import type { DirectoryConnection, PersonTag } from "@/lib/connected-lives-direc
 import { markLivesNotificationsRead } from "@/app/actions/connected-lives";
 import ConnectionResponse from "./connection-response";
 import ConnectedLivesDirectory from "./directory";
+import FamilyFeed from "@/app/family-feed";
 
 export const metadata: Metadata = {
   title: "Connected Lives™ | Never Say Goodbye",
@@ -282,6 +283,7 @@ export default async function ConnectedLivesPage() {
           Find A Moment Maker
         </Link>
       </div>
+      <FamilyFeed />
     </main>
   );
 }

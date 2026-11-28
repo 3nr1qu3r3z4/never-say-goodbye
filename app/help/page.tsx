@@ -180,7 +180,7 @@ const guides = [
       },
       {
         question: "How do Family Shout-Outs work?",
-        answer: "Open Family Calendar™, select a Legacy Tree™, and share a quick note of up to 300 characters in Family Shout-Outs. Current members of that tree can read and share shout-outs. Shout-out emails are not sent yet.",
+        answer: "Open Family Feed™ from My Legacy™, Family Calendar™, Legacy Tree™, or Connected Lives™. Select a Legacy Tree™ and share a quick note of up to 300 characters. Current members of that tree can read and share shout-outs. Shout-out emails are not sent yet.",
       },
     ],
   },

@@ -15,6 +15,7 @@ import { canManageSuccessor, getOwnSuccessor, hasTransferredSuccessor } from "@/
 import MomentCard from "@/app/moments/moment-card";
 import SignupWelcome from "./signup-welcome";
 import FrequentVisits from "./frequent-visits";
+import FamilyFeed, { FamilyFeedLink } from "@/app/family-feed";
 
 export const metadata: Metadata = {
   title: "My Legacy | Never Say Goodbye",
@@ -208,9 +209,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                         <span aria-hidden="true" className="text-xl">❤️</span>
                         <div className="min-w-0">
                           <p className="break-words text-sm leading-5 text-slate-300">New family shout-out from <span className="font-semibold text-white">{activity.authorName}</span></p>
-                          <Link href={`/family-calendar?tree=${encodeURIComponent(activity.treeId)}#bulletin-${encodeURIComponent(activity.id)}`} className={`mt-1 inline-flex min-h-11 items-center text-sm font-semibold text-[color:var(--nsg-accent-light)] hover:underline ${actionFocusClassName}`}>
-                            View Shout-Out
-                          </Link>
+                          <FamilyFeedLink treeId={activity.treeId} bulletinId={activity.id} className={`mt-1 inline-flex min-h-11 items-center text-sm font-semibold text-[color:var(--nsg-accent-light)] hover:underline ${actionFocusClassName}`} />
                         </div>
                       </li>
                     );
@@ -485,6 +484,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           NeverSayGoodbye.life
         </p>
       </footer>
+      <FamilyFeed />
     </main>
   );
 }

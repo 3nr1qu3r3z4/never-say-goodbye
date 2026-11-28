@@ -2,9 +2,10 @@
 
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
-import { requireUser } from "@/lib/auth";
+import { getCurrentUser, requireUser } from "@/lib/auth";
 import { getSql } from "@/lib/db";
 import { validCalendarDate } from "@/lib/family-calendar";
+import { getCalendarSettings, getFamilyBulletins, type CalendarTree, type FamilyBulletin } from "@/lib/family-calendar-data";
 
 export type CalendarActionState = { error?: string; success?: string };
 
@@ -120,7 +121,28 @@ export async function createFamilyBulletin(
   if (!rows.length) return { error: "You must belong to the selected tree." };
   revalidatePath("/family-calendar");
   revalidatePath("/dashboard");
+  revalidatePath("/legacy-tree");
+  revalidatePath("/connected-lives");
   return { success: "Family Shout-Out shared!" };
+}
+
+export async function loadFamilyFeed(treeId: string | null): Promise<
+  { error: string; signIn?: boolean } |
+  { trees: CalendarTree[]; selectedTreeId: string | null; bulletins: FamilyBulletin[] }
+> {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Sign in to view Family Feed™.", signIn: true } as const;
+  if (treeId !== null && (typeof treeId !== "string" || !treeId.trim())) {
+    return { error: "Choose an available family tree." } as const;
+  }
+  const { trees } = await getCalendarSettings(user.id);
+  const selected = treeId === null ? trees[0] : trees.find((tree) => tree.id === treeId);
+  if (treeId !== null && !selected) return { error: "This family tree is no longer available." } as const;
+  return {
+    trees,
+    selectedTreeId: selected?.id ?? null,
+    bulletins: selected ? await getFamilyBulletins(user.id, selected.id) : [],
+  };
 }
 
 export async function enableCalendarImports(

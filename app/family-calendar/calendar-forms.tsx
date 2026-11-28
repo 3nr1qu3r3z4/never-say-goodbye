@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import {
   addRelationshipMilestone,
   createCalendarEvent,
@@ -17,8 +17,11 @@ const buttonClass = "mt-4 inline-flex min-h-11 items-center justify-center round
 
 type Action = (state: CalendarActionState, form: FormData) => Promise<CalendarActionState>;
 
-function ActionForm({ action, children, label }: { action: Action; children: React.ReactNode; label: string }) {
+function ActionForm({ action, children, label, onSuccess }: { action: Action; children: React.ReactNode; label: string; onSuccess?: () => void }) {
   const [state, formAction, pending] = useActionState(action, {});
+  useEffect(() => {
+    if (state.success) onSuccess?.();
+  }, [state, onSuccess]);
   return (
     <form action={formAction} className="space-y-3">
       {children}
@@ -97,9 +100,9 @@ export function ManualEvent({ treeId }: { treeId: string }) {
   );
 }
 
-export function BulletinForm({ treeId }: { treeId: string }) {
+export function BulletinForm({ treeId, onSuccess }: { treeId: string; onSuccess?: () => void }) {
   return (
-    <ActionForm action={createFamilyBulletin} label="Share Shout-Out">
+    <ActionForm action={createFamilyBulletin} label="Share Shout-Out" onSuccess={onSuccess}>
       <input type="hidden" name="treeId" value={treeId} />
       <div>
         <label htmlFor="shout-out-message" className="block text-sm text-slate-400">What&apos;s happening with the family today?</label>

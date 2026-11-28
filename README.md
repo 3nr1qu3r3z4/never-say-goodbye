@@ -210,11 +210,11 @@ The generation count is omitted when relationships remain unpositioned.
 
 ## Family Shout-Outs
 
-Apply migration 022 before deploying. Each Family Calendar has Family Shout-Outs
-for its selected Legacy Tree. Tree members can share quick notes of
-up to 300 characters; only current tree members can read or post them.
-Shout-outs are stored with their author and timestamp, and appear in the
-Moments in the Making feed. Posting does not send email notifications.
+Apply migration 022 before deploying. Family Feed™ is available from My Legacy™,
+Family Calendar™, Legacy Tree™, and Connected Lives™. Members select a Legacy Tree
+to read or post shout-outs of up to 300 characters; only current members of that
+tree can access them. Shout-outs include their author and timestamp and appear
+in Moments in the Making. Posting does not send email notifications.
 
 ## Run locally and deploy
 

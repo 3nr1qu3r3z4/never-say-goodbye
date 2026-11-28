@@ -21,6 +21,12 @@ function loadModule(relativePath, dependencies = {}) {
   vm.runInNewContext(compiled, {
     exports, Date,
     require: (name) => {
+      if (name === "@/app/family-feed" && !(name in dependencies)) return {
+        default: () => React.createElement("button", null, "Family Feed™"),
+        FamilyFeedLink: ({ treeId, bulletinId, className }) => React.createElement("a", {
+          href: `/family-calendar?tree=${encodeURIComponent(treeId)}#bulletin-${encodeURIComponent(bulletinId)}`, className,
+        }, "View Shout-Out"),
+      };
       if (!(name in dependencies)) throw new Error(`Unexpected import: ${name}`);
       return dependencies[name];
     },
@@ -304,6 +310,7 @@ test("family bulletins share the recent activity limit and link to their calenda
   }));
   const bulletins = [{ id: "bulletin", treeId: "family", authorName: "Enrique", createdAt: "2026-01-06T00:00:00Z", message: "Hello" }];
   const html = renderToStaticMarkup(await loadDashboard(data, false, moments, bulletins)());
+  assert.match(html, /Family Feed™/);
   const feed = html.match(/<section aria-labelledby="moments-in-the-making-heading"[\s\S]*?<\/section>/)?.[0];
   assert.match(feed, /New family shout-out from/);
   assert.match(feed, /href="\/family-calendar\?tree=family#bulletin-bulletin"[^>]*>View Shout-Out/);
@@ -527,6 +534,7 @@ test("pending incoming requests are highlighted above the directory with visible
     "./directory": { default: ({ connections }) => React.createElement("section", { id: "directory" }, `Directory: ${connections.length} existing connections`) },
   }).default;
   const html = renderToStaticMarkup(await page());
+  assert.match(html, /Family Feed™/);
   const section = html.match(/<section[^>]*aria-labelledby="requests-heading"[\s\S]*?<\/section>/)?.[0];
   assert.ok(section);
   assert.match(section, /border-\[color:var\(--nsg-accent\)\]\/50/);

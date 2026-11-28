@@ -2,11 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
-import { getCalendarEvents, getCalendarSettings, getFamilyBulletins } from "@/lib/family-calendar-data";
+import { getCalendarEvents, getCalendarSettings } from "@/lib/family-calendar-data";
 import { getTreeMilestones } from "@/lib/tree-milestones-data";
 import { milestoneDate } from "@/lib/tree-milestones";
-import { datedCalendarMilestones, occurrences, validCalendarDate, type CalendarEvent } from "@/lib/family-calendar";
-import { BulletinForm, ManualEvent, ReminderSettings } from "./calendar-forms";
+import { datedCalendarMilestones, occurrences, upcomingOccurrences, validCalendarDate, type CalendarEvent } from "@/lib/family-calendar";
+import FamilyFeed from "@/app/family-feed";
+import { ManualEvent, ReminderSettings } from "./calendar-forms";
 
 export const metadata: Metadata = {
   title: "Family Calendar™ | Never Say Goodbye",
@@ -22,7 +23,7 @@ const readable = (date: string, options: Intl.DateTimeFormatOptions) =>
 function eventIcon(id: string) {
   if (id.startsWith("birthday:") || id.startsWith("placeholder-birthday:")) return "🎂";
   if (id.startsWith("memorial:") || id.startsWith("placeholder-memorial:") || id.startsWith("honored-passing:")) return "🕊";
-  if (id.startsWith("anniversary:")) return "❤️";
+  if (id.startsWith("anniversary:")) return "💍";
   if (id.startsWith("tree-birthday:")) return "🎂";
   if (id.startsWith("tree-anniversary:") || id.startsWith("tree-wedding:")) return "💍";
   if (id.startsWith("tree-graduation:")) return "🎓";
@@ -67,17 +68,19 @@ export default async function FamilyCalendarPage({
       : base;
   const count = view === "month" ? 42 : view === "week" ? 7 : 90;
   const end = new Date(start.getTime() + (count - 1) * dayMs);
-  const [legacyEvents, milestones, bulletins] = selected
+  const [legacyEvents, milestones] = selected
     ? await Promise.all([
         getCalendarEvents(user.id, selected.id),
         getTreeMilestones(user.id, selected.id),
-        getFamilyBulletins(user.id, selected.id),
       ])
-    : [[], [], []];
+    : [[], []];
   const datedMilestones = datedCalendarMilestones(milestones);
   const partialMilestones = milestones.filter((milestone) => milestone.month === null || milestone.day === null);
   const allEvents = [...legacyEvents, ...datedMilestones];
   const events = occurrences(allEvents, dateText(start), dateText(end));
+  const today = dateText(new Date());
+  const tomorrow = dateText(new Date(new Date(`${today}T00:00:00Z`).getTime() + dayMs));
+  const upcoming = upcomingOccurrences(allEvents, today);
   const link = (nextView: string, date = anchor) => {
     const query = new URLSearchParams({ view: nextView, date });
     if (selected) query.set("tree", selected.id);
@@ -101,7 +104,7 @@ export default async function FamilyCalendarPage({
           <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400">Family milestones are managed in your Legacy Tree™ and appear here automatically when shared with this tree.</p>
         </header>
         <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
-          <section aria-label="Family calendar" className="min-w-0 rounded-3xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-4 sm:p-6">
+          <div className="min-w-0">
             {!selected ? (
               <p className="text-slate-300">Create or join a Legacy Tree™ to see its family calendar. <Link href="/legacy-tree" className="text-[color:var(--nsg-accent-light)] underline">Explore Legacy Tree™</Link></p>
             ) : (
@@ -116,6 +119,23 @@ export default async function FamilyCalendarPage({
                     <button className="min-h-11 rounded-xl border border-[color:var(--nsg-border)]/20 px-4 text-sm">View Calendar</button>
                   </div>
                 </form>
+                <section aria-labelledby="upcoming-family-moments" className="mb-6 rounded-3xl border border-[color:var(--nsg-accent)]/30 bg-[color:var(--nsg-accent)]/[0.06] p-5 sm:p-6">
+                  <h2 id="upcoming-family-moments" className="font-serif text-2xl text-white">Upcoming Family Moments</h2>
+                  {upcoming.length ? <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+                    {upcoming.map((event) => <li key={`${event.id}-${event.date}`} className="flex items-start gap-3 rounded-xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-4">
+                      <span aria-hidden="true" className="text-xl">{eventIcon(event.id)}</span>
+                      <div className="min-w-0">
+                        <p className="break-words font-semibold text-white">{event.title}</p>
+                        <time dateTime={event.date} className="mt-1 block text-sm text-slate-400">
+                          {event.date === today ? "Today" : event.date === tomorrow ? "Tomorrow" : readable(event.date, {
+                            month: "long", day: "numeric", ...(event.date.slice(0, 4) !== today.slice(0, 4) ? { year: "numeric" } : {}),
+                          })}
+                        </time>
+                      </div>
+                    </li>)}
+                  </ul> : <p className="mt-4 text-sm text-slate-400">No upcoming family moments.</p>}
+                </section>
+                <section aria-label="Family calendar" className="rounded-3xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-4 sm:p-6">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div className="flex flex-wrap gap-2" aria-label="Calendar views">
                     {["month", "week", "agenda"].map((item) => (
@@ -127,28 +147,6 @@ export default async function FamilyCalendarPage({
                     <Link href={link(view, dateText(new Date()))}>Today</Link>
                     {next.getUTCFullYear() <= 9998 && <Link href={link(view, dateText(next))}>Next →</Link>}
                   </div>
-                  {selected && (
-                    <section id="bulletins" aria-labelledby="bulletin-heading" className="mt-6 scroll-mt-6 rounded-3xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-5 sm:p-6">
-                      <h2 id="bulletin-heading" className="font-serif text-2xl text-white">❤️ Family Shout-Outs</h2>
-                      <div className="mt-5"><BulletinForm key={selected.id} treeId={selected.id} /></div>
-                      {bulletins.length ? (
-                        <>
-                          <h3 className="mt-5 font-serif text-lg text-white">Recent Family Shout-Outs</h3>
-                          <ol className="mt-3 space-y-3">
-                            {bulletins.map((bulletin) => (
-                              <li id={`bulletin-${bulletin.id}`} key={bulletin.id} className="scroll-mt-6 rounded-xl border border-[color:var(--nsg-border)]/10 p-4">
-                                <p className="font-semibold text-white">{bulletin.authorName}</p>
-                                <time dateTime={bulletin.createdAt} className="mt-1 block text-xs text-slate-400">
-                                  {new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" }).format(new Date(bulletin.createdAt))} UTC
-                                </time>
-                                <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-slate-200">{bulletin.message}</p>
-                              </li>
-                            ))}
-                          </ol>
-                        </>
-                      ) : <p className="mt-5 text-sm text-slate-400">No family shout-outs yet. Share a little something with your family.</p>}
-                    </section>
-                  )}
                 </div>
                 <h2 className="my-6 font-serif text-2xl text-white">
                   {view === "month" ? readable(anchor, { month: "long", year: "numeric" }) : `${readable(dateText(start), { month: "short", day: "numeric", year: "numeric" })} – ${readable(dateText(end), { month: "short", day: "numeric", year: "numeric" })}`}
@@ -173,15 +171,17 @@ export default async function FamilyCalendarPage({
                 </section>}
                 {!allEvents.length && !partialMilestones.length && <p className="mt-6 rounded-xl border border-[color:var(--nsg-accent)]/20 p-4 text-sm leading-6 text-slate-300">Your Family Calendar is waiting for family dates. Add milestones in your Legacy Tree™ or add a family event here.</p>}
                 <p className="mt-5 text-sm text-slate-400">Manage milestones and sharing in <Link href="/legacy-tree" className="text-[color:var(--nsg-accent-light)] underline">Legacy Tree™</Link>.</p>
+                </section>
               </>
             )}
-          </section>
+          </div>
           <aside aria-label="Calendar settings" className="space-y-4">
             {selected && <ManualEvent treeId={selected.id} />}
             <ReminderSettings reminders={reminders} />
           </aside>
         </div>
       </div>
+      <FamilyFeed initialTreeId={selected?.id ?? null} />
     </main>
   );
 }

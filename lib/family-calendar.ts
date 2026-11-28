@@ -47,3 +47,17 @@ export function occurrences(events: CalendarEvent[], start: string, end: string)
     return dates;
   }).sort((a, b) => a.date.localeCompare(b.date) || a.title.localeCompare(b.title));
 }
+
+export function upcomingOccurrences(events: CalendarEvent[], today: string): CalendarEvent[] {
+  const currentYear = Number(today.slice(0, 4));
+  return events.flatMap((event) => {
+    if (!event.repeatsYearly) {
+      return validCalendarDate(event.date) && event.date >= today ? [event] : [];
+    }
+    const firstYear = event.date.startsWith("--") ? currentYear : Math.max(currentYear, Number(event.date.slice(0, 4)));
+    if (!Number.isInteger(firstYear) || firstYear > 9999) return [];
+    const start = firstYear === currentYear ? today : `${firstYear}-01-01`;
+    const end = `${Math.min(firstYear + 8, 9999)}-12-31`;
+    return occurrences([event], start, end).slice(0, 1);
+  }).sort((a, b) => a.date.localeCompare(b.date) || a.title.localeCompare(b.title));
+}

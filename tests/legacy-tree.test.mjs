@@ -58,8 +58,10 @@ test("tree page never renders the hard-coded example family", () => {
     "react/jsx-runtime": jsxRuntime,
     react: React,
     "./family-members": { default: () => null },
+    "@/app/family-feed": { default: () => React.createElement("button", null, "Family Feed™") },
   }).default;
   const html = renderToStaticMarkup(React.createElement(page));
+  assert.match(html, /Family Feed™/);
   assert.doesNotMatch(html, /John Michael Doe|Mary Elizabeth Doe|James Michael Doe|Emma Rose Doe|Debbie Doe|Bobby Hayes/);
 });
 

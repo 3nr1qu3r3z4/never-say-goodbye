@@ -21,6 +21,9 @@ function loadModule(relativePath, dependencies = {}, globals = {}) {
   vm.runInNewContext(compiled, {
     exports,
     require: (name) => {
+      if (name === "@/app/family-feed" && !(name in dependencies)) return {
+        default: () => React.createElement("button", null, "Family Feed™"),
+      };
       if (!(name in dependencies)) throw new Error(`Unexpected import: ${name}`);
       return dependencies[name];
     },
@@ -52,6 +55,50 @@ test("dates reject invalid values and yearly occurrences respect leap years and 
     ["2024-02-29", "2025-03-01", "2028-02-29"]);
   assert.deepEqual(Array.from(calendar.occurrences(events.slice(2), "2026-01-01", "2027-12-31"), (event) => event.date),
     ["2026-05-12", "2027-05-12"]);
+});
+
+test("upcoming dates select the next real occurrence, including future starts and leap days", () => {
+  const events = [
+    { id: "past", title: "Past", date: "2026-03-01", repeatsYearly: false },
+    { id: "today", title: "Today", date: "2026-03-10", repeatsYearly: false },
+    { id: "tomorrow", title: "Tomorrow", date: "2026-03-11", repeatsYearly: false },
+    { id: "yearless", title: "Birthday", date: "--01-02", repeatsYearly: true },
+    { id: "leap", title: "Leap", date: "--02-29", repeatsYearly: true },
+    { id: "future", title: "Future", date: "2030-01-03", repeatsYearly: true },
+  ];
+  assert.deepEqual(Array.from(calendar.upcomingOccurrences(events, "2026-03-10"), ({ id, date }) => `${id}:${date}`), [
+    "today:2026-03-10", "tomorrow:2026-03-11", "yearless:2027-01-02", "leap:2028-02-29", "future:2030-01-03",
+  ]);
+});
+
+test("upcoming section uses today rather than the browsed calendar date", async () => {
+  const today = new Date().toISOString().slice(0, 10);
+  const tomorrow = new Date(Date.parse(`${today}T00:00:00Z`) + 86400000).toISOString().slice(0, 10);
+  const yesterday = new Date(Date.parse(`${today}T00:00:00Z`) - 86400000).toISOString().slice(0, 10);
+  const page = loadModule("app/family-calendar/page.tsx", {
+    "react/jsx-runtime": jsxRuntime,
+    "next/link": { default: ({ href, children }) => React.createElement("a", { href }, children) },
+    "next/navigation": { notFound: () => { throw new Error("not found"); } },
+    "@/lib/auth": { requireUser: async () => ({ id: "owner" }) },
+    "@/lib/family-calendar": calendar,
+    "@/lib/tree-milestones": milestones,
+    "@/lib/tree-milestones-data": { getTreeMilestones: async () => [] },
+    "@/lib/family-calendar-data": {
+      getCalendarSettings: async () => ({ reminders: {}, trees: [{ id: "tree", name: "Family" }] }),
+      getCalendarEvents: async () => [
+        { id: "past", title: "Past event", date: yesterday, repeatsYearly: false },
+        { id: "today", title: "Today event", date: today, repeatsYearly: false },
+        { id: "tomorrow", title: "Tomorrow event", date: tomorrow, repeatsYearly: false },
+      ],
+    },
+    "./calendar-forms": { ManualEvent: () => null, ReminderSettings: () => null },
+  }).default;
+  const html = renderToStaticMarkup(await page({ searchParams: Promise.resolve({ date: "2040-01-01" }) }));
+  const upcoming = html.match(/<section aria-labelledby="upcoming-family-moments"[\s\S]*?<\/section>/)?.[0];
+  assert.ok(upcoming);
+  assert.match(upcoming, /Today event[\s\S]*?>Today<\/time>[\s\S]*?Tomorrow event[\s\S]*?>Tomorrow<\/time>/);
+  assert.doesNotMatch(upcoming, /Past event/);
+  assert.ok(html.indexOf("Upcoming Family Moments") < html.indexOf('aria-label="Family calendar"'));
 });
 
 test("calendar places exact milestones and separately shows partial or unknown dates", async () => {
@@ -272,8 +319,9 @@ test("empty calendar directs milestone management to the tree", async () => {
     ),
   }).default;
   const html = renderToStaticMarkup(await page({ searchParams: Promise.resolve({ date: "2026-05-04" }) }));
-  assert.match(html, /❤️ Family Shout-Outs/);
-  assert.match(html, /No family shout-outs yet/);
+  assert.match(html, /Upcoming Family Moments/);
+  assert.match(html, /No upcoming family moments/);
+  assert.match(html, /Family Feed™/);
   assert.match(html, /Your Family Calendar is waiting for family dates/);
   assert.match(html, /Add milestones in your Legacy Tree/);
   assert.doesNotMatch(html, /Enable Family Date Sync/);
@@ -299,7 +347,7 @@ test("calendar forms explain sync, privacy, and full-date requirements", () => {
   assert.match(shoutOut, />Share Shout-Out<\/button>/);
 });
 
-test("family shout-outs retain author, time, message and existing deep links", async () => {
+test("calendar no longer renders shout-outs in its page content", async () => {
   const page = loadModule("app/family-calendar/page.tsx", {
     "react/jsx-runtime": jsxRuntime,
     "next/link": { default: ({ href, children }) => React.createElement("a", { href }, children) },
@@ -318,8 +366,107 @@ test("family shout-outs retain author, time, message and existing deep links", a
     ),
   }).default;
   const html = renderToStaticMarkup(await page({ searchParams: Promise.resolve({ tree: "tree", date: "2026-11-19" }) }));
-  assert.match(html, /Recent Family Shout-Outs/);
-  assert.match(html, /id="bulletin-note"[\s\S]*?Enrique[\s\S]*?dateTime="2026-11-19T19:21:00Z"[\s\S]*?Happy Birthday!/);
+  assert.doesNotMatch(html, /Recent Family Shout-Outs|Happy Birthday!|bulletin-note/);
+  assert.match(html, /Family Feed™/);
+});
+
+test("family feed opens linked shout-outs, switches trees, refreshes after posting, and ignores stale loads", async () => {
+  const states = [], refs = [], effects = [], pending = [], listeners = {};
+  let stateIndex = 0, refIndex = 0, controls = [], refreshes = 0, scrolled = "";
+  const dialog = { open: false, showModal() { this.open = true; }, close() { this.open = false; } };
+  const react = {
+    useState(initial) {
+      const index = stateIndex++;
+      if (!(index in states)) states[index] = initial;
+      return [states[index], (value) => { states[index] = value; }];
+    },
+    useRef(initial) {
+      const index = refIndex++;
+      if (!(index in refs)) refs[index] = { current: index === 0 ? dialog : initial };
+      return refs[index];
+    },
+    useCallback: (callback) => callback,
+    useEffect: (effect) => { effects.push(effect); },
+  };
+  const capture = (factory) => (type, props, key) => {
+    if (type === "button" || type === "select" || type === "a" || type === "dialog" || type === BulletinForm) controls.push({ type, ...props });
+    return factory(type, props, key);
+  };
+  const BulletinForm = () => React.createElement("div", null, "Shout-Out form");
+  const windowMock = {
+    location: { hash: "#bulletin-note", search: "?tree=one" },
+    addEventListener: (name, handler) => { listeners[name] = handler; },
+    removeEventListener: () => {},
+    dispatchEvent: (event) => listeners[event.type](event),
+  };
+  const feed = loadModule("app/family-feed.tsx", {
+    react,
+    "react/jsx-runtime": { ...jsxRuntime, jsx: capture(jsxRuntime.jsx), jsxs: capture(jsxRuntime.jsxs) },
+    "next/navigation": { useRouter: () => ({ refresh: () => { refreshes++; } }) },
+    "@/app/actions/family-calendar": { loadFamilyFeed: (tree) => new Promise((resolve) => pending.push({ tree, resolve })) },
+    "@/app/family-calendar/calendar-forms": { BulletinForm },
+  }, {
+    window: windowMock,
+    document: { getElementById: (id) => ({ scrollIntoView: () => { scrolled = id; } }) },
+    CustomEvent: class { constructor(type, options) { this.type = type; this.detail = options.detail; } },
+  });
+  const render = () => {
+    stateIndex = 0; refIndex = 0; controls = []; effects.length = 0;
+    return renderToStaticMarkup(feed.default({}));
+  };
+  const data = (selectedTreeId, bulletins = []) => ({
+    trees: [{ id: "one", name: "One" }, { id: "two", name: "Two" }], selectedTreeId, bulletins,
+  });
+  const settle = () => new Promise((resolve) => setImmediate(resolve));
+  render();
+  effects[0]();
+  assert.equal(dialog.open, true);
+  assert.equal(pending[0].tree, "one");
+  pending[0].resolve(data("one", [{ id: "note", authorName: "Enrique", createdAt: "2026-11-19T19:21:00Z", message: "Hello family" }]));
+  await settle();
+  let html = render();
+  effects[1]();
+  assert.equal(scrolled, "bulletin-note");
+  assert.match(html, /Enrique[\s\S]*?dateTime="2026-11-19T19:21:00Z"[\s\S]*?Hello family/);
+  controls.find((control) => control.type === "select").onChange({ target: { value: "two" } });
+  // A dashboard link can open another tree while the first request is still in flight.
+  feed.FamilyFeedLink({ treeId: "one", bulletinId: "note" }).props.onClick({
+    button: 0, preventDefault() {},
+  });
+  assert.equal(pending.at(-1).tree, "one");
+  pending.at(-1).resolve(data("one"));
+  await settle();
+  pending[1].resolve(data("two"));
+  await settle();
+  html = render();
+  assert.match(html, /No family shout-outs yet/);
+  assert.equal(controls.find((control) => control.type === BulletinForm).treeId, "one");
+  controls.find((control) => control.type === BulletinForm).onSuccess();
+  assert.equal(refreshes, 1);
+  assert.equal(pending.at(-1).tree, "one");
+  pending.at(-1).resolve(data("one", [{ id: "new", authorName: "Family", createdAt: "2026-11-19T19:21:00Z", message: "New update" }]));
+  await settle();
+  assert.match(render(), /New update/);
+  controls.find((control) => control.type === "select").onChange({ target: { value: "two" } });
+  pending.at(-1).resolve({ error: "Could not load tree." });
+  await settle();
+  assert.match(render(), /Could not load tree/);
+  controls.find((control) => control.type === "button" && control.children === "Try Again").onClick();
+  assert.equal(pending.at(-1).tree, "two");
+  pending.at(-1).resolve(data("two"));
+  await settle();
+  render();
+  assert.equal(controls.find((control) => control.type === BulletinForm).treeId, "two");
+  controls.find((control) => control.type === "button" && control.children === "Family Feed™").onClick();
+  pending.at(-1).resolve({ error: "Sign in to view Family Feed™.", signIn: true });
+  await settle();
+  assert.match(render(), /href="\/login"[^>]*>Sign In/);
+  controls.find((control) => control.type === "button" && control.children === "Family Feed™").onClick();
+  pending.at(-1).resolve({ trees: [], selectedTreeId: null, bulletins: [] });
+  await settle();
+  assert.match(render(), /Create or join a .*Legacy Tree™/);
+  controls.find((control) => control.type === "dialog").onKeyDown({ key: "Escape" });
+  assert.equal(dialog.open, false);
 });
 
 test("family calendar authorization, consent and live imports in disposable PostgreSQL", {
@@ -356,13 +503,14 @@ test("family calendar authorization, consent and live imports in disposable Post
     const dependencies = {
       "node:crypto": { randomUUID: () => `event-${Math.random()}` },
       "next/cache": { revalidatePath: () => {} },
-      "@/lib/auth": { requireUser: async () => ({ id: currentUser }) },
+      "@/lib/auth": { requireUser: async () => ({ id: currentUser }), getCurrentUser: async () => currentUser ? { id: currentUser } : null },
       "@/lib/db": { getSql: () => sql },
       "@/lib/family-calendar": calendar,
       "server-only": {},
     };
-    const actions = loadModule("app/actions/family-calendar.ts", dependencies);
     const data = loadModule("lib/family-calendar-data.ts", dependencies);
+    dependencies["@/lib/family-calendar-data"] = data;
+    const actions = loadModule("app/actions/family-calendar.ts", dependencies);
     const treeActions = loadModule("app/actions/tree-milestones.ts", dependencies);
     const treeData = loadModule("lib/tree-milestones-data.ts", dependencies);
     const save = (type, id, firstDate, secondDate = "") => actions.saveTreeSourceDate({}, form({
@@ -417,6 +565,15 @@ test("family calendar authorization, consent and live imports in disposable Post
     assert.ok((await actions.createFamilyBulletin({}, form({ treeId: "tree", message: "x".repeat(301) }))).error);
     assert.ok((await actions.createFamilyBulletin({}, form({ treeId: "tree", message: "x".repeat(300) }))).success);
     assert.equal((await data.getFamilyBulletins("member", "tree"))[0].message.length, 300);
+    currentUser = "member";
+    assert.equal((await actions.loadFamilyFeed(null)).selectedTreeId, "tree");
+    assert.equal((await actions.loadFamilyFeed("tree")).bulletins[0].message.length, 300);
+    currentUser = "outsider";
+    assert.ok((await actions.loadFamilyFeed("tree")).error);
+    assert.equal((await actions.loadFamilyFeed(null)).selectedTreeId, null);
+    currentUser = null;
+    assert.equal((await actions.loadFamilyFeed("tree")).signIn, true);
+    currentUser = "owner";
     assert.ok((await actions.createFamilyBulletin({}, form({ treeId: "tree", message: "❤️".repeat(301) }))).error);
     assert.ok((await actions.createFamilyBulletin({}, form({ treeId: "tree", message: "😀".repeat(300) }))).success);
     assert.equal((await data.getFamilyBulletins("member", null))[0].authorName, "owner");

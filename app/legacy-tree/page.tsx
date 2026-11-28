@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import FamilyMembers from "./family-members";
+import FamilyFeed from "@/app/family-feed";
 
 export const metadata: Metadata = {
   title: "Legacy Tree™ | Never Say Goodbye",
@@ -29,6 +30,7 @@ export default function LegacyTreePage() {
       <Suspense fallback={<p className="pb-16 text-center text-sm text-slate-400">Loading your Legacy Tree™…</p>}>
         <FamilyMembers />
       </Suspense>
+      <FamilyFeed />
     </main>
   );
 }
