@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
-import { getCalendarEvents, getCalendarNotes, getCalendarSettings } from "@/lib/family-calendar-data";
+import { getCalendarEvents, getCalendarSettings } from "@/lib/family-calendar-data";
 import { getTreeMilestones } from "@/lib/tree-milestones-data";
 import { milestoneDate } from "@/lib/tree-milestones";
 import { calendarEventIcon, datedCalendarMilestones, occurrences, upcomingOccurrences, validCalendarDate, type CalendarEvent } from "@/lib/family-calendar";
@@ -74,7 +74,6 @@ export default async function FamilyCalendarPage({
   const today = dateText(new Date());
   const tomorrow = dateText(new Date(new Date(`${today}T00:00:00Z`).getTime() + dayMs));
   const upcoming = upcomingOccurrences(allEvents, today);
-  const notes = selected ? await getCalendarNotes(user.id, selected.id, today) : [];
   const link = (nextView: string, date = anchor) => {
     const query = new URLSearchParams({ view: nextView, date });
     return `/family-calendar?${query.toString()}`;
@@ -104,7 +103,7 @@ export default async function FamilyCalendarPage({
               </>
             ) : (
               <>
-                <UpcomingFamilyMoments events={upcoming} notes={notes} treeId={selected.id} today={today} tomorrow={tomorrow} />
+                <UpcomingFamilyMoments events={upcoming} treeId={selected.id} today={today} tomorrow={tomorrow} />
                 <section aria-label="Family calendar" className="rounded-3xl border border-[color:var(--nsg-border)]/10 bg-white/[0.03] p-4 sm:p-6">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div className="flex flex-wrap gap-2">

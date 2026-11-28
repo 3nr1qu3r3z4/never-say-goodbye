@@ -4,8 +4,8 @@ import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { getCurrentUser, requireUser } from "@/lib/auth";
 import { getSql } from "@/lib/db";
-import { datedCalendarMilestones, upcomingOccurrences, validCalendarDate } from "@/lib/family-calendar";
-import { getCalendarEvents, getCalendarSettings, getFamilyBulletins, type CalendarTree, type FamilyBulletin } from "@/lib/family-calendar-data";
+import { datedCalendarMilestones, occurrences, validCalendarDate, type CalendarEvent, type FamilyEventActivity, type FamilyEventTarget, type FamilyEventUpdate } from "@/lib/family-calendar";
+import { getCalendarEvents, getCalendarSettings, getFamilyBulletins, getFamilyEventUpdates, type CalendarTree, type FamilyBulletin } from "@/lib/family-calendar-data";
 import { getTreeMilestones } from "@/lib/tree-milestones-data";
 
 export type CalendarActionState = { error?: string; success?: string };
@@ -102,54 +102,62 @@ export async function createCalendarEvent(
   return { success: "Family event added." };
 }
 
-export async function saveCalendarEventNote(
-  treeId: string, eventId: string, date: string, note: string,
-): Promise<{ error: string } | { note: string }> {
-  const user = await requireUser();
-  if (typeof treeId !== "string" || !treeId || typeof eventId !== "string" || !eventId || eventId.length > 512 ||
-      typeof date !== "string" || !validCalendarDate(date) || typeof note !== "string" || note.length > 1000) {
-    return { error: "Enter a valid note of up to 1,000 characters." };
-  }
-  const { trees } = await getCalendarSettings(user.id);
-  if (!trees.some((tree) => tree.id === treeId && tree.ownerId === user.id)) {
-    return { error: "This family calendar is no longer available." };
-  }
+function validEventTarget(target: FamilyEventTarget): boolean {
+  return Boolean(target && typeof target.treeId === "string" && target.treeId &&
+    typeof target.eventId === "string" && target.eventId && target.eventId.length <= 512 &&
+    typeof target.date === "string" && validCalendarDate(target.date));
+}
+
+async function familyEvents(userId: string, treeId: string): Promise<CalendarEvent[]> {
   const [events, milestones] = await Promise.all([
-    getCalendarEvents(user.id, treeId),
-    getTreeMilestones(user.id, treeId),
+    getCalendarEvents(userId, treeId),
+    getTreeMilestones(userId, treeId),
   ]);
-  const today = new Date().toISOString().slice(0, 10);
-  if (!upcomingOccurrences([...events, ...datedCalendarMilestones(milestones)], today)
-    .some((event) => event.id === eventId && event.date === date)) {
-    return { error: "This upcoming family moment is no longer available." };
+  return [...events, ...datedCalendarMilestones(milestones)];
+}
+
+async function availableEvent(userId: string, target: FamilyEventTarget): Promise<CalendarEvent | undefined> {
+  const events = await familyEvents(userId, target.treeId);
+  return occurrences(events, target.date, target.date).find((event) => event.id === target.eventId);
+}
+
+export async function loadFamilyEvent(target: FamilyEventTarget): Promise<
+  { error: string } | { event: CalendarEvent; updates: FamilyEventUpdate[] }
+> {
+  const user = await getCurrentUser();
+  if (!user || !validEventTarget(target)) return { error: "This family event is unavailable." };
+  const event = await availableEvent(user.id, target);
+  if (!event) return { error: "This family event is unavailable." };
+  return { event, updates: await getFamilyEventUpdates(user.id, target) };
+}
+
+export async function postFamilyEventUpdate(target: FamilyEventTarget, message: string): Promise<
+  { error: string } | { update: FamilyEventUpdate }
+> {
+  const user = await requireUser();
+  if (!validEventTarget(target) || typeof message !== "string" || !message.trim() || message.length > 1000) {
+    return { error: "Enter an update of up to 1,000 characters." };
   }
-  const value = note.trim();
+  if (!await availableEvent(user.id, target)) return { error: "This family event is unavailable." };
   const sql = getSql();
-  const rows = value ? await sql`
-    INSERT INTO family_calendar_notes (user_id, tree_id, event_id, occurrence_date, note)
-    SELECT ${user.id}, tree.id, ${eventId}, ${date}::date, ${value}
-    FROM legacy_trees tree
-    JOIN legacy_tree_members member ON member.tree_id = tree.id AND member.user_id = ${user.id}
-    WHERE tree.id = ${treeId} AND tree.owner_user_id = ${user.id}
-    ON CONFLICT (user_id, tree_id, event_id, occurrence_date)
-    DO UPDATE SET note = EXCLUDED.note
-    RETURNING user_id
-  ` : await sql`
-    WITH access AS (
-      SELECT tree.id FROM legacy_trees tree
-      JOIN legacy_tree_members member ON member.tree_id = tree.id AND member.user_id = ${user.id}
-      WHERE tree.id = ${treeId} AND tree.owner_user_id = ${user.id}
-    ), removed AS (
-      DELETE FROM family_calendar_notes
-      WHERE user_id = ${user.id} AND tree_id IN (SELECT id FROM access)
-        AND event_id = ${eventId} AND occurrence_date = ${date}::date
-      RETURNING user_id
+  const rows = await sql`
+    WITH inserted AS (
+      INSERT INTO family_event_updates (id, tree_id, event_id, occurrence_date, author_user_id, message)
+      SELECT ${randomUUID()}, member.tree_id, ${target.eventId}, ${target.date}::date, ${user.id}, ${message.trim()}
+      FROM legacy_tree_members member
+      WHERE member.tree_id = ${target.treeId} AND member.user_id = ${user.id}
+      RETURNING id, author_user_id, message, created_at
     )
-    SELECT id FROM access
-  `;
-  if (!rows.length) return { error: "This family calendar is no longer available." };
+    SELECT inserted.id, inserted.message, inserted.created_at::text AS "createdAt",
+           COALESCE(NULLIF(BTRIM(author.display_name), ''), 'Moment Maker') AS "authorName"
+    FROM inserted JOIN users author ON author.id = inserted.author_user_id
+  ` as FamilyEventUpdate[];
+  if (!rows.length) return { error: "This family event is unavailable." };
   revalidatePath("/family-calendar");
-  return { note: value };
+  revalidatePath("/dashboard");
+  revalidatePath("/legacy-tree");
+  revalidatePath("/connected-lives");
+  return { update: rows[0] };
 }
 
 export async function createFamilyBulletin(
@@ -179,7 +187,7 @@ export async function createFamilyBulletin(
 
 export async function loadFamilyFeed(treeId: string | null): Promise<
   { error: string; signIn?: boolean } |
-  { trees: CalendarTree[]; selectedTreeId: string | null; bulletins: FamilyBulletin[] }
+  { trees: CalendarTree[]; selectedTreeId: string | null; bulletins: FamilyBulletin[]; updates: FamilyEventActivity[] }
 > {
   const user = await getCurrentUser();
   if (!user) return { error: "Sign in to view Family Feed™.", signIn: true } as const;
@@ -189,10 +197,25 @@ export async function loadFamilyFeed(treeId: string | null): Promise<
   const { trees } = await getCalendarSettings(user.id);
   const selected = treeId === null ? trees[0] : trees.find((tree) => tree.id === treeId);
   if (treeId !== null && !selected) return { error: "This family tree is no longer available." } as const;
+  const [bulletins, activity] = await Promise.all([
+    selected ? getFamilyBulletins(user.id, selected.id) : Promise.resolve([]),
+    getFamilyEventUpdates(user.id),
+  ]);
+  const treeIds = Array.from(new Set(activity.map((item) => item.treeId)));
+  const eventLists = await Promise.all(treeIds.map((id) => familyEvents(user.id, id)));
+  const eventsByTree = new Map(treeIds.map((id, index) => [
+    id, new Map(eventLists[index].map((event) => [event.id, event])),
+  ]));
+  const updates = activity.flatMap((item) => {
+    const source = eventsByTree.get(item.treeId)?.get(item.eventId);
+    const event = source && occurrences([source], item.date, item.date)[0];
+    return event ? [{ ...item, title: event.title }] : [];
+  }).reverse();
   return {
     trees,
     selectedTreeId: selected?.id ?? null,
-    bulletins: selected ? await getFamilyBulletins(user.id, selected.id) : [],
+    bulletins,
+    updates,
   };
 }
 

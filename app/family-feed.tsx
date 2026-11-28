@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState, type MouseEvent } from "react
 import { useRouter } from "next/navigation";
 import { loadFamilyFeed } from "@/app/actions/family-calendar";
 import { BulletinForm } from "@/app/family-calendar/calendar-forms";
+import FamilyEventDialog, { openFamilyEvent } from "@/app/family-event-dialog";
+import type { CalendarEvent, FamilyEventTarget, FamilyEventUpdate } from "@/lib/family-calendar";
 
 type FeedData = Extract<Awaited<ReturnType<typeof loadFamilyFeed>>, { trees: unknown }>;
 type FeedTarget = { treeId: string | null; bulletinId: string | null };
@@ -99,6 +101,15 @@ export default function FamilyFeed({ initialTreeId = null }: { initialTreeId?: s
     void load(data?.selectedTreeId ?? null);
   }, [data?.selectedTreeId, load, router]);
 
+  const onEventPosted = useCallback((eventTarget: FamilyEventTarget, event: CalendarEvent, update: FamilyEventUpdate) => {
+    setData((current) => {
+      if (!current) return current;
+      const tree = current.trees.find((item) => item.id === eventTarget.treeId);
+      if (!tree) return current;
+      return { ...current, updates: [{ ...eventTarget, ...update, title: event.title, treeName: tree.name }, ...current.updates] };
+    });
+  }, []);
+
   return (
     <>
       <button type="button" onClick={() => open(initialTreeId)} className="fixed bottom-5 right-5 z-40 min-h-12 rounded-full border border-[color:var(--nsg-accent)]/60 bg-[color:var(--nsg-surface)] px-5 text-sm font-semibold text-[color:var(--nsg-accent-light)] shadow-xl hover:bg-[color:var(--nsg-background)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--nsg-accent)]">
@@ -147,10 +158,26 @@ export default function FamilyFeed({ initialTreeId = null }: { initialTreeId?: s
                 </ol> : <p className="mt-3 text-sm text-slate-400">No family shout-outs yet.</p>}
                 {target && !data.bulletins.some((bulletin) => bulletin.id === target) && <p role="status" className="mt-3 text-sm text-slate-400">This shout-out is no longer available.</p>}
               </section>
+              <section className="mt-6" aria-labelledby="family-feed-updates">
+                <h3 id="family-feed-updates" className="font-serif text-xl text-white">Family Updates</h3>
+                {data.updates.length ? <ol className="mt-3 space-y-3">
+                  {data.updates.map((update) => <li key={update.id}>
+                    <button type="button" onClick={() => openFamilyEvent({ treeId: update.treeId, eventId: update.eventId, date: update.date })}
+                      className="w-full rounded-xl border border-[color:var(--nsg-border)]/10 p-4 text-left hover:border-[color:var(--nsg-accent)]/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--nsg-accent)]">
+                      <span className="block font-semibold text-white">{update.title}</span>
+                      <span className="mt-1 block text-xs text-slate-400">{update.treeName} · {update.authorName} · <time dateTime={update.createdAt}>
+                        {new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" }).format(new Date(update.createdAt))} UTC
+                      </time></span>
+                      <span className="mt-3 block whitespace-pre-wrap break-words text-sm leading-6 text-slate-200">{update.message}</span>
+                    </button>
+                  </li>)}
+                </ol> : <p className="mt-3 text-sm text-slate-400">No family updates yet.</p>}
+              </section>
             </>
           ) : <p className="mt-6 text-sm text-slate-300">Create or join a <a href="/legacy-tree" className="text-[color:var(--nsg-accent-light)] underline">Legacy Tree™</a> to share with family.</p>
         )}
       </dialog>
+      <FamilyEventDialog onPosted={onEventPosted} />
     </>
   );
 }

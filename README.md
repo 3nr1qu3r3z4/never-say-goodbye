@@ -107,8 +107,10 @@ be transferred again. A paid successor's stored plan is superseded; this applica
 does not currently manage external subscription cancellation.
 
 Family Calendar displays shared family dates and events from the current user's
-owned Legacy Tree. Apply migration 036 for private notes on individual upcoming
-event occurrences; notes do not repeat with yearly events. Reminder
+owned Legacy Tree. Apply migration 037 for append-only Family Updates on individual
+event occurrences. Current tree members can read and post updates, including from
+Family Feed across their accessible trees; updates do not repeat with yearly events.
+Earlier private notes are retained privately and are not published as updates. Reminder
 preferences can be saved, but automated notifications are not sent. Support
 is available to every family.
 
@@ -216,7 +218,8 @@ Apply migration 022 before deploying. Family Feed™ is available from My Legacy
 Family Calendar™, Legacy Tree™, and Connected Lives™. Members select a Legacy Tree
 to read or post shout-outs of up to 300 characters; only current members of that
 tree can access them. Shout-outs include their author and timestamp and appear
-in Moments in the Making. Posting does not send email notifications.
+in Moments in the Making. Family Updates appear here across accessible trees,
+independently of the shout-out tree selector. Posting does not send email notifications.
 
 ## Run locally and deploy
 

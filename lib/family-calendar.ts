@@ -8,6 +8,10 @@ export type CalendarEvent = {
   source: string;
 };
 
+export type FamilyEventTarget = { treeId: string; eventId: string; date: string };
+export type FamilyEventUpdate = { id: string; authorName: string; createdAt: string; message: string };
+export type FamilyEventActivity = FamilyEventUpdate & FamilyEventTarget & { title: string; treeName: string };
+
 export function calendarEventIcon(id: string): string {
   if (id.startsWith("birthday:") || id.startsWith("placeholder-birthday:")) return "🎂";
   if (id.startsWith("memorial:") || id.startsWith("placeholder-memorial:") || id.startsWith("honored-passing:")) return "🕊";

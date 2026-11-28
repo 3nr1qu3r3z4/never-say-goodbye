@@ -1,22 +1,30 @@
 import "server-only";
 
 import { getSql } from "@/lib/db";
-import type { CalendarEvent } from "@/lib/family-calendar";
+import type { CalendarEvent, FamilyEventTarget, FamilyEventUpdate } from "@/lib/family-calendar";
 import type { CalendarProfile, Reminders, SourceRecord } from "@/app/family-calendar/calendar-forms";
 
 export type CalendarTree = { id: string; name: string; role: string; ownerId: string };
 export type FamilyBulletin = { id: string; treeId: string; message: string; authorName: string; createdAt: string };
-export type CalendarNote = { eventId: string; date: string; note: string };
+export type FamilyEventUpdateRow = FamilyEventUpdate & FamilyEventTarget & { treeName: string };
 
-export async function getCalendarNotes(userId: string, treeId: string, today: string): Promise<CalendarNote[]> {
+export async function getFamilyEventUpdates(userId: string, target?: FamilyEventTarget): Promise<FamilyEventUpdateRow[]> {
   const sql = getSql();
   return await sql`
-    SELECT n.event_id AS "eventId", n.occurrence_date::text AS date, n.note
-    FROM family_calendar_notes n
-    JOIN legacy_trees t ON t.id = n.tree_id AND t.owner_user_id = ${userId}
-    JOIN legacy_tree_members member ON member.tree_id = t.id AND member.user_id = ${userId}
-    WHERE n.user_id = ${userId} AND n.tree_id = ${treeId} AND n.occurrence_date >= ${today}::date
-  ` as CalendarNote[];
+    SELECT e.id, e.tree_id AS "treeId", e.event_id AS "eventId",
+           e.occurrence_date::text AS date, e.message, e.created_at::text AS "createdAt",
+           tree.name AS "treeName",
+           COALESCE(NULLIF(BTRIM(author.display_name), ''), 'Moment Maker') AS "authorName"
+    FROM family_event_updates e
+    JOIN legacy_tree_members member ON member.tree_id = e.tree_id AND member.user_id = ${userId}
+    JOIN legacy_trees tree ON tree.id = e.tree_id
+    JOIN users author ON author.id = e.author_user_id
+    WHERE (${target?.treeId ?? null}::text IS NULL OR (
+      e.tree_id = ${target?.treeId ?? null} AND e.event_id = ${target?.eventId ?? null}
+      AND e.occurrence_date = ${target?.date ?? null}::date
+    ))
+    ORDER BY e.created_at ASC, e.id ASC
+  ` as FamilyEventUpdateRow[];
 }
 
 export async function getFamilyBulletins(userId: string, treeId: string | null): Promise<FamilyBulletin[]> {

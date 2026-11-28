@@ -182,6 +182,10 @@ const guides = [
         question: "How do Family Shout-Outs work?",
         answer: "Open Family Feed™ from My Legacy™, Family Calendar™, Legacy Tree™, or Connected Lives™. Select a Legacy Tree™ and share a quick note of up to 300 characters. Current members of that tree can read and share shout-outs. Shout-out emails are not sent yet.",
       },
+      {
+        question: "How do Family Updates work?",
+        answer: "Choose an Upcoming Family Moment to see its event updates and post a new one. Current members of that Legacy Tree™ can also find and open updates in Family Feed™, including updates from other trees they belong to. Updates stay with that event's date and are not repeated for later occurrences.",
+      },
     ],
   },
 ];
